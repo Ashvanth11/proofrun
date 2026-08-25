@@ -1,0 +1,70 @@
+areas:
+  agents:
+    description: >
+      Multi-agent systems, agentic workflows, LLM tool use, planning,
+      reasoning-action loops, and agent orchestration frameworks.
+    keywords:
+      - agent
+      - multi-agent
+      - agentic
+      - tool use
+      - tool calling
+      - function calling
+      - planning
+      - orchestration
+      - autonomous
+      - mcp
+      - model context protocol
+
+  evals-and-safety:
+    description: >
+      Evaluation of LLM systems and AI safety: benchmarks, LLM-as-judge,
+      hallucination detection, guardrails, red-teaming, interpretability.
+    keywords:
+      - evaluation
+      - eval
+      - benchmark
+      - llm-as-judge
+      - hallucination
+      - guardrail
+      - red team
+      - red-teaming
+      - interpretability
+      - alignment
+      - safety
+      - jailbreak
+
+  new-architectures:
+    description: >
+      Alternatives and extensions to the standard transformer: attention
+      variants, state-space models, long-context methods, novel training
+      or architecture ideas.
+    keywords:
+      - architecture
+      - attention
+      - transformer
+      - state space
+      - mamba
+      - ssm
+      - long context
+      - mixture of experts
+      - moe
+      - sparse
+      - recurrent
+      - diffusion language model
+
+  llm-observability:
+    description: >
+      Tracing, monitoring, cost tracking, and eval pipelines for LLM
+      applications in production.
+    keywords:
+      - observability
+      - tracing
+      - telemetry
+      - monitoring
+      - langfuse
+      - phoenix
+      - opentelemetry
+      - cost tracking
+      - token usage
+      - logging
