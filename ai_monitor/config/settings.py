@@ -1,12 +1,32 @@
 import os
+from pathlib import Path
 
+import yaml
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
+CONFIG_DIR = Path(__file__).parent
+INTERESTS_PATH = CONFIG_DIR / "interests.yaml"
 
-class Settings:
+
+class InterestArea(BaseModel):
+    description: str
+    keywords: list[str] = Field(default_factory=list)
+
+
+class Settings(BaseModel):
     anthropic_api_key: str = os.environ.get("ANTHROPIC_API_KEY", "")
+    interests: dict[str, InterestArea] = Field(default_factory=dict)
 
 
-settings = Settings()
+def load_interests(path: Path = INTERESTS_PATH) -> dict[str, InterestArea]:
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    return {
+        name: InterestArea(**area) for name, area in data["areas"].items()
+    }
+
+
+settings = Settings(interests=load_interests())
