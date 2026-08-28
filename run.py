@@ -7,6 +7,7 @@ import anthropic
 from ai_monitor.analysis import analyzer
 from ai_monitor.analysis.analyzer import Usage
 from ai_monitor import providers
+from ai_monitor.agent import runner as agent_runner
 from ai_monitor.config.settings import settings
 from ai_monitor.orchestrator import graph
 from ai_monitor.storage import db
@@ -106,6 +107,24 @@ def main(argv=None) -> int:
         help="fetch and store only; make no API calls",
     )
     parser.add_argument("--skip-fetch", action="store_true")
+    parser.add_argument(
+        "--agent",
+        action="store_true",
+        help="run the repo-analysis agent on GitHub items scoring above "
+        "--agent-threshold (costs several model calls and GitHub requests each)",
+    )
+    parser.add_argument(
+        "--agent-threshold",
+        type=float,
+        default=agent_runner.DEFAULT_AGENT_THRESHOLD,
+        help="minimum analyzer score for a repo to be worth investigating",
+    )
+    parser.add_argument(
+        "--agent-limit",
+        type=int,
+        default=5,
+        help="maximum repositories to investigate per run",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
@@ -185,6 +204,16 @@ def main(argv=None) -> int:
         total.cost_usd,
     )
 
+    agent_usage = Usage(model=analysis_model)
+    if args.agent:
+        _, agent_usage = agent_runner.run_agent_on_candidates(
+            conn,
+            client,
+            model=analysis_model,
+            threshold=args.agent_threshold,
+            limit=args.agent_limit,
+        )
+
     path, synth_usage = synthesizer.run(
         conn, client=client, min_score=args.min_score, model=synthesis_model
     )
@@ -193,10 +222,10 @@ def main(argv=None) -> int:
         return 0
 
     log.info(
-        "brief: %s | synthesis cost $%.4f | run total $%.4f",
+        "brief: %s | synthesis $%.4f | run total $%.4f",
         path,
         synth_usage.cost_usd,
-        total.cost_usd + synth_usage.cost_usd,
+        total.cost_usd + agent_usage.cost_usd + synth_usage.cost_usd,
     )
     return 0
 
