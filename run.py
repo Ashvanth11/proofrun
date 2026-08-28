@@ -8,10 +8,11 @@ from ai_monitor.analysis import analyzer
 from ai_monitor.analysis.analyzer import Usage
 from ai_monitor import providers
 from ai_monitor.config.settings import settings
+from ai_monitor.orchestrator import graph
 from ai_monitor.storage import db
 from ai_monitor.storage.models import Item
 from ai_monitor.synthesis import synthesizer
-from ai_monitor.watchers import arxiv
+from ai_monitor.watchers import arxiv, github, hn
 
 log = logging.getLogger("ai_monitor")
 
@@ -27,6 +28,45 @@ def _row_to_item(row) -> Item:
     )
 
 
+def _run_graph(conn, client, args, analysis_model, synthesis_model) -> int:
+    """Run the pipeline through LangGraph, with watchers fanning out in parallel."""
+    compiled = graph.build_graph(
+        conn,
+        client,
+        analysis_model=analysis_model,
+        synthesis_model=synthesis_model,
+        sources=args.sources,
+        max_results=args.max_results,
+        min_score=args.min_score,
+    )
+    final = compiled.invoke(graph.initial_state())
+
+    for err in final.get("source_errors", []):
+        log.warning("source degraded - %s", err)
+
+    analysis = Usage(
+        input_tokens=final["input_tokens"],
+        output_tokens=final["output_tokens"],
+        model=analysis_model,
+    )
+    synth_in, synth_out = final.get("synthesis_tokens", (0, 0))
+    synthesis = Usage(
+        input_tokens=synth_in, output_tokens=synth_out, model=synthesis_model
+    )
+
+    log.info(
+        "stored %d | analyzed %d, skipped %d, failed %d | cost $%.4f",
+        len(final.get("item_ids", [])),
+        final["analyzed"],
+        final["skipped"],
+        final["failed"],
+        analysis.cost_usd + synthesis.cost_usd,
+    )
+    if final.get("brief_path"):
+        log.info("brief: %s", final["brief_path"])
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="AI developments monitor")
     parser.add_argument(
@@ -39,6 +79,19 @@ def main(argv=None) -> int:
         "--ollama-model",
         default=providers.DEFAULT_OLLAMA_MODEL,
         help="model name when --provider ollama",
+    )
+    parser.add_argument(
+        "--graph",
+        action="store_true",
+        help="run via the LangGraph pipeline (parallel watchers) instead of "
+        "the sequential function pipeline",
+    )
+    parser.add_argument(
+        "--sources",
+        nargs="+",
+        choices=["arxiv", "github", "hn"],
+        default=["arxiv"],
+        help="which watchers to run",
     )
     parser.add_argument("--max-results", type=int, default=25)
     parser.add_argument(
@@ -63,12 +116,15 @@ def main(argv=None) -> int:
 
     conn = db.connect()
 
-    if not args.skip_fetch:
-        ids = arxiv.fetch_and_store(conn, max_results=args.max_results)
-        log.info("fetched %d items (%d total in db)", len(ids), db.count_items(conn))
-
     if args.dry_run:
-        log.info("dry run: skipping analysis and synthesis")
+        for source in args.sources:
+            watcher = {"arxiv": arxiv, "github": github, "hn": hn}[source]
+            try:
+                ids = watcher.fetch_and_store(conn, max_results=args.max_results)
+                log.info("%s: stored %d items", source, len(ids))
+            except Exception as exc:
+                log.warning("%s watcher failed: %s", source, exc)
+        log.info("dry run: %d items in db, skipping analysis", db.count_items(conn))
         return 0
 
     try:
@@ -83,6 +139,19 @@ def main(argv=None) -> int:
 
     analysis_model = model_override or analyzer.ANALYZER_MODEL
     synthesis_model = model_override or synthesizer.SYNTHESIS_MODEL
+
+    if args.graph:
+        return _run_graph(conn, client, args, analysis_model, synthesis_model)
+
+    if not args.skip_fetch:
+        for source in args.sources:
+            watcher = {"arxiv": arxiv, "github": github, "hn": hn}[source]
+            try:
+                ids = watcher.fetch_and_store(conn, max_results=args.max_results)
+                log.info("%s: stored %d items", source, len(ids))
+            except Exception as exc:
+                log.warning("%s watcher failed: %s", source, exc)
+        log.info("%d items in db", db.count_items(conn))
 
     total = Usage(model=analysis_model)
     analyzed = skipped = failed = 0
