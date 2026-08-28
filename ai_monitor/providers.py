@@ -43,6 +43,21 @@ class _TextBlock:
         self.text = text
 
 
+class _ToolUseBlock:
+    """Mirrors an Anthropic tool_use content block.
+
+    The agent loop is written against the Anthropic message shape; this lets
+    Ollama's differently-shaped tool calls flow through the same code.
+    """
+
+    type = "tool_use"
+
+    def __init__(self, id: str, name: str, input: dict):
+        self.id = id
+        self.name = name
+        self.input = input
+
+
 class _ParsedResponse:
     def __init__(self, parsed_output: Any, usage: _Usage):
         self.parsed_output = parsed_output
@@ -50,10 +65,81 @@ class _ParsedResponse:
 
 
 class _CreateResponse:
-    def __init__(self, text: str, usage: _Usage):
-        self.content = [_TextBlock(text)]
+    def __init__(self, content: list, usage: _Usage, stop_reason: str = "end_turn"):
+        self.content = content
         self.usage = usage
-        self.stop_reason = "end_turn"
+        self.stop_reason = stop_reason
+
+
+def _anthropic_tools_to_ollama(tools: list[dict]) -> list[dict]:
+    """Translate Anthropic tool definitions into Ollama's function-call shape."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": t["name"],
+                "description": t.get("description", ""),
+                "parameters": t.get("input_schema", {}),
+            },
+        }
+        for t in tools
+    ]
+
+
+def _anthropic_messages_to_ollama(messages: list[dict]) -> list[dict]:
+    """Flatten Anthropic content-block messages into Ollama's flat shape.
+
+    Anthropic carries tool calls and their results as content blocks inside
+    assistant/user messages; Ollama expects assistant messages with a
+    `tool_calls` list and separate `role: "tool"` messages. Translating here
+    keeps that difference out of the agent loop.
+    """
+    out: list[dict] = []
+    for message in messages:
+        content = message.get("content")
+
+        if isinstance(content, str):
+            out.append({"role": message["role"], "content": content})
+            continue
+
+        text_parts: list[str] = []
+        tool_calls: list[dict] = []
+        tool_results: list[dict] = []
+
+        for block in content or []:
+            btype = block.get("type") if isinstance(block, dict) else block.type
+
+            if btype == "text":
+                text_parts.append(
+                    block["text"] if isinstance(block, dict) else block.text
+                )
+            elif btype == "tool_use":
+                name = block["name"] if isinstance(block, dict) else block.name
+                args = block["input"] if isinstance(block, dict) else block.input
+                tool_calls.append({"function": {"name": name, "arguments": args}})
+            elif btype == "tool_result":
+                body = block.get("content") if isinstance(block, dict) else None
+                tool_results.append(
+                    {
+                        "role": "tool",
+                        "content": body if isinstance(body, str) else json.dumps(body),
+                    }
+                )
+
+        if message["role"] == "assistant" and (text_parts or tool_calls):
+            entry: dict[str, Any] = {
+                "role": "assistant",
+                "content": "\n".join(text_parts),
+            }
+            if tool_calls:
+                entry["tool_calls"] = tool_calls
+            out.append(entry)
+        elif text_parts:
+            out.append({"role": message["role"], "content": "\n".join(text_parts)})
+
+        out.extend(tool_results)
+
+    return out
 
 
 class OllamaMessages:
@@ -69,8 +155,9 @@ class OllamaMessages:
         system: str,
         messages: list[dict],
         schema: Optional[dict] = None,
+        tools: Optional[list[dict]] = None,
         options: Optional[dict] = None,
-    ) -> tuple[str, _Usage]:
+    ) -> tuple[dict, _Usage]:
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": [{"role": "system", "content": system}] + messages,
@@ -79,6 +166,8 @@ class OllamaMessages:
         }
         if schema:
             payload["format"] = schema
+        if tools:
+            payload["tools"] = _anthropic_tools_to_ollama(tools)
 
         try:
             response = httpx.post(
@@ -93,7 +182,7 @@ class OllamaMessages:
             input_tokens=data.get("prompt_eval_count", 0),
             output_tokens=data.get("eval_count", 0),
         )
-        return data["message"]["content"], usage
+        return data["message"], usage
 
     def parse(
         self,
@@ -108,7 +197,8 @@ class OllamaMessages:
             raise ValueError("output_format is required for parse()")
 
         schema = output_format.model_json_schema()
-        text, usage = self._chat(system, messages or [], schema=schema)
+        message, usage = self._chat(system, messages or [], schema=schema)
+        text = message.get("content", "")
 
         try:
             parsed = output_format.model_validate_json(text)
@@ -130,10 +220,39 @@ class OllamaMessages:
         max_tokens: int = 4096,
         system: str = "",
         messages: Optional[list[dict]] = None,
+        tools: Optional[list[dict]] = None,
         **_ignored,
     ) -> _CreateResponse:
-        text, usage = self._chat(system, messages or [])
-        return _CreateResponse(text, usage)
+        message, usage = self._chat(
+            system,
+            _anthropic_messages_to_ollama(messages or []),
+            tools=tools,
+        )
+
+        blocks: list = []
+        if message.get("content"):
+            blocks.append(_TextBlock(message["content"]))
+
+        # Ollama returns no call ids; the loop needs one to pair results back,
+        # so synthesize a stable per-response id.
+        for i, call in enumerate(message.get("tool_calls") or []):
+            func = call.get("function", {})
+            args = func.get("arguments", {})
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except json.JSONDecodeError:
+                    args = {}
+            blocks.append(
+                _ToolUseBlock(id=f"call_{i}", name=func.get("name", ""), input=args)
+            )
+
+        stop_reason = (
+            "tool_use"
+            if any(b.type == "tool_use" for b in blocks)
+            else "end_turn"
+        )
+        return _CreateResponse(blocks or [_TextBlock("")], usage, stop_reason)
 
 
 class OllamaError(RuntimeError):
