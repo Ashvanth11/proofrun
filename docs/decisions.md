@@ -104,7 +104,43 @@ observed agent run returned `relevance_score=1.0` with
 
 ---
 
-## 3. Watcher nodes fetch only; all writes happen single-threaded
+## 3. No tracing backend (Langfuse / Phoenix) for now
+
+**Date:** 2026-08-28
+**Status:** deferred
+**Revisit if:** debugging a multi-step agent run becomes hard from logs alone, or a
+visual trace is wanted for the README.
+
+### Decision
+
+No third-party observability stack. The system relies on its own instrumentation:
+per-run token counts and cost by stage, and the full agent trace (every tool call,
+its arguments, a result summary, the stop reason, and cost) persisted to
+`agent_runs`.
+
+### Why
+
+The two candidates each carry a cost that is not obviously repaid at this stage.
+Arize Phoenix is local-first and needs no account, but is a heavy install
+(pandas, numpy, opentelemetry, sqlalchemy). Langfuse's SDK is small, but reporting
+requires either a hosted account or a self-run Docker/ClickHouse stack.
+
+What a tracing UI would add over what exists is presentation, not capability: the
+data is already captured and queryable. The gap it would close - visual step-through
+of an agent run - is real but not yet painful, since runs are short and traces are
+small enough to read directly.
+
+### Consequences
+
+- Nothing new to install, run, or keep credentials for.
+- A README screenshot of a trace UI is not available; the `agent_runs` table has to
+  speak for itself.
+- If agent runs get longer or more branching, reading traces from SQL will get
+  tedious, which is the signal to revisit.
+
+---
+
+## 4. Watcher nodes fetch only; all writes happen single-threaded
 
 **Date:** 2026-08-28
 **Status:** decided, implemented (`ai_monitor/orchestrator/graph.py`)

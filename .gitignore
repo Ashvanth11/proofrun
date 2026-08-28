@@ -5,6 +5,7 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
+# Local briefs stay untracked; the scheduled workflow force-adds them in CI.
 reports/*.md
 !reports/.gitkeep
 .pytest_cache/
