@@ -55,8 +55,11 @@ class Usage(BaseModel):
 
     @property
     def cost_usd(self) -> float:
+        if self.model.startswith("ollama/"):
+            return 0.0  # local inference
         rates = PRICING.get(self.model)
         if not rates:
+            log.warning("no pricing for model %r; reporting $0", self.model)
             return 0.0
         return (
             self.input_tokens * rates["input"]
