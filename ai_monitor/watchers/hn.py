@@ -7,6 +7,7 @@ from typing import Optional
 
 import httpx
 
+from ai_monitor import keywords
 from ai_monitor.storage import db
 from ai_monitor.storage.models import Item, Source
 
@@ -28,21 +29,11 @@ AI_KEYWORDS = [
 DEFAULT_MIN_SCORE = 20
 
 
-def _compile_pattern(keywords: list[str]) -> re.Pattern:
-    # Word-boundary match so "agent" doesn't fire on "urgent" and "ai" doesn't
-    # fire on "said". Multi-word phrases are matched literally.
-    parts = [
-        rf"\b{re.escape(k.strip())}\b" if " " not in k.strip() else re.escape(k.strip())
-        for k in keywords
-    ]
-    return re.compile("|".join(parts), re.IGNORECASE)
-
-
-PATTERN = _compile_pattern(AI_KEYWORDS)
+PATTERN = keywords.build_pattern(AI_KEYWORDS)
 
 
 def is_relevant(title: str, pattern: Optional[re.Pattern] = None) -> bool:
-    return bool((pattern or PATTERN).search(title or ""))
+    return keywords.matches(title or "", pattern or PATTERN)
 
 
 def parse_story(story: dict) -> Item:
