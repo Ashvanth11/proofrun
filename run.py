@@ -6,6 +6,7 @@ import anthropic
 
 from ai_monitor.analysis import analyzer
 from ai_monitor.analysis.analyzer import Usage
+from ai_monitor import providers
 from ai_monitor.config.settings import settings
 from ai_monitor.storage import db
 from ai_monitor.storage.models import Item
@@ -28,6 +29,17 @@ def _row_to_item(row) -> Item:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="AI developments monitor")
+    parser.add_argument(
+        "--provider",
+        choices=["anthropic", "ollama"],
+        default="anthropic",
+        help="model backend; ollama runs locally for free (slower, less calibrated)",
+    )
+    parser.add_argument(
+        "--ollama-model",
+        default=providers.DEFAULT_OLLAMA_MODEL,
+        help="model name when --provider ollama",
+    )
     parser.add_argument("--max-results", type=int, default=25)
     parser.add_argument(
         "--min-score",
@@ -59,23 +71,32 @@ def main(argv=None) -> int:
         log.info("dry run: skipping analysis and synthesis")
         return 0
 
-    if not settings.anthropic_api_key:
-        log.error(
-            "ANTHROPIC_API_KEY is not set. Add it to .env, or use --dry-run to "
-            "fetch without making API calls."
+    try:
+        client, model_override = providers.build_client(
+            args.provider,
+            api_key=settings.anthropic_api_key,
+            ollama_model=args.ollama_model,
         )
+    except (ValueError, providers.OllamaError) as exc:
+        log.error("%s", exc)
         return 1
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-    total = Usage(model=analyzer.ANALYZER_MODEL)
+    analysis_model = model_override or analyzer.ANALYZER_MODEL
+    synthesis_model = model_override or synthesizer.SYNTHESIS_MODEL
+
+    total = Usage(model=analysis_model)
     analyzed = skipped = failed = 0
 
     for row in db.get_items(conn):
         try:
             usage = analyzer.analyze_and_store(
-                conn, row["id"], _row_to_item(row), client=client
+                conn,
+                row["id"],
+                _row_to_item(row),
+                client=client,
+                model=analysis_model,
             )
-        except anthropic.APIError:
+        except (anthropic.APIError, providers.OllamaError):
             log.exception("analysis failed for %s", row["source_id"])
             failed += 1
             continue
@@ -95,7 +116,9 @@ def main(argv=None) -> int:
         total.cost_usd,
     )
 
-    path, synth_usage = synthesizer.run(conn, client=client, min_score=args.min_score)
+    path, synth_usage = synthesizer.run(
+        conn, client=client, min_score=args.min_score, model=synthesis_model
+    )
     if path is None:
         log.warning("no brief written")
         return 0
