@@ -70,7 +70,7 @@ def content_hash(item: Item) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
-def _render_interests(interests: dict[str, InterestArea]) -> str:
+def render_interests(interests: dict[str, InterestArea]) -> str:
     lines = []
     for name, area in interests.items():
         keywords = ", ".join(area.keywords)
@@ -82,7 +82,7 @@ def _render_interests(interests: dict[str, InterestArea]) -> str:
 
 def build_prompt(item: Item, interests: dict[str, InterestArea]) -> str:
     return (
-        f"Interest areas:\n{_render_interests(interests)}\n\n"
+        f"Interest areas:\n{render_interests(interests)}\n\n"
         f"---\n"
         f"Source: {item.source.value}\n"
         f"Title: {item.title}\n"
