@@ -74,7 +74,10 @@ def test_graph_shape_is_fan_out_fan_in(conn):
     for source in ["arxiv", "github", "hn"]:
         assert f"__start__ --> {source}" in mermaid  # parallel fan-out
         assert f"{source} --> store" in mermaid  # fan-in
-    assert "store --> analyze" in mermaid
+    # dedup and routing sit before analysis so neither is ever paid for
+    assert "store --> dedup" in mermaid
+    assert "dedup --> route" in mermaid
+    assert "route --> analyze" in mermaid
     assert "analyze --> synthesize" in mermaid
 
 

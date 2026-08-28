@@ -23,6 +23,7 @@ import anthropic
 from langgraph.graph import END, START, StateGraph
 
 from ai_monitor.analysis import analyzer
+from ai_monitor.orchestrator import dedup, routing
 from ai_monitor.providers import OllamaError
 from ai_monitor.storage import db
 from ai_monitor.storage.models import Item
@@ -51,6 +52,19 @@ class PipelineState(TypedDict, total=False):
     output_tokens: int
     brief_path: Optional[str]
     synthesis_tokens: tuple
+    to_analyze: list[int]
+    deduped: int
+    routed: int
+    dropped: int
+
+
+def _already_analyzed(conn: sqlite3.Connection, item_id: int) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM analyses WHERE item_id = ?", (item_id,)
+        ).fetchone()
+        is not None
+    )
 
 
 def _row_to_item(row) -> Item:
@@ -106,11 +120,35 @@ def build_graph(
         log.info("stored %d items (%d total)", len(ids), db.count_items(conn))
         return {"item_ids": ids}
 
+    def dedup_node(state: PipelineState) -> dict:
+        """Collapse cross-source duplicates before anything is paid for."""
+        collapsed = dedup.run(conn)
+        return {"deduped": collapsed}
+
+    def route_node(state: PipelineState) -> dict:
+        """Drop obvious misses before spending analyzer calls on them."""
+        keep, decisions = routing.route(conn)
+        return {
+            "to_analyze": keep,
+            "routed": len(keep),
+            "dropped": len(decisions) - len(keep),
+        }
+
     def analyze_node(state: PipelineState) -> dict:
         analyzed = skipped = failed = 0
         input_tokens = output_tokens = 0
 
-        for row in db.get_items(conn):
+        # Routing decides what is worth a call; it only ever returns
+        # non-duplicate, not-yet-analyzed items. Previously analyzed items are
+        # re-checked so content_hash can skip or refresh them.
+        keep = set(state.get("to_analyze") or [])
+        rows = [
+            r
+            for r in db.get_items(conn, canonical_only=True)
+            if r["id"] in keep or _already_analyzed(conn, r["id"])
+        ]
+
+        for row in rows:
             try:
                 usage = analyzer.analyze_and_store(
                     conn,
@@ -160,6 +198,8 @@ def build_graph(
         graph.add_edge(START, name)
 
     graph.add_node("store", store_node)
+    graph.add_node("dedup", dedup_node)
+    graph.add_node("route", route_node)
     graph.add_node("analyze", analyze_node)
     graph.add_node("synthesize", synthesize_node)
 
@@ -167,7 +207,11 @@ def build_graph(
     for name in active:
         graph.add_edge(name, "store")
 
-    graph.add_edge("store", "analyze")
+    # Dedup and routing sit before analysis so neither duplicates nor obvious
+    # misses are ever paid for.
+    graph.add_edge("store", "dedup")
+    graph.add_edge("dedup", "route")
+    graph.add_edge("route", "analyze")
     graph.add_edge("analyze", "synthesize")
     graph.add_edge("synthesize", END)
 
@@ -186,6 +230,10 @@ def initial_state() -> PipelineState:
         "output_tokens": 0,
         "brief_path": None,
         "synthesis_tokens": (0, 0),
+        "to_analyze": [],
+        "deduped": 0,
+        "routed": 0,
+        "dropped": 0,
     }
 
 
