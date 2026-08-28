@@ -18,6 +18,9 @@ class InterestArea(BaseModel):
 
 class Settings(BaseModel):
     anthropic_api_key: str = os.environ.get("ANTHROPIC_API_KEY", "")
+    # Optional. Unauthenticated GitHub search allows 10 requests/min; a token
+    # raises that to 30. The watcher works without one.
+    github_token: str = os.environ.get("GITHUB_TOKEN", "")
     interests: dict[str, InterestArea] = Field(default_factory=dict)
 
 
