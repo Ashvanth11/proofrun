@@ -84,6 +84,11 @@ class AgentRun(BaseModel):
     usage: Usage
     transcript: list[dict] = Field(default_factory=list)
 
+    # Set by the critique pass (ai_monitor.agent.critique), if it runs.
+    critique: Optional[Any] = None
+    original_assessment: Optional[RepoAssessment] = None
+    revised: bool = False
+
     @property
     def escalated_to(self) -> str:
         """Deepest rung of the ladder this run reached."""
@@ -271,15 +276,25 @@ def analyze_repo(
 
 
 def store_run(conn: sqlite3.Connection, item_id: int, run: AgentRun) -> None:
+    critique_text = ""
+    if run.critique is not None:
+        issues = getattr(run.critique, "issues", [])
+        critique_text = json.dumps(
+            {"grounded": getattr(run.critique, "grounded", None), "issues": issues}
+        )
+
     conn.execute(
         """
         INSERT INTO agent_runs
-            (item_id, steps_taken, tool_calls, stop_reason, cost_usd, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+            (item_id, steps_taken, tool_calls, stop_reason, critique, revised,
+             cost_usd, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(item_id) DO UPDATE SET
             steps_taken = excluded.steps_taken,
             tool_calls = excluded.tool_calls,
             stop_reason = excluded.stop_reason,
+            critique = excluded.critique,
+            revised = excluded.revised,
             cost_usd = excluded.cost_usd,
             created_at = excluded.created_at
         """,
@@ -288,6 +303,8 @@ def store_run(conn: sqlite3.Connection, item_id: int, run: AgentRun) -> None:
             run.steps_taken,
             json.dumps([c.model_dump() for c in run.tool_calls]),
             run.stop_reason,
+            critique_text,
+            int(run.revised),
             run.usage.cost_usd,
             datetime.now(timezone.utc).isoformat(),
         ),
