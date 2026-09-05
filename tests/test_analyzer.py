@@ -133,6 +133,69 @@ def test_changed_content_triggers_reanalysis(conn, item, result):
     assert client.messages.calls == 2
 
 
+def test_switching_models_reanalyzes(conn, item, result):
+    """Regression: comparing content alone silently kept the old model's scores.
+
+    Switching backends (local model -> Haiku) leaves content unchanged, so a
+    content-only check skips every item and the new model never runs - while
+    the run reports "skipped (unchanged)" and looks healthy.
+    """
+    item_id = db.upsert_item(conn, item)
+
+    local = FakeClient(
+        AnalysisResult(summary="local", relevance_score=0.8, matched_areas=[],
+                       justification="j")
+    )
+    analyzer.analyze_and_store(
+        conn, item_id, item, client=local, interests=INTERESTS,
+        model="ollama/llama3.1",
+    )
+
+    haiku = FakeClient(
+        AnalysisResult(summary="haiku", relevance_score=0.3, matched_areas=[],
+                       justification="j")
+    )
+    usage = analyzer.analyze_and_store(
+        conn, item_id, item, client=haiku, interests=INTERESTS,
+        model="claude-haiku-4-5",
+    )
+
+    assert haiku.messages.calls == 1  # the new model actually ran
+    assert usage is not None
+    row = conn.execute(
+        "SELECT model, relevance_score, summary FROM analyses WHERE item_id = ?",
+        (item_id,),
+    ).fetchone()
+    assert row["model"] == "claude-haiku-4-5"
+    assert row["relevance_score"] == 0.3
+    assert row["summary"] == "haiku"
+
+
+def test_same_model_still_skips(conn, item, result):
+    """The cost saving must survive the fix - re-runs on one model stay free."""
+    item_id = db.upsert_item(conn, item)
+    client = FakeClient(result)
+
+    analyzer.analyze_and_store(
+        conn, item_id, item, client=client, interests=INTERESTS, model="claude-haiku-4-5"
+    )
+    second = analyzer.analyze_and_store(
+        conn, item_id, item, client=client, interests=INTERESTS, model="claude-haiku-4-5"
+    )
+
+    assert second is None
+    assert client.messages.calls == 1
+
+
+def test_needs_analysis_ignores_model_when_unspecified(conn, item, result):
+    """Callers that only care about content staleness pass no model."""
+    item_id = db.upsert_item(conn, item)
+    analyzer.store_analysis(
+        conn, item_id, result, analyzer.content_hash(item), "ollama/llama3.1"
+    )
+    assert analyzer.needs_analysis(conn, item_id, analyzer.content_hash(item)) is False
+
+
 def test_force_reanalyzes_unchanged_item(conn, item, result):
     item_id = db.upsert_item(conn, item)
     client = FakeClient(result)

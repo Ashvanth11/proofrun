@@ -163,13 +163,27 @@ def store_analysis(
 
 
 def needs_analysis(
-    conn: sqlite3.Connection, item_id: int, item_hash: str
+    conn: sqlite3.Connection,
+    item_id: int,
+    item_hash: str,
+    model: str = "",
 ) -> bool:
-    """False when this exact content was already analyzed - don't re-pay for it."""
+    """False when this exact content was already analyzed by this model.
+
+    The model is part of the identity of an analysis, not just the content.
+    Comparing content alone means switching backends (say, from a local model
+    to Haiku) silently keeps the old scores: the content is unchanged, so every
+    item is skipped and the new model never runs. That failure is invisible -
+    the run reports "skipped (unchanged)" and looks healthy.
+    """
     row = conn.execute(
-        "SELECT content_hash FROM analyses WHERE item_id = ?", (item_id,)
+        "SELECT content_hash, model FROM analyses WHERE item_id = ?", (item_id,)
     ).fetchone()
-    return row is None or row["content_hash"] != item_hash
+    if row is None or row["content_hash"] != item_hash:
+        return True
+    # An empty model means the caller does not care which model produced the
+    # stored analysis (used where only content staleness matters).
+    return bool(model) and row["model"] != model
 
 
 def analyze_and_store(
@@ -181,12 +195,12 @@ def analyze_and_store(
     model: str = ANALYZER_MODEL,
     force: bool = False,
 ) -> Optional[Usage]:
-    """Analyze an item unless an identical version was already analyzed.
+    """Analyze an item unless this model already analyzed this exact content.
 
     Returns the Usage for the call made, or None when the cached analysis was reused.
     """
     item_hash = content_hash(item)
-    if not force and not needs_analysis(conn, item_id, item_hash):
+    if not force and not needs_analysis(conn, item_id, item_hash, model):
         log.debug("skipping already-analyzed item %s", item.source_id)
         return None
 
