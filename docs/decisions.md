@@ -104,7 +104,50 @@ observed agent run returned `relevance_score=1.0` with
 
 ---
 
-## 3. No tracing backend (Langfuse / Phoenix) for now
+## 3. Hugging Face Papers not added as a fourth source
+
+**Date:** 2026-09-05
+**Status:** declined for Stage 1; candidate for Stage 2 in a different form
+**Revisit if:** the project moves to ranking rather than filtering, and a
+community-attention prior would improve that ranking.
+
+### Decision
+
+Sources stay at arXiv, GitHub, and Hacker News. HF Papers is not added.
+
+### Why
+
+HF Papers is largely arXiv papers with community upvotes layered on. As a fourth
+watcher it would mostly re-fetch items the arXiv watcher already has, and dedup
+would correctly collapse them - paying for a source whose output mostly
+disappears.
+
+Three further reasons against it now:
+
+- It re-expands scope that v2 deliberately cut. PyPI and HF Hub were dropped to
+  make room for the agent loop and eval harness; adding a source back is breadth
+  where the plan chose depth.
+- Source coverage is not the bottleneck. Three sources is already a credible
+  multi-source claim. The gap in the README is a measured number in the
+  evaluation section, not a fourth ETL job.
+- It repeats demonstrated work. A fourth watcher is another ~150 lines of
+  something already shown three times, and differentiates nothing.
+
+### The better form, if revisited
+
+Not as a source - as **signal enrichment on existing arXiv items**. An arXiv
+paper with 200 HF upvotes is a different proposition from one with zero, and
+that prior could inform routing and agent gating. Framed that way it becomes an
+experiment with a measurable result ("does a community-attention prior improve
+ranking against the golden set?") rather than another ETL job. That is a
+stronger Stage 2 item than a fourth watcher would be.
+
+Note: the HF Papers API surface was never verified - whether upvote counts are
+exposed programmatically needs checking before committing to this.
+
+---
+
+## 4. No tracing backend (Langfuse / Phoenix) for now
 
 **Date:** 2026-08-28
 **Status:** deferred
@@ -140,7 +183,7 @@ small enough to read directly.
 
 ---
 
-## 4. Watcher nodes fetch only; all writes happen single-threaded
+## 5. Watcher nodes fetch only; all writes happen single-threaded
 
 **Date:** 2026-08-28
 **Status:** decided, implemented (`ai_monitor/orchestrator/graph.py`)

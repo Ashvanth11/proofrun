@@ -219,7 +219,7 @@ Four bugs it caught that would otherwise have shipped silently — each one a
 - **Agent coverage depends on analyzer calibration.** Gating means a miscalibrated
   analyzer silently starves the agent of work, with nothing to signal it.
 - **No tracing UI.** Agent traces are queryable in `agent_runs` but there is no
-  visual step-through. [Deferred deliberately](docs/decisions.md#3-no-tracing-backend-langfuse--phoenix-for-now).
+  visual step-through. [Deferred deliberately](docs/decisions.md#4-no-tracing-backend-langfuse--phoenix-for-now).
 
 ---
 
