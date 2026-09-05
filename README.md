@@ -188,7 +188,8 @@ python -m pytest tests/ -q     # 182 tests, no network calls
 
 The suite makes no API or network calls; every external service is stubbed.
 
-Three bugs it caught that would otherwise have shipped silently:
+Four bugs it caught that would otherwise have shipped silently — each one a
+*quiet* failure, which is the kind worth having tests for:
 
 - **SQLite connections cannot cross threads.** LangGraph parallelizes watcher
   branches; a broad `except` was converting the resulting error into a generic
