@@ -140,7 +140,8 @@ Four mechanisms, in the order they take effect:
 1. **Keyword pre-filter** — items with no interest-area overlap never reach a
    model call.
 2. **Content-hash idempotency** — re-running does not re-analyze unchanged items.
-   Re-runs cost nothing for work already done.
+   Re-runs cost nothing for work already done. The model is part of that identity,
+   so switching backends does re-analyze rather than silently keeping old scores.
 3. **Model split** — Haiku 4.5 for high-volume per-item scoring, Sonnet 5 for
    synthesis and agent reasoning.
 4. **Agent gating** — the expensive agent runs only on repos the cheap analyzer
@@ -182,7 +183,7 @@ items you disagreed with most" does.
 ## Tests
 
 ```bash
-python -m pytest tests/ -q     # 179 tests, no network calls
+python -m pytest tests/ -q     # 182 tests, no network calls
 ```
 
 The suite makes no API or network calls; every external service is stubbed.
@@ -195,6 +196,9 @@ Three bugs it caught that would otherwise have shipped silently:
   only, and all writes happen single-threaded in one node.
 - **GitHub ANDs repeated `topic:` qualifiers.** A five-topic query asked for repos
   carrying all five and matched nothing. Now one request per topic, merged.
+- **Switching models silently skipped re-analysis.** The idempotency check compared
+  content only, so moving from a local model to Haiku left every item at the old
+  score while the run reported "skipped (unchanged)" and looked healthy.
 - **Word-boundary matching dropped plurals.** `\bagent\b` did not match "agents",
   silently discarding relevant items — the worse failure direction, since nothing
   signals a false drop.
