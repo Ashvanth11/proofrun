@@ -35,6 +35,13 @@ Score relevance on this scale:
 Only list matched_areas that the item genuinely addresses. An item matching nothing
 gets an empty list and a low score. Do not inflate scores; most items are routine.
 
+Score the significance of the development itself, not the amount of detail you were
+given about it. Some sources supply a full abstract; others supply only a title and a
+link, and a short entry is not evidence of an unimportant development. A major model
+release or acquisition described in one line is still major. Where the content is
+thin, judge from the title and say in the justification that you had limited detail -
+do not discount the score for it.
+
 Keep the summary to 1-2 sentences describing what the work actually does, not why it
 is exciting. Keep the justification to one sentence explaining the score."""
 
@@ -67,9 +74,17 @@ class Usage(BaseModel):
         ) / 1_000_000
 
 
-def content_hash(item: Item) -> str:
-    """Hash of the text actually sent to the model, so unchanged items are skipped."""
-    payload = f"{item.title}\n{item.content}"
+def content_hash(item: Item, prompt: str = "") -> str:
+    """Hash identifying one analysis input, so unchanged items are skipped.
+
+    The system prompt is hashed alongside the item text. An analysis is a
+    function of the content *and* the instructions that scored it, so editing
+    the prompt must invalidate cached results - otherwise a prompt fix appears
+    to change nothing, because every item is skipped as "unchanged". Hashing the
+    prompt itself rather than a hand-maintained version number means there is no
+    bump to forget.
+    """
+    payload = f"{prompt or SYSTEM_PROMPT}\n{item.title}\n{item.content}"
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
