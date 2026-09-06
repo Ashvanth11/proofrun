@@ -218,3 +218,40 @@ def test_cost_calculation():
 
 def test_cost_is_zero_for_unknown_model():
     assert Usage(input_tokens=1000, output_tokens=10, model="mystery").cost_usd == 0.0
+
+
+def test_editing_the_prompt_invalidates_cached_analyses(conn, item, result):
+    """Regression: a prompt fix that changes nothing is indistinguishable from
+    a prompt fix that does not work.
+
+    The analysis is a function of the content and the instructions that scored
+    it, so the prompt is part of the cache key.
+    """
+    item_id = db.upsert_item(conn, item)
+    client = FakeClient(result)
+
+    analyzer.analyze_and_store(
+        conn, item_id, item, client=client, interests=INTERESTS, model="m"
+    )
+    assert client.messages.calls == 1
+
+    original = analyzer.SYSTEM_PROMPT
+    try:
+        analyzer.SYSTEM_PROMPT = original + "\n\nAn additional calibration rule."
+        analyzer.analyze_and_store(
+            conn, item_id, item, client=client, interests=INTERESTS, model="m"
+        )
+    finally:
+        analyzer.SYSTEM_PROMPT = original
+
+    assert client.messages.calls == 2  # the edited prompt actually re-ran
+
+
+def test_identical_prompt_still_skips(conn, item, result):
+    item_id = db.upsert_item(conn, item)
+    client = FakeClient(result)
+    for _ in range(2):
+        analyzer.analyze_and_store(
+            conn, item_id, item, client=client, interests=INTERESTS, model="m"
+        )
+    assert client.messages.calls == 1
