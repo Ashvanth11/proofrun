@@ -187,12 +187,12 @@ items you disagreed with most" does.
 ## Tests
 
 ```bash
-python -m pytest tests/ -q     # 182 tests, no network calls
+python -m pytest tests/ -q     # 184 tests, no network calls
 ```
 
 The suite makes no API or network calls; every external service is stubbed.
 
-Four bugs it caught that would otherwise have shipped silently — each one a
+Five bugs it caught that would otherwise have shipped silently — each one a
 *quiet* failure, which is the kind worth having tests for:
 
 - **SQLite connections cannot cross threads.** LangGraph parallelizes watcher
@@ -201,6 +201,10 @@ Four bugs it caught that would otherwise have shipped silently — each one a
   only, and all writes happen single-threaded in one node.
 - **GitHub ANDs repeated `topic:` qualifiers.** A five-topic query asked for repos
   carrying all five and matched nothing. Now one request per topic, merged.
+- **Editing the prompt did not invalidate cached analyses.** A prompt fix was
+  indistinguishable from a prompt fix that does not work, since every item was
+  skipped as unchanged. The system prompt is now hashed into the cache key, so
+  edits self-invalidate with no version number to forget.
 - **Switching models silently skipped re-analysis.** The idempotency check compared
   content only, so moving from a local model to Haiku left every item at the old
   score while the run reported "skipped (unchanged)" and looked healthy.
