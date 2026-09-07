@@ -255,3 +255,40 @@ def test_identical_prompt_still_skips(conn, item, result):
             conn, item_id, item, client=client, interests=INTERESTS, model="m"
         )
     assert client.messages.calls == 1
+
+
+def test_editing_interest_areas_invalidates_cached_analyses(conn, item, result):
+    """Regression: interests are rendered into the user prompt, so a config
+    change alters the model input and must invalidate cached results.
+
+    Caught before it shipped, but it is the same quiet failure as the prompt
+    and model cases: adding an interest area would have left every item
+    "skipped (unchanged)".
+    """
+    item_id = db.upsert_item(conn, item)
+    client = FakeClient(result)
+
+    analyzer.analyze_and_store(
+        conn, item_id, item, client=client, interests=INTERESTS, model="m"
+    )
+    assert client.messages.calls == 1
+
+    widened = dict(INTERESTS)
+    widened["industry"] = InterestArea(
+        description="Acquisitions, funding, major releases", keywords=["acquisition"]
+    )
+    analyzer.analyze_and_store(
+        conn, item_id, item, client=client, interests=widened, model="m"
+    )
+    assert client.messages.calls == 2
+
+
+def test_hash_covers_the_whole_model_input(item):
+    """The hash must reflect prompt, interests, and item text together."""
+    other = {"different": InterestArea(description="Other", keywords=["x"])}
+    assert analyzer.content_hash(item, INTERESTS) != analyzer.content_hash(item, other)
+
+    changed_item = item.model_copy(update={"content": "Different abstract."})
+    assert analyzer.content_hash(item, INTERESTS) != analyzer.content_hash(
+        changed_item, INTERESTS
+    )
