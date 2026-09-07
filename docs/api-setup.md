@@ -29,25 +29,27 @@ If prompted to create an organization, do so. A personal one is fine.
 
 In the Console, go to **Billing** (or Plans & Billing).
 
-Add a card, then purchase credits. **$25 is plenty** for this project — the
-estimate for the whole build was $25–50, and most of the work has already been
-done for free on the local model, so your real remaining spend is far smaller
-(see [What you'll actually spend](#what-youll-actually-spend) below).
+Add a card, then purchase credits. **$20 is plenty** for this project — the
+original estimate for the whole build was $25–50, but most of the work was done
+for free on the local model, so the remaining spend is far smaller (see
+[What you'll actually spend](#what-youll-actually-spend) below).
 
 Anthropic uses a prepaid credit model: you buy a balance and calls draw it down.
-It does not silently bill beyond what you have loaded, which is the behaviour you
-want here.
+It does not bill beyond what you have loaded, so **the balance is itself a hard
+cap** — with auto-reload off, $20 loaded means $20 is the most that can ever be
+spent.
 
 ### 3. Set a spend limit (do this — it takes a minute)
 
-Still in Billing, look for a **spend limit** or **usage limit** setting and set a
-monthly cap. Something like $20 is sensible.
+The important one is **auto-reload: off**. With it off, your purchased balance
+is the ceiling and nothing can exceed it.
 
-This is your safety net. The main way a project like this loses money
-unexpectedly is a bug in a loop — and while this codebase enforces a per-repo
-cost cap in the agent, a Console-level limit protects you from anything the
-application-level cap doesn't catch. Turn **auto-reload off** unless you
-specifically want it.
+If you also want a monthly spend limit, set one — but with a prepaid balance and
+auto-reload off it is redundant. Auto-reload is the setting that would actually
+let spend run past what you intended, which is why it is the one to check.
+
+(The codebase enforces its own per-repository cost cap in the agent loop, so
+there are two independent limits: one in the application, one at the account.)
 
 ### 4. Create an API key
 
@@ -103,8 +105,9 @@ was done on the local model at zero cost. What remains is small:
 | One weekly brief (synthesis) | Sonnet 5 | ~$0.04 |
 | Agent investigating ~5 repos | Sonnet 5 | ~$0.50 |
 
-A full weekly run with the agent enabled lands around **$1–2**. The $25 is
-mostly headroom, not expected spend.
+A full weekly run with the agent enabled lands around **$1–2**. So $20 covers
+the eval work plus roughly ten full weekly runs — it is mostly headroom, not
+expected spend.
 
 Pricing at time of writing: Haiku 4.5 is $1/$5 per million input/output tokens,
 Sonnet 5 is $2/$10. Re-check current pricing in the Console — it changes, and any
