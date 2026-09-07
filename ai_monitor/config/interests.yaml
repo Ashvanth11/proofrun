@@ -1,4 +1,41 @@
+# The four technical areas below describe *research and tooling*. The eval
+# surfaced a gap: a $13B acquisition matched none of them, yet is obviously
+# major news - both models scored it ~0.2 and were correct by the rubric.
+# `ecosystem` closes that gap. See docs/eval-findings.md.
 areas:
+  ecosystem:
+    description: >
+      Significant events in the AI industry rather than technical
+      contributions: major model releases and their capabilities,
+      acquisitions and funding of consequential labs or tools, notable
+      shutdowns or licence changes, and incidents with real consequences
+      (serious security failures, misuse, regulatory action).
+
+      Score on consequence, not drama. A frontier model release, or one lab
+      acquiring another, changes what people can build and is high relevance.
+      Funding rounds, benchmark leaderboard shuffles, executive moves, and
+      opinion pieces about where the field is heading are low - they are
+      commentary on the field rather than changes to it.
+    keywords:
+      - release
+      - launches
+      - announces
+      - acquisition
+      - acquires
+      - acquire
+      - acquiring
+      - open-sources
+      - open source release
+      - deprecated
+      - shutting down
+      - license change
+      - lawsuit
+      - regulation
+      - breach
+      - incident
+      - funding
+      - raises
+
   agents:
     description: >
       Multi-agent systems, agentic workflows, LLM tool use, planning,
