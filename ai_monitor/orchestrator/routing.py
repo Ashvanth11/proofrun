@@ -23,10 +23,21 @@ from ai_monitor.config.settings import InterestArea, settings
 
 log = logging.getLogger(__name__)
 
-# Sources whose items are always analyzed regardless of keyword hits. arXiv
-# results already come from AI categories, and abstracts use vocabulary the
-# configured keywords will not always cover.
-ALWAYS_ANALYZE = {"arxiv"}
+# Sources whose items are always analyzed regardless of keyword hits, because
+# something upstream already narrowed them:
+#
+#   arxiv - fetched from AI categories, and abstracts use vocabulary the
+#           configured keywords will not always cover.
+#   hn    - the watcher already keyword-filters titles for AI relevance at
+#           fetch time. Applying a second, different keyword filter here is
+#           redundant and actively harmful: HN titles name entities rather
+#           than describe work ("GPT-6 Astra", "Nvidia agrees to acquire
+#           Hugging Face"), so a vocabulary filter drops exactly the
+#           ecosystem news the interest areas now ask for.
+#
+# GitHub is not on this list: its search query narrows by topic, but
+# descriptions are prose and the keyword check still earns its place there.
+ALWAYS_ANALYZE = {"arxiv", "hn"}
 
 
 class RoutingDecision(BaseModel):

@@ -33,7 +33,7 @@ def test_matching_item_is_routed_to_analysis():
 
 def test_unrelated_item_is_dropped():
     d = routing.route_item(
-        1, "hn", "Cooking with cast iron", "A guide to seasoning.", INTERESTS
+        1, "github", "org/cast-iron", "A guide to seasoning cookware.", INTERESTS
     )
     assert d.analyze is False
     assert d.reason == "no interest keywords present"
@@ -49,7 +49,7 @@ def test_arxiv_bypasses_the_filter():
 
 
 def test_multiword_keywords_match():
-    d = routing.route_item(1, "hn", "A study of tool use in LLMs", "", INTERESTS)
+    d = routing.route_item(1, "github", "org/study", "A study of tool use in LLMs", INTERESTS)
     assert d.analyze is True
     assert "tool use" in d.matched_keywords
 
@@ -57,7 +57,7 @@ def test_multiword_keywords_match():
 def test_word_boundaries_prevent_false_matches():
     """'agent' must not fire on 'urgent' - the same trap as the HN filter."""
     d = routing.route_item(
-        1, "hn", "An urgent management problem", "Nothing relevant.", INTERESTS
+        1, "github", "org/urgent", "An urgent management problem.", INTERESTS
     )
     assert d.analyze is False
 
@@ -78,8 +78,8 @@ def test_route_partitions_unanalyzed_items(conn):
     )
     drop_id = db.upsert_item(
         conn,
-        Item(source=Source.HN, source_id="1", title="Sourdough starters",
-             url="http://b", content="baking"),
+        Item(source=Source.GITHUB, source_id="org/sourdough", title="org/sourdough",
+             url="http://b", content="baking starters"),
     )
 
     keep, decisions = routing.route(conn, INTERESTS)
@@ -126,5 +126,27 @@ def test_duplicates_are_not_routed(conn):
 
 
 def test_empty_content_does_not_crash():
-    d = routing.route_item(1, "hn", "", "", INTERESTS)
+    d = routing.route_item(1, "github", "", "", INTERESTS)
     assert d.analyze is False
+
+
+def test_hn_bypasses_the_filter():
+    """HN is already keyword-filtered by the watcher at fetch time.
+
+    Its titles name entities rather than describe work, so a second
+    vocabulary filter drops exactly the ecosystem news the interest areas
+    ask for - "GPT-6 Astra" contains no interest keyword at all.
+    """
+    for title in [
+        "Nvidia agrees to acquire Hugging Face for $13B",
+        "GPT-6 Astra",
+        "Discovery of a new OpenAI agent message board",
+    ]:
+        assert routing.route_item(1, "hn", title, "", INTERESTS).analyze is True
+
+
+def test_github_still_filtered():
+    """GitHub descriptions are prose, so the keyword check still earns its place."""
+    assert routing.route_item(
+        1, "github", "org/cookbook", "Recipes for sourdough bread.", INTERESTS
+    ).analyze is False
