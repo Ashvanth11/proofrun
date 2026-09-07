@@ -74,20 +74,6 @@ class Usage(BaseModel):
         ) / 1_000_000
 
 
-def content_hash(item: Item, prompt: str = "") -> str:
-    """Hash identifying one analysis input, so unchanged items are skipped.
-
-    The system prompt is hashed alongside the item text. An analysis is a
-    function of the content *and* the instructions that scored it, so editing
-    the prompt must invalidate cached results - otherwise a prompt fix appears
-    to change nothing, because every item is skipped as "unchanged". Hashing the
-    prompt itself rather than a hand-maintained version number means there is no
-    bump to forget.
-    """
-    payload = f"{prompt or SYSTEM_PROMPT}\n{item.title}\n{item.content}"
-    return hashlib.sha256(payload.encode()).hexdigest()
-
-
 def render_interests(interests: dict[str, InterestArea]) -> str:
     lines = []
     for name, area in interests.items():
@@ -106,6 +92,30 @@ def build_prompt(item: Item, interests: dict[str, InterestArea]) -> str:
         f"Title: {item.title}\n"
         f"Content: {item.content}\n"
     )
+
+
+def content_hash(
+    item: Item,
+    interests: Optional[dict[str, InterestArea]] = None,
+    prompt: str = "",
+) -> str:
+    """Hash of everything that determines an analysis, so re-runs skip safely.
+
+    This hashes the *entire model input* - system prompt, interest areas, and
+    item text - rather than the item alone. An analysis is a function of all
+    three, and any of them changing must invalidate the cached result.
+
+    Getting this wrong is a quiet failure that bit this project three times:
+    editing the prompt, switching models, and (caught here before it shipped)
+    editing interests.yaml would each have left every item "skipped
+    (unchanged)", making a real change indistinguishable from one that did
+    nothing. Hashing the rendered input rather than maintaining a version
+    number means there is no bump to forget. The model is compared separately,
+    in needs_analysis, since it is stored as its own column.
+    """
+    interests = interests if interests is not None else settings.interests
+    payload = f"{prompt or SYSTEM_PROMPT}\n{build_prompt(item, interests)}"
+    return hashlib.sha256(payload.encode()).hexdigest()
 
 
 def analyze(
@@ -214,7 +224,7 @@ def analyze_and_store(
 
     Returns the Usage for the call made, or None when the cached analysis was reused.
     """
-    item_hash = content_hash(item)
+    item_hash = content_hash(item, interests)
     if not force and not needs_analysis(conn, item_id, item_hash, model):
         log.debug("skipping already-analyzed item %s", item.source_id)
         return None
