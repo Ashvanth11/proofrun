@@ -182,6 +182,39 @@ calibration, and the largest disagreements — because "MAE is 0.19" does not te
 you what to change, while "the 0.6–0.9 band runs +0.25 hot, and here are the five
 items you disagreed with most" does.
 
+### What it found
+
+48 hand-labeled items, three scorers, $0.31 of API spend:
+
+| comparison | Pearson r | MAE |
+|---|---|---|
+| Haiku analyzer vs human | +0.349 | 0.226 |
+| Sonnet judge vs human | +0.257 | 0.298 |
+| **Sonnet judge vs Haiku analyzer** | **+0.908** | **0.145** |
+
+**The two models agree with each other almost perfectly while both diverge from
+the human.** If model capability were the limitation, they would disagree with
+each other too. They don't — so the gap is the *rubric*, not the model.
+
+This falsified the harness's own premise. It was built assuming a validated
+judge could replace hand-labeling on new items; measured, the judge predicts
+human scores *worse* than the analyzer it was meant to audit. Using it as a
+proxy would have measured model consensus while looking rigorous.
+
+Reading the disagreements individually separated two causes that deserve
+opposite treatment: a genuine **configuration gap** (a $13B acquisition matches
+none of the four technical interest areas, yet is obviously major news) versus
+**reader-specific taste** (one item was marked down for being already familiar —
+novelty relative to what the reader knows, which a per-item scorer cannot see by
+construction).
+
+The conclusion was *not* to tune toward the labels. Full analysis:
+[docs/eval-findings.md](docs/eval-findings.md).
+
+For reference, the local development model on the same items scored r = 0.151
+using 7 distinct score values; Haiku scored r = 0.349 using 16. The small model
+was a real limitation for ranking — worth measuring rather than assuming.
+
 ---
 
 ## Tests
