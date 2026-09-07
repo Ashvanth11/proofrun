@@ -88,7 +88,11 @@ halts at the ceiling rather than being noticed after the fact.
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env          # add ANTHROPIC_API_KEY, optionally GITHUB_TOKEN
+python check_api.py           # verify the key works (free - counts tokens, generates none)
 ```
+
+Getting an API key, and why the Console is separate from claude.ai:
+[docs/api-setup.md](docs/api-setup.md).
 
 ```bash
 python run.py --dry-run                       # fetch and store only, no model calls
