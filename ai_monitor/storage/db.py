@@ -50,6 +50,28 @@ CREATE TABLE IF NOT EXISTS agent_runs (
     UNIQUE(item_id)
 );
 
+CREATE TABLE IF NOT EXISTS investigations (
+    id INTEGER PRIMARY KEY,
+    item_id INTEGER REFERENCES items(id),   -- NULL for reactive-mode runs
+    repo TEXT NOT NULL,
+    question TEXT NOT NULL,
+    verdict TEXT,
+    blockers TEXT DEFAULT '[]',
+    report TEXT,            -- Investigation json
+    steps_taken INTEGER,
+    tool_calls TEXT DEFAULT '[]',
+    stop_reason TEXT,
+    downgraded INTEGER DEFAULT 0,   -- verdict lowered by the integrity rule
+    cost_usd REAL,
+    wall_seconds REAL,
+    created_at TEXT
+);
+
+-- Partial, because a CLI run has no item to be idempotent against: many
+-- reactive runs may share a NULL item_id, one autonomous run per item.
+CREATE UNIQUE INDEX IF NOT EXISTS investigations_item
+    ON investigations(item_id) WHERE item_id IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS eval_items (
     id INTEGER PRIMARY KEY,
     item_id INTEGER NOT NULL REFERENCES items(id),
