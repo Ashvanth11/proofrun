@@ -328,6 +328,8 @@ class SandboxTools:
         # point of that block is that it comes from what happened.
         self.commands_run = 0
         self.setup_commands = 0
+        self.clone_mb = 0.0
+        self.volume_mb = 0.0
         self.setup_seconds = 0.0
         self.install_succeeded = False
         self._exercised = False
@@ -404,7 +406,12 @@ class SandboxTools:
             return {"error": f"cannot check repository size: {exc}"}, True
 
         self._box = self._factory(self.repo, size_kb=size_kb)
-        return self._finish(self._box.clone())
+        result = self._finish(self._box.clone())
+        # What --depth 1 really cost, as opposed to the history-inclusive
+        # size_kb the gate had to guess from. MAX_REPO_KB gets re-tuned from
+        # these, not from argument.
+        self.clone_mb = self.volume_mb
+        return result
 
     def _command(self, kind: str, command: str) -> tuple[dict, bool]:
         if self._box is None:
@@ -430,6 +437,7 @@ class SandboxTools:
         if not self._exercised:
             self.setup_seconds += result.elapsed_s
         used = self._box.disk_usage_mb()
+        self.volume_mb = used
         if used > self._disk_cap_mb:
             from ai_monitor.agent.loop import StopLoop
 

@@ -1,8 +1,17 @@
-# AI Developments Monitor
+# Proofrun
 
-Watches arXiv, GitHub, and Hacker News for AI/ML developments, scores each item
-against configured interest areas, investigates promising repositories with a
-tool-using agent, and writes a weekly themed brief.
+An investigation agent that answers questions about newly published AI
+repositories by reading them, searching the web, and running them in a
+sandbox - and that keeps an evidence ledger separating what it **observed** by
+running a command from what it merely **read**.
+
+The name is that distinction: a proof run is a trial run you do before you
+commit, and the only evidence Proofrun treats as first-hand is the kind it
+produced itself.
+
+It sits on top of a monitor that watches arXiv, GitHub, and Hacker News for
+AI/ML developments, scores each item against configured interest areas, and
+writes a weekly themed brief - which is where the questions come from.
 
 Built to be honest about what it is. See [What is and isn't an agent
 here](#what-is-and-isnt-an-agent-here) — that distinction is the point of the
