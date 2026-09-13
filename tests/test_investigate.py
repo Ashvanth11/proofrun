@@ -350,6 +350,8 @@ def test_a_hostile_tool_result_cannot_buy_a_supported_verdict():
             setup_seconds=0.0,
             setup_commands=0,
             install_succeeded=False,
+            clone_mb=0.0,
+            volume_mb=0.0,
         ),
         allow_web_search=False,
     )
@@ -573,16 +575,58 @@ def test_an_oversize_repository_is_refused_by_the_real_gate():
     """The size gate lives in the sandbox module; SandboxTools just feeds it."""
     from ai_monitor.agent import sandbox as sandbox_mod
 
-    def factory(r, size_kb=None):
-        return sandbox_mod.Sandbox.create(r, size_kb=size_kb, runner=_never_called)
-
     box = tools.SandboxTools(
-        "owner/name", factory=factory, metadata=lambda r: {"size_kb": 900_000}
+        "owner/name",
+        factory=_real_gate_factory,
+        metadata=lambda r: {"size_kb": sandbox_mod.MAX_REPO_KB + 1},
     )
     result, is_error = box.execute("sandbox_clone", {"repo": "owner/name"})
 
     assert is_error is True
     assert "clone limit" in result["error"]
+
+
+def test_a_repository_inside_the_raised_gate_is_allowed():
+    """The band the 200 MB gate used to refuse for bandwidth it never spent.
+
+    `size_kb` is history-inclusive and the clone is --depth 1, so a 900 MB
+    repository is nothing like a 900 MB download. The disk cap is what actually
+    stops an oversized clone; this gate only avoids obvious losers.
+    """
+    box, made = sandbox_tools(size_kb=900_000)
+    result, is_error = box.execute("sandbox_clone", {"repo": "owner/name"})
+
+    assert is_error is False
+    assert made["box"].size_kb == 900_000
+
+
+def test_the_gate_sits_below_the_disk_cap():
+    """So a clone alone can never exhaust the volume, even at history == tree."""
+    from ai_monitor.agent import sandbox as sandbox_mod
+
+    assert sandbox_mod.MAX_REPO_KB / 1000 < sandbox_mod.DISK_CAP_MB
+
+
+def test_the_measured_clone_size_is_recorded(monkeypatch):
+    """The next revision of MAX_REPO_KB should be measured, not argued."""
+    box, _ = sandbox_tools(disk_mb=180.0)
+    client = ScriptedClient(
+        CLONE_AND_RUN,
+        report=report(
+            verdict="supported", ledger=[evidence(source="sandbox_run(demo)")]
+        ),
+    )
+    client.report.facts.clone_mb = 9999.0  # the model does not get to say
+    run = run_investigation(client, box)
+
+    assert run.report.facts.clone_mb == 180.0
+    assert run.report.facts.volume_mb == 180.0
+
+
+def _real_gate_factory(repo, size_kb=None):
+    from ai_monitor.agent import sandbox as sandbox_mod
+
+    return sandbox_mod.Sandbox.create(repo, size_kb=size_kb, runner=_never_called)
 
 
 def _never_called(argv, timeout=None, **kwargs):

@@ -7,6 +7,8 @@ import anthropic
 from ai_monitor.analysis import analyzer
 from ai_monitor.analysis.analyzer import Usage
 from ai_monitor import providers
+from ai_monitor.agent import investigate
+from ai_monitor.agent import investigate_runner
 from ai_monitor.agent import runner as agent_runner
 from ai_monitor.config.settings import settings
 from ai_monitor.orchestrator import graph
@@ -69,7 +71,9 @@ def _run_graph(conn, client, args, analysis_model, synthesis_model) -> int:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="AI developments monitor")
+    parser = argparse.ArgumentParser(
+        description="Proofrun: the AI developments monitor and its agents"
+    )
     parser.add_argument(
         "--provider",
         choices=["anthropic", "ollama"],
@@ -124,6 +128,33 @@ def main(argv=None) -> int:
         type=int,
         default=5,
         help="maximum repositories to investigate per run",
+    )
+    parser.add_argument(
+        "--investigate",
+        action="store_true",
+        help="run the investigation agent on GitHub items scoring above "
+        "--investigate-threshold: derives a question from each README and "
+        "answers it, running the code in a sandbox when it has to. Much more "
+        "expensive than --agent - model turns, a container, and a download each",
+    )
+    parser.add_argument(
+        "--investigate-threshold",
+        type=float,
+        default=investigate_runner.DEFAULT_THRESHOLD,
+        help="minimum analyzer score for a repo to be worth investigating",
+    )
+    parser.add_argument(
+        "--investigate-limit",
+        type=int,
+        default=investigate_runner.DEFAULT_LIMIT,
+        help="maximum repositories to investigate per run",
+    )
+    parser.add_argument(
+        "--investigate-max-cost",
+        type=float,
+        default=investigate_runner.SMOKE_MAX_COST_USD,
+        help="per-question cost ceiling for the investigation loop "
+        "(default: %(default)s). Bounds the loop, not the whole run",
     )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
@@ -214,6 +245,25 @@ def main(argv=None) -> int:
             limit=args.agent_limit,
         )
 
+    investigate_usage = Usage(model=analysis_model)
+    if args.investigate:
+        if args.provider != "anthropic":
+            log.warning(
+                "--investigate needs the sandbox and server-side web search; "
+                "running it against %s is not supported", args.provider
+            )
+        else:
+            _, investigate_usage = investigate_runner.run_investigations_on_candidates(
+                conn,
+                client,
+                model=analysis_model,
+                threshold=args.investigate_threshold,
+                limit=args.investigate_limit,
+                caps=investigate.default_caps(
+                    max_cost_usd=args.investigate_max_cost
+                ),
+            )
+
     path, synth_usage = synthesizer.run(
         conn, client=client, min_score=args.min_score, model=synthesis_model
     )
@@ -222,10 +272,14 @@ def main(argv=None) -> int:
         return 0
 
     log.info(
-        "brief: %s | synthesis $%.4f | run total $%.4f",
+        "brief: %s | synthesis $%.4f | investigation $%.4f | run total $%.4f",
         path,
         synth_usage.cost_usd,
-        total.cost_usd + agent_usage.cost_usd + synth_usage.cost_usd,
+        investigate_usage.cost_usd,
+        total.cost_usd
+        + agent_usage.cost_usd
+        + investigate_usage.cost_usd
+        + synth_usage.cost_usd,
     )
     return 0
 

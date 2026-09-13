@@ -1,0 +1,68 @@
+# Questions for the investigation agent.
+#
+# Session 3 uses these three as the smoke run: one that should be answered by
+# reading alone, one that needs the code run, and one that should honestly end
+# `could_not_test`. Session 4 grows this into the eval set and starts checking
+# `expect` against what actually happened.
+#
+# Every repo here is a real row in monitor.db. Sizes were read from the GitHub
+# API on 2026-09-13 and are `size_kb` - history-inclusive, so a long way above
+# what `--depth 1` actually pulls. The clone gate is 1 GB, so all three are
+# clonable; for question 1 that is the point.
+
+questions:
+  # 1. Reading. Since the gate went to 1 GB this repo CAN be cloned - and that
+  #    is what makes it the better test. A licence question is settled by one
+  #    file, so cloning 228 MB to read it is exactly the waste the ladder
+  #    exists to prevent. The criterion is therefore zero sandbox commands:
+  #    not "the agent could not reach for the expensive rung" but "the agent
+  #    had it available and declined it".
+  #
+  #    The hook is real: the GitHub API reports this repo's licence as
+  #    NOASSERTION, which sits awkwardly beside the README's "open source"
+  #    framing.
+  - repo: langfuse/langfuse
+    size_mb: 228
+    claim: >-
+      Langfuse is an open source AI engineering platform.
+    question: >-
+      Is langfuse/langfuse actually open source under a recognised OSI licence,
+      or is some of what its README advertises covered by a separate commercial
+      licence?
+    expect:
+      verdict: [supported, refuted, inconclusive]
+      needs_execution: false
+      sandbox_commands: 0
+
+  # 2. Execution. Python, 44 MB, comfortably inside the gate. `apm compile` is
+  #    the one rung exercisable with no network, which is what makes this a
+  #    real sandbox_run rather than a setup-phase result dressed up as one.
+  - repo: microsoft/apm
+    size_mb: 44
+    claim: >-
+      One apm.yml manifest plus one command reproduces a project's agent
+      configuration anywhere.
+    question: >-
+      Does microsoft/apm actually turn an apm.yml manifest into configured
+      agent files with a single command, without network access at compile
+      time?
+    expect:
+      verdict: [supported, refuted]
+      needs_execution: true
+
+  # 3. could_not_test. Rust, and the sandbox image is Python-only this cycle.
+  #    A named blocker is the right answer, not a guess - and the agent should
+  #    reach it from metadata rather than by burning the sandbox budget first.
+  #    Worth watching in the trace: at 73 MB nothing stops it cloning, so the
+  #    language gate has to come from the agent's own judgement.
+  - repo: 0xPlaygrounds/rig
+    size_mb: 73
+    claim: >-
+      rig is a Rust library for building modular, scalable LLM applications.
+    question: >-
+      Does 0xPlaygrounds/rig actually build and run a working LLM agent from
+      its own quickstart example?
+    expect:
+      verdict: [could_not_test]
+      blockers: [unsupported_language]
+      needs_execution: true

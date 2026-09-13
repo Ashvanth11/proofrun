@@ -168,6 +168,8 @@ class Facts(BaseModel):
     setup_seconds: float = 0.0
     setup_commands: int = 0
     install_succeeded: bool = False
+    clone_mb: float = 0.0  # what --depth 1 actually cost, measured
+    volume_mb: float = 0.0  # the volume at the end, against the 2 GB cap
     needs: list[
         Literal["gpu", "api_key", "large_download", "network_at_runtime"]
     ] = Field(default_factory=list)
@@ -470,6 +472,8 @@ def _measured_facts(facts: Facts, box: tools.SandboxTools) -> Facts:
     facts.setup_seconds = round(box.setup_seconds, 1)
     facts.setup_commands = box.setup_commands
     facts.install_succeeded = box.install_succeeded
+    facts.clone_mb = round(box.clone_mb, 1)
+    facts.volume_mb = round(box.volume_mb, 1)
     return facts
 
 

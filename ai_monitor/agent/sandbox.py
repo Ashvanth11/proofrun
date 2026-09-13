@@ -59,7 +59,24 @@ MAX_OUTPUT_CHARS = 4000
 
 # Gates. The disk cap is checked by the caller after every call (the loop owns
 # stopping); this module only measures.
-MAX_REPO_KB = 200_000  # 200 MB, per get_repo_metadata's size_kb
+#
+# MAX_REPO_KB is a coarse pre-flight refusal, not the real enforcement. It is
+# compared against get_repo_metadata's `size_kb`, which is GitHub's
+# history-inclusive server-side size - but the clone is `--depth 1`, one
+# commit's tree. The gap is routinely 5-30x on a mature monorepo, and largest
+# for exactly the well-tested projects most worth running, so a tight gate
+# refuses the wrong repositories for bandwidth it was never going to spend.
+#
+# The real enforcement is DISK_CAP_MB, measured on the volume after every call
+# including the clone. So this gate only has to avoid wasting a 300 s setup
+# window on an obvious loser, and is set below the disk cap so that a clone
+# alone cannot exhaust the volume even if history and tree turn out equal.
+#
+# Raised from 200 MB on 2026-09-13: at 200 MB only 2 of 22 repositories in the
+# database were clonable Python, which was shaping the eval set rather than
+# protecting anything. `facts.clone_mb` now records what a shallow clone
+# actually cost, so the next revision of this number is measured, not argued.
+MAX_REPO_KB = 1_000_000  # 1 GB of history-inclusive size_kb
 DISK_CAP_MB = 2048
 
 # The repo name reaches us from the model, and from there would reach a clone
