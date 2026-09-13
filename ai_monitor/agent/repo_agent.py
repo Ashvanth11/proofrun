@@ -12,9 +12,13 @@ Three things make the stopping condition real rather than decorative:
 2. A step cap bounds the number of model turns.
 3. A cost cap bounds spend, enforced in code rather than requested in a prompt.
 
-Caps are enforced here, not in the prompt, because a prompt is a request and a
-small model will happily ignore it - the loop must hold even when the model
+Caps are enforced in code, not in the prompt, because a prompt is a request and
+a small model will happily ignore it - the loop must hold even when the model
 misbehaves.
+
+The loop itself now lives in `ai_monitor.agent.loop`, shared with the
+investigation agent. What stays here is what is specific to this agent: its
+prompt, its tools, its schema, and its idea of a sensible budget.
 """
 
 import json
@@ -27,6 +31,7 @@ import anthropic
 from pydantic import BaseModel, Field
 
 from ai_monitor.agent import tools
+from ai_monitor.agent.loop import Caps, ToolCall, run_loop
 from ai_monitor.analysis.analyzer import Usage, render_interests
 from ai_monitor.config.settings import InterestArea, settings
 from ai_monitor.providers import OllamaError
@@ -37,6 +42,7 @@ AGENT_MODEL = "claude-sonnet-5"
 
 DEFAULT_MAX_STEPS = 8
 DEFAULT_MAX_COST_USD = 0.10  # per repository
+DEFAULT_MAX_SECONDS = 600.0
 
 SYSTEM_PROMPT = """You assess GitHub repositories for relevance to a researcher's interest areas.
 
@@ -63,14 +69,6 @@ class RepoAssessment(BaseModel):
     relevance_score: float = Field(ge=0.0, le=1.0)
     matched_areas: list[str] = Field(default_factory=list)
     justification: str = Field(description="One sentence explaining the score")
-
-
-class ToolCall(BaseModel):
-    step: int
-    tool: str
-    arguments: dict
-    is_error: bool
-    result_summary: str
 
 
 class AgentRun(BaseModel):
@@ -100,11 +98,6 @@ class AgentRun(BaseModel):
         if "get_repo_metadata" in used:
             return "metadata"
         return "none"
-
-
-def _summarize(result: dict, limit: int = 300) -> str:
-    text = json.dumps(result, default=str)
-    return text[:limit] + ("..." if len(text) > limit else "")
 
 
 def _extract_assessment(
@@ -152,11 +145,10 @@ def analyze_repo(
     interests: Optional[dict[str, InterestArea]] = None,
     max_steps: int = DEFAULT_MAX_STEPS,
     max_cost_usd: float = DEFAULT_MAX_COST_USD,
+    max_seconds: float = DEFAULT_MAX_SECONDS,
 ) -> AgentRun:
     """Run the reasoning-action loop over one repository."""
     interests = interests if interests is not None else settings.interests
-    usage = Usage(model=model)
-    calls: list[ToolCall] = []
 
     messages: list[dict] = [
         {
@@ -168,89 +160,29 @@ def analyze_repo(
         }
     ]
 
-    stop_reason = "step_cap"
-    final_text = ""
-    step = 0
+    result = run_loop(
+        client,
+        model=model,
+        system=SYSTEM_PROMPT,
+        messages=messages,
+        tool_schemas=tools.TOOL_SCHEMAS,
+        # Resolved through the module on every call rather than bound once, so
+        # the test suite can substitute a network-free executor.
+        execute=lambda name, arguments: tools.execute(name, arguments),
+        caps=Caps(
+            max_steps=max_steps,
+            max_cost_usd=max_cost_usd,
+            max_seconds=max_seconds,
+        ),
+        final_prompt=FINAL_PROMPT,
+        label=repo,
+    )
 
-    while step < max_steps:
-        # Check the cost cap *before* spending, so the cap is a ceiling rather
-        # than something noticed after it has already been exceeded.
-        if usage.cost_usd >= max_cost_usd:
-            stop_reason = "cost_cap"
-            log.info("%s: cost cap hit at $%.4f", repo, usage.cost_usd)
-            break
-
-        step += 1
-        try:
-            response = client.messages.create(
-                model=model,
-                max_tokens=2048,
-                system=SYSTEM_PROMPT,
-                messages=messages,
-                tools=tools.TOOL_SCHEMAS,
-            )
-        except (anthropic.APIError, OllamaError) as exc:
-            log.warning("%s: model call failed at step %d: %s", repo, step, exc)
-            stop_reason = "error"
-            break
-
-        usage.input_tokens += response.usage.input_tokens
-        usage.output_tokens += response.usage.output_tokens
-
-        tool_uses = [b for b in response.content if b.type == "tool_use"]
-        text = "".join(b.text for b in response.content if b.type == "text")
-
-        if not tool_uses:
-            # The model answered instead of calling a tool: it decided it has
-            # enough. This is the loop's natural exit.
-            stop_reason = "sufficient_info"
-            final_text = text
-            break
-
-        messages.append({"role": "assistant", "content": response.content})
-
-        results = []
-        for block in tool_uses:
-            result, is_error = tools.execute(block.name, block.input)
-            calls.append(
-                ToolCall(
-                    step=step,
-                    tool=block.name,
-                    arguments=block.input,
-                    is_error=is_error,
-                    result_summary=_summarize(result),
-                )
-            )
-            results.append(
-                {
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": json.dumps(result, default=str),
-                    "is_error": is_error,
-                }
-            )
-        messages.append({"role": "user", "content": results})
-
-    # The loop ran out of budget mid-investigation. Ask once for a conclusion
-    # from what it already has, rather than discarding the work.
-    if stop_reason in {"step_cap", "cost_cap"} and not final_text:
-        messages.append({"role": "user", "content": FINAL_PROMPT})
-        try:
-            response = client.messages.create(
-                model=model, max_tokens=1024, system=SYSTEM_PROMPT, messages=messages
-            )
-            usage.input_tokens += response.usage.input_tokens
-            usage.output_tokens += response.usage.output_tokens
-            final_text = "".join(
-                b.text for b in response.content if b.type == "text"
-            )
-        except (anthropic.APIError, OllamaError) as exc:
-            log.warning("%s: final call failed: %s", repo, exc)
-
+    usage = result.usage
     assessment = None
-    if final_text:
+    if result.final_text:
         assessment, extract_usage = _extract_assessment(
-            final_text, client, model, interests
+            result.final_text, client, model, interests
         )
         usage.input_tokens += extract_usage.input_tokens
         usage.output_tokens += extract_usage.output_tokens
@@ -258,20 +190,24 @@ def analyze_repo(
     log.info(
         "%s: %d steps, stop=%s, escalated=%s, $%.4f",
         repo,
-        step,
-        stop_reason,
-        {c.tool for c in calls} or "none",
+        result.steps_taken,
+        result.stop_reason,
+        {c.tool for c in result.tool_calls} or "none",
         usage.cost_usd,
     )
 
     return AgentRun(
         repo=repo,
-        steps_taken=step,
-        tool_calls=calls,
-        stop_reason=stop_reason,
+        steps_taken=result.steps_taken,
+        tool_calls=result.tool_calls,
+        stop_reason=result.stop_reason,
         assessment=assessment,
         usage=usage,
-        transcript=[{"role": "assistant", "text": final_text}] if final_text else [],
+        transcript=(
+            [{"role": "assistant", "text": result.final_text}]
+            if result.final_text
+            else []
+        ),
     )
 
 
