@@ -210,3 +210,190 @@ and gain nothing from concurrency.
 - Watchers are simpler and more testable — they no longer need a connection.
 - Storage is a single fan-in point, which is also the natural place for dedup
   (Phase 7) to sit.
+
+---
+
+## 6. Execution happens in a disposable container with network off
+
+**Date:** 2026-09-13
+**Status:** decided, implemented (`ai_monitor/agent/sandbox.py`)
+**Revisit if:** questions start requiring a toolchain other than Python, or an
+investigation needs a service that outlives a single command.
+
+### Decision
+
+The investigation agent may run code, but only through three verbs, each a
+fresh `docker run --rm` against one named volume mounted at `/work`:
+
+| Verb | Network | Timeout | Purpose |
+|---|---|---|---|
+| `sandbox_clone` | bridge | 300s | `git clone --depth 1` into the volume |
+| `sandbox_setup` | bridge | 300s | install dependencies |
+| `sandbox_run` | **none** | 120s | execute the thing being investigated |
+
+Every container also gets `--read-only`, `--user 1000:1000`, `--cap-drop ALL`,
+`--security-opt no-new-privileges`, `--memory 2g`, `--cpus 2`,
+`--pids-limit 256`, `--env-file /dev/null`, and a `/tmp` tmpfs. The mounted
+volume is the only writable path that persists.
+
+**Network is a property of the verb, not an argument the model can pass.**
+
+### Why
+
+The threat model is not hypothetical. The repository under investigation is
+chosen by a pipeline that reads public feeds, so *anyone who can publish a
+repo can choose what this agent executes*. Two distinct risks follow, and they
+need different controls:
+
+1. **The code is hostile.** It tries to read the host filesystem, mine, or
+   phone home. The container handles this, and `--network none` during
+   `sandbox_run` is the control that makes exfiltration *impossible* rather
+   than merely discouraged.
+2. **The text is hostile.** A README, a command's own stdout, or a web result
+   can carry instructions aimed at the agent reading them. No container helps
+   here. This is why the evidence ledger exists (decision 7) and why every cap
+   is enforced in code rather than requested in the prompt — a prompt is a
+   request, and the attacker is writing to the same context window.
+
+The residual risk is named rather than hidden: `sandbox_setup` has network by
+necessity, so arbitrary code *does* get one window with an outbound path. That
+window is bounded (4 setup calls, 300s each, no host environment, no
+credentials mounted) but it is real. Closing it entirely would mean
+pre-building every dependency, which would reduce the agent to repos whose
+dependencies were guessed in advance.
+
+### Consequences
+
+- **Python-only in practice, by accident rather than design.** The read-only
+  root defeats toolchain installers that want to write outside `/work`; one run
+  installed rustup during setup and then could not use it. This is a real
+  limitation, and the questions in the eval set record language explicitly so
+  that a Go or Rust repo produces an honest `could_not_test` rather than a
+  fabricated answer.
+- **No state survives a call except the volume.** A fresh container per verb
+  means the agent cannot start a background server in one call and curl it in
+  the next. Anything needing a live service is untestable here.
+- **Two size controls, doing different jobs.** `MAX_REPO_KB` (1 GB) is a coarse
+  pre-flight refusal from GitHub's history-inclusive `size_kb`, which is a poor
+  predictor of a `--depth 1` clone. The real enforcement is `DISK_CAP_MB`
+  (2 GB), measured on the volume after every call, which stops the loop.
+
+### Alternatives considered
+
+- **No sandbox; read and reason only.** Simplest and safest, and it was the
+  Stage 1 design. Rejected because it makes `observed` evidence impossible by
+  construction — every claim collapses to "the README says so", which is
+  exactly the thing this project exists to distinguish.
+- **Run in a venv on the host.** Rejected outright. Arbitrary code from
+  strangers, with the user's home directory and API keys in reach.
+- **gVisor or a microVM (Firecracker).** Genuinely stronger isolation against
+  kernel escapes. Rejected for now as heavy and awkward on the macOS
+  development machine, for a threat that is a rung above what this project
+  plausibly faces. The three-verb contract is the part that would survive such
+  a migration; only the executor beneath it would change.
+- **An egress proxy instead of `--network none`.** Allowlist the hosts setup
+  legitimately needs (PyPI, GitHub) and deny the rest, which would let
+  `sandbox_run` keep a network for projects that need one. Strictly more
+  capable, and the natural next step if a question ever requires it. Rejected
+  now because it trades a control that is trivially verifiable — the flag is
+  either `none` or it is not, and a test asserts it — for one whose correctness
+  depends on proxy configuration that would itself need testing. `none` is the
+  claim that is cheap to make honestly.
+- **Anthropic's Managed Agents, with its hosted sandbox.** Removes the container
+  work entirely and is almost certainly better isolated than anything built
+  here. Rejected for this cycle for two reasons: the sandbox contract *is* a
+  substantial part of what this project is demonstrating, and handing execution
+  to a managed service would make the disk and network guarantees someone
+  else's to describe rather than mine to assert and test. A reasonable choice
+  for a production version of this, and a fair interview question.
+- **The Claude Agent SDK's own loop and tooling.** Same trade. The loop, its
+  caps, and the trace are the engineering content here; adopting a framework
+  loop would leave the ledger as the only original part.
+
+---
+
+## 7. Evidence kinds, not confidence scores
+
+**Date:** 2026-09-13
+**Status:** decided, implemented (`ai_monitor/agent/investigate.py`)
+**Revisit if:** a claim appears that none of the three kinds describes honestly.
+
+### Decision
+
+No confidence number appears anywhere in an investigation. Every claim in the
+ledger instead carries a **kind** and a **source naming the tool call that
+produced it**:
+
+| Kind | Means | Example source |
+|---|---|---|
+| `observed` | a command ran and exercised the thing | `sandbox_run(apm install)` |
+| `inspected` | a fact computed by GitHub, read first-hand | `get_repo_metadata(license)` |
+| `reported` | somebody's prose, including the project's own | `read_file(README.md)` |
+
+Three rules then run in code, after extraction and again after any revision:
+
+1. An entry whose source names no tool call that actually happened is dropped.
+2. The kind is capped by the citing tool, and may only be lowered — a
+   `read_file` can never yield `observed`, and `cat README.md` inside a
+   container is not execution.
+3. `supported` and `refuted` require a first-hand entry (`observed` or
+   `inspected`) on the matching side. Otherwise the verdict is downgraded to
+   `inconclusive`.
+
+### Why
+
+Stage 1 measured whether a model's judgment can be trusted as a proxy for a
+human's, and the answer was no in a specific and damning way:
+
+| comparison | Pearson r |
+|---|---|
+| Haiku analyzer vs human | +0.349 |
+| Sonnet judge vs human | +0.257 |
+| **Sonnet judge vs Haiku analyzer** | **+0.908** |
+
+The two models agreed with each other almost perfectly while both diverged from
+the human. A confidence score is exactly that kind of self-assessment, so
+shipping one would have dressed model consensus as calibration. Full analysis:
+[eval-findings.md](eval-findings.md).
+
+The deeper objection is that a confidence number is unfalsifiable per item.
+"0.8 confident" cannot be checked against anything. "`apm install` ran and
+exited 0, and these files appeared" can be checked by re-running it, and can be
+*wrong* in a way a reader can catch.
+
+**Why three kinds and not two.** The original split was observed vs. reported.
+Repository metadata fits neither: a licence field is first-hand — GitHub
+computed it, nobody's prose asserted it — but nothing was executed. Forcing it
+into `reported` made licence questions unanswerable at the correct rung, since
+`supported` would need an execution that has nothing to do with licensing.
+Forcing it into `observed` would have made a file listing count as proof that
+code runs.
+
+### Consequences
+
+- **The agent can be right and still downgraded, and that counts as a
+  failure.** In the second eval run the licence question about `langfuse` was
+  answered by reading `LICENSE` and `ee/LICENSE` as *files* — `reported` — while
+  never citing the metadata `license` field that was one call away. No
+  first-hand entry, so rule 3 downgraded a correct answer. The rule is working;
+  the agent chose the weaker of two available sources. It shows up in the eval
+  as a failed row, which is where it should show up.
+- **Verdicts become cheap to audit.** Every row of a ledger names a call in the
+  stored trace, so "did it actually check this?" is a lookup rather than a
+  judgment call.
+- **The eval needs an `execution` mode per question, not a boolean.** See
+  alternatives.
+
+### Alternatives considered
+
+- **Confidence scores.** Rejected on the measured evidence above. This is the
+  decision the Stage 1 eval paid for.
+- **Free-text caveats in a summary.** What the model already does naturally, and
+  unmeasurable: there is no way to score "did it hedge appropriately".
+- **A single `verified: true/false` boolean per run.** Tried first, in the eval
+  harness. It collapsed the three rungs into one and made every question whose
+  correct answer is `could_not_test` unpassable by construction — a correct
+  refusal produces no `observed` entry, so the boolean scored honesty as
+  failure. Replaced by a per-question mode of `required` / `forbidden` /
+  `attempt`, which lets the eval state that reaching for a container was the
+  *wrong* move on a question metadata already settles.
