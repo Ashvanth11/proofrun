@@ -16,6 +16,7 @@ from typing import Any, Callable, Optional
 
 import httpx
 
+from ai_monitor.agent.sandbox import MAX_REPO_KB
 from ai_monitor.watchers.github import _headers
 
 log = logging.getLogger(__name__)
@@ -228,14 +229,23 @@ def web_search_tool(max_uses: int = DEFAULT_MAX_WEB_SEARCHES) -> dict:
 # Setup and run are two tools rather than one tool with a `network` flag
 # because these descriptions are the prompt engineering: they are what teaches
 # the model that network is a setup-phase privilege and not a default.
+IMAGE_CONTENTS = (
+    "The image contains python3, pip, git, curl and a C toolchain, and nothing else - there is no cargo, no node, no go and no jdk, and installing one does not persist. "
+)
+
 SANDBOX_TOOL_SCHEMAS = [
     {
         "name": "sandbox_clone",
+        # The limit is interpolated, not typed out: it was written as a
+        # literal once and went stale the moment the gate moved, leaving the
+        # model working from a number the code had stopped enforcing.
         "description": (
             "Shallow-clone the repository into a fresh isolated container "
             "volume at /work/repo. Call this once, and only once you have "
             "decided the question actually needs the code run. Repositories "
-            "over 200 MB are refused."
+            f"over {MAX_REPO_KB // 1000} MB are refused. Only /work persists "
+            "between commands; the rest of the container's filesystem is "
+            "read-only and is discarded after every call."
         ),
         "input_schema": {
             "type": "object",
@@ -251,8 +261,12 @@ SANDBOX_TOOL_SCHEMAS = [
         "description": (
             "Run one shell command in the container WITH network access, for "
             "installation only: 'cd repo && pip install -e .' and the like. "
+            + IMAGE_CONTENTS +
             "Network is a setup-phase privilege and these calls are strictly "
-            "limited - do the install in as few commands as you can."
+            "limited - do the install in as few commands as you can. Anything "
+            "written outside /work is lost before your next call, so install "
+            "into the project or a virtualenv under /work, never into a home "
+            "directory."
         ),
         "input_schema": {
             "type": "object",
@@ -270,6 +284,7 @@ SANDBOX_TOOL_SCHEMAS = [
         "name": "sandbox_run",
         "description": (
             "Run one shell command in the container with NO network at all. "
+            + IMAGE_CONTENTS +
             "This is where the capability the question names gets exercised: "
             "one command, one input, once. Anything it prints is first-hand "
             "evidence; anything you only read about is not."
