@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BerriAI/litellm &mdash; Proofrun</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e0e0db;
+  --card: #ffffff; --accent: #2a5d8f; --bad: #a33; --good: #2e6b3e;
+  --obs: #1d4f2b; --obs-bg: #e6f2e9; --insp: #1f4d73; --insp-bg: #e6eff7;
+  --rep: #6b6b66; --rep-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a; --fg: #e6e6e3; --muted: #9a9a94; --line: #2c2e33;
+    --card: #1d1f23; --accent: #7fb0e0; --bad: #e08585; --good: #7fc08f;
+    --obs: #9fe0b0; --obs-bg: #1c3325; --insp: #9fc9ec; --insp-bg: #1a2c3d;
+    --rep: #9a9a94; --rep-bg: #24262b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin: 2.5rem 0 .75rem; font-weight: 600;
+}
+a { color: var(--accent); }
+.sub { color: var(--muted); margin: 0 0 2rem; }
+.back { display: inline-block; margin-bottom: 1.5rem; font-size: .85rem; }
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .82rem;
+}
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td {
+  text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.n, th.n { text-align: right; }
+tr.row:hover td { background: var(--card); }
+td a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+.yes { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; margin-bottom: .6rem;
+}
+.q { font-size: 1.05rem; margin: 0 0 .5rem; }
+.verdict {
+  display: inline-block; padding: .3rem .7rem; border-radius: 4px;
+  font-weight: 700; letter-spacing: .04em; background: var(--rep-bg);
+}
+.verdict.supported, .verdict.refuted { background: var(--obs-bg); color: var(--obs); }
+.step {
+  border-left: 3px solid var(--line); padding: .45rem 0 .45rem .8rem;
+  margin-bottom: .5rem;
+}
+.step.err { border-left-color: var(--bad); }
+.step .hd { font-weight: 600; }
+.step .out { color: var(--muted); display: block; margin-top: .2rem; word-break: break-word; }
+.tag {
+  display: inline-block; min-width: 5.5rem; text-align: center;
+  padding: .1rem .45rem; border-radius: 3px; font-size: .7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.observed { background: var(--obs-bg); color: var(--obs); }
+.tag.inspected { background: var(--insp-bg); color: var(--insp); }
+.tag.reported { background: var(--rep-bg); color: var(--rep); }
+.entry { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: 0; }
+.entry .src { color: var(--muted); display: block; margin-top: .2rem; }
+.side { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts { margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts dd { margin: 0 0 .6rem; }
+.legend { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
+ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
+ul.issues li { margin-bottom: .4rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">&larr; all investigations</a>
+<h1 class="q">Does BerriAI/litellm actually translate a call for a non-OpenAI provider into the OpenAI request format, as its README claims?</h1>
+<p class="sub"><span class="mono">BerriAI/litellm</span> &middot; could_not_test</p>
+<h2>Verdict</h2>
+<div class="card"><span class="verdict inconclusive">INCONCLUSIVE</span><p class="sub" style="margin:.6rem 0 0">blockers: needs_large_download &middot; not downgraded &middot; stopped: sufficient_info &middot; 8 steps &middot; $0.354 &middot; 76s</p><p style='margin:.4rem 0 0'><span class="yes">passes every criterion</span></p></div>
+<h2>Summary</h2>
+<div class="card">The repo could not be cloned (1.5GB, over the sandbox limit), so no live test of litellm.completion() with a non-OpenAI provider could be run to directly observe request translation. The README and repo description do claim a unified OpenAI-format calling convention across 100+ providers. File listings show the existence of litellm/llms/anthropic/chat/transformation.py and handler.py, and a shared base_llm/chat/transformation.py with an abstract BaseConfig class, which is consistent with the claimed architecture. However, the actual file reads were truncated to import statements before any function bodies, docstrings, or mapping logic could be observed, so the specific translation behavior (e.g., mapping tool calls, finish reasons, or role names between OpenAI and Anthropic schemas) was not verified. The evidence is suggestive but insufficient to confirm the README&#x27;s claim; verdict is inconclusive rather than supported.</div>
+<h2>Trajectory</h2>
+<div class="card"><div class="step mono"><span class="hd">step 1 get_repo_metadata</span>({&#x27;repo&#x27;: &#x27;BerriAI/litellm&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;BerriAI/litellm&quot;, &quot;license&quot;: &quot;NOASSERTION&quot;, &quot;language&quot;: &quot;Python&quot;, &quot;size_kb&quot;: 1526283, &quot;archived&quot;: false, &quot;created_at&quot;: &quot;2023-07-27T00:09:52Z&quot;, &quot;pushed_at&quot;: &quot;2026-09-14T03:37:21Z&quot;, &quot;homepage&quot;: &quot;https://docs.litellm.ai/docs/&quot;, &quot;stars&quot;: 58662, &quot;forks&quot;: 11413, &quot;open_issues&quot;: 5013}</span></div><div class="step mono"><span class="hd">step 1 get_repo_description</span>({&#x27;repo&#x27;: &#x27;BerriAI/litellm&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;BerriAI/litellm&quot;, &quot;description&quot;: &quot;The fastest, litest AI Gateway. Rust core with Python SDK. Call 100+ LLM APIs in OpenAI (or native) format with cost tracking, guardrails, load balancing, and logging [Bedrock, Azure, OpenAI, Anthropic, OpenAI, VertexAI, vLLM, Nvidia NIM]&quot;, &quot;topics&quot;: [&quot;ai-gateway&quot;, &quot;anthropic&quot;, &quot;azure-openai&quot;, &quot;bedrock&quot;, &quot;gateway&quot;, &quot;langchain&quot;, &quot;litellm&quot;, &quot;llm&quot;, &quot;llm-gateway&quot;, &quot;llmops&quot;, &quot;mcp-gateway&quot;, &quot;openai&quot;, &quot;openai-proxy&quot;, &quot;rust&quot;, &quot;rust-ai&quot;, &quot;vertex-ai&quot;]}</span></div><div class="step err mono"><span class="hd">step 2 sandbox_setup</span>({&#x27;command&#x27;: &#x27;pip install --quiet litellm 2&gt;&amp;1 | tail -20&#x27;}) <span class="err-flag">error</span><span class="out">&rarr; {&quot;error&quot;: &quot;nothing is cloned yet; call sandbox_clone first&quot;}</span></div><div class="step err mono"><span class="hd">step 3 sandbox_clone</span>({&#x27;repo&#x27;: &#x27;BerriAI/litellm&#x27;}) <span class="err-flag">error</span><span class="out">&rarr; {&quot;error&quot;: &quot;BerriAI/litellm is 1526 MB, over the 1000 MB clone limit&quot;}</span></div><div class="step mono"><span class="hd">step 4 list_files</span>({&#x27;repo&#x27;: &#x27;BerriAI/litellm&#x27;, &#x27;path&#x27;: &#x27;litellm/llms/anthropic&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;litellm/llms/anthropic&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;__init__.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 418}, {&quot;name&quot;: &quot;batches&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;chat&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;common_utils.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 72529}, {&quot;name&quot;: &quot;completion&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;cost_calculation.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 4082}, {&quot;name&quot;: &quot;count_tokens&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;experimental_pass_through&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;files&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;skills&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}], &quot;truncated&quot;: false}</span></div><div class="step mono"><span class="hd">step 4 read_file</span>({&#x27;repo&#x27;: &#x27;BerriAI/litellm&#x27;, &#x27;path&#x27;: &#x27;README.md&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;README.md&quot;, &quot;size&quot;: 35980, &quot;truncated&quot;: true, &quot;content&quot;: &quot;&lt;h1 align=\&quot;center\&quot;&gt;\n \ud83d\ude85 LiteLLM\n &lt;/h1&gt;\n &lt;p align=\&quot;center\&quot;&gt;\n &lt;p align=\&quot;center\&quot;&gt;LiteLLM AI Gateway\n &lt;/p&gt;\n &lt;p align=\&quot;center\&quot;&gt;Open Source AI Gateway for 100+ LLMs. Self-hosted. Enterprise-ready. Call any LLM in OpenAI format.&lt;/p&gt;\n &lt;p align=\&quot;center\&quot;&gt;\n &lt;a href=\&quot;https://render.com/deploy?repo=https://github.com/BerriAI/litellm\&quot; target=\&quot;_blank\&quot; rel=\&quot;nofollow\&quot;&gt;&lt;img src=\&quot;https://render.com/images/deploy-to-render-button.svg\&quot; alt=\&quot;Deploy to Render\&quot; height=\&quot;40\&quot;&gt;&lt;/a&gt;\n &lt;a href=\&quot;https://railway.com/deploy/RhvhdC?referralCode=7mRv9K&amp;utm_medium=integration&amp;utm_source=template&amp;utm_campaign=generic\&quot;&gt;&lt;img src=\&quot;https://railway.com/button.svg\&quot; alt=\&quot;Deploy on Railway\&quot; height=\&quot;40\&quot;&gt;&lt;/a&gt;\n &lt;a href=\&quot;https://console.aws.amazon.com/cloudshell/home\&quot; target=\&quot;_blank\&quot; rel=\&quot;nofollow\&quot;&gt;&lt;img src=\&quot;./.github/deploy-on-aws.png\&quot; alt=\&quot;Deploy ...</span></div><div class="step mono"><span class="hd">step 5 list_files</span>({&#x27;repo&#x27;: &#x27;BerriAI/litellm&#x27;, &#x27;path&#x27;: &#x27;litellm/llms/anthropic/chat&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;litellm/llms/anthropic/chat&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;__init__.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 68}, {&quot;name&quot;: &quot;guardrail_translation&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;handler.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 57739}, {&quot;name&quot;: &quot;transformation.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 125017}], &quot;truncated&quot;: false}</span></div><div class="step mono"><span class="hd">step 6 read_file</span>({&#x27;repo&#x27;: &#x27;BerriAI/litellm&#x27;, &#x27;path&#x27;: &#x27;litellm/llms/anthropic/chat/transformation.py&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;litellm/llms/anthropic/chat/transformation.py&quot;, &quot;size&quot;: 125017, &quot;truncated&quot;: true, &quot;content&quot;: &quot;import json\nimport re\nimport time\nfrom collections.abc import Callable, Mapping, Sequence\nfrom types import MappingProxyType\nfrom typing import TYPE_CHECKING, Any, Final, NoReturn, cast\n\nimport httpx\nfrom pydantic import ValidationError\nfrom typing_extensions import ReadOnly, TypedDict\n\nimport litellm\nfrom litellm.constants import (\n ANTHROPIC_MIN_THINKING_BUDGET_TOKENS,\n ANTHROPIC_WEB_SEARCH_TOOL_MAX_USES,\n DEFAULT_ANTHROPIC_CHAT_MAX_TOKENS,\n DEFAULT_REASONING_EFFORT_HIGH_THINKING_BUDGET,\n DEFAULT_REASONING_EFFORT_LOW_THINKING_BUDGET,\n DEFAULT_REASONING_EFFORT_MAX_THINKING_BUDGET,\n DEFAULT_REASONING_EFFORT_MEDIUM_THINKING_BUDGET,\n DEFAULT_REASONING_EFFORT_MINIMAL_THINKING_BUDGET,\n DEFAULT_REASONING_EFFORT_XHIGH_THINKING_BUDGET,\n RESPONSE_FORMAT_TOOL_NAME,\n)\nfrom litellm.litellm_core_utils.core_helpers import map_finish_reason\nf...</span></div><div class="step mono"><span class="hd">step 7 read_file</span>({&#x27;repo&#x27;: &#x27;BerriAI/litellm&#x27;, &#x27;path&#x27;: &#x27;litellm/llms/base_llm/chat/transformation.py&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;litellm/llms/base_llm/chat/transformation.py&quot;, &quot;size&quot;: 15392, &quot;truncated&quot;: true, &quot;content&quot;: &quot;\&quot;\&quot;\&quot;\nCommon base config for all LLM providers\n\&quot;\&quot;\&quot;\n\nimport types\nfrom abc import ABC, abstractmethod\nfrom collections.abc import AsyncIterator, Iterator\nfrom typing import TYPE_CHECKING, Any, Final, Union\n\nimport httpx\nfrom pydantic import BaseModel\n\nfrom litellm.constants import DEFAULT_MAX_TOKENS, RESPONSE_FORMAT_TOOL_NAME\nfrom litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler, HTTPHandler\nfrom litellm.types.llms.openai import (\n AllMessageValues,\n ChatCompletionToolChoiceFunctionParam,\n ChatCompletionToolChoiceObjectParam,\n ChatCompletionToolParam,\n ChatCompletionToolParamFunctionChunk,\n)\n\nif TYPE_CHECKING:\n import tiktoken\n\n from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper\n from litellm.types.utils import ModelResponse\n\nfrom ..base_utils import (\n map_developer_role_to_system_role,...</span></div></div>
+<h2>Ledger</h2>
+<div class="card"><div class="entry"><span class="tag reported">reported</span> <span class="side">for</span> README explicitly claims a unified OpenAI-style calling convention across providers, per the repo description: &#x27;Call 100+ LLM APIs in OpenAI (or native) format&#x27; and README tagline &#x27;Call any LLM in OpenAI format.&#x27;<span class="src mono">from: get_repo_description / read_file(README.md)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">unknown</span> litellm/llms/anthropic/chat/transformation.py is a large (125KB) file that imports from litellm.types.llms.openai and litellm.constants, and imports map_finish_reason from litellm.litellm_core_utils.core_helpers, consistent with a dedicated provider transformation module, but the returned content was truncated before any function bodies, class definitions, or actual mapping logic were shown.<span class="src mono">from: read_file(litellm/llms/anthropic/chat/transformation.py)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">unknown</span> litellm/llms/base_llm/chat/transformation.py defines an abstract BaseConfig class and imports a function named map_developer_role_to_system_role from base_utils, suggesting some cross-provider normalization logic exists, but the returned content was truncated before the function definition, docstring, or body were shown, so its actual behavior was not confirmed.<span class="src mono">from: read_file(litellm/llms/base_llm/chat/transformation.py)</span></div><div class="entry"><span class="tag inspected">inspected</span> <span class="side">unknown</span> litellm/llms/anthropic and litellm/llms/anthropic/chat contain files named transformation.py and handler.py, consistent with a provider-specific translation module, but no listing of the top-level litellm/llms directory or other provider folders was performed to confirm this pattern repo-wide.<span class="src mono">from: list_files(litellm/llms/anthropic), list_files(litellm/llms/anthropic/chat)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">unknown</span> The repository could not be cloned (1526 MB, over the 1000 MB sandbox limit), so no live call to litellm.completion() with an Anthropic model could be executed or its outbound HTTP request inspected.<span class="src mono">from: sandbox_clone(BerriAI/litellm)</span></div></div>
+<h2>Facts</h2>
+<div class="card"><dl class="facts"><dt>setup</dt><dd>0.0s over 0 command(s), install not run or failed</dd><dt>disk</dt><dd>0 MB cloned, 0 MB total</dd><dt>needs</dt><dd>large_download</dd><dt>exercised</dt><dd>Translates OpenAI-format chat completion calls into non-OpenAI provider formats (e.g., Anthropic) via per-provider transformation modules</dd></dl></div>
+<h2>Grounding critique</h2>
+<div class="card"><p class="sub" style="margin:0">ran &middot; not grounded &middot; revised</p><ul class="issues"><li>The ledger entry for anthropic/chat/transformation.py claims specific imports (ChatCompletionSystemMessage, ChatCompletionToolCallChunk, ChatCompletionToolParam from litellm.types.llms.openai) and Anthropic-native types (AnthropicMessagesTool, AnthropicThinkingParam), but the actual read_file result shown is truncated and only displays generic imports (json, re, time, httpx, pydantic, litellm.constants) before cutting off mid-import statement -- the specific type names cited are not present in the returned content.</li><li>The claim that the anthropic transformation file contains &#x27;helper logic mapping tool names, finish reasons, and thinking blocks between the two schemas&#x27; is not supported by the quoted evidence, which only shows the file&#x27;s import section before truncation; no function bodies or mapping logic were actually returned or quoted.</li><li>The claim that base_llm/chat/transformation.py&#x27;s translate_developer_role_to_system_role method has a docstring stating it converts &#x27;developer&#x27; role &#x27;to system role for non-OpenAI providers&#x27; is not supported by the truncated evidence shown, which cuts off right after the import of map_developer_role_to_system_role and does not include any method body or docstring text.</li><li>The ledger entry citing &#x27;list_files(litellm/llms)&#x27; as evidence for a systematic per-provider transformation.py pattern is not grounded in the actual tool calls, which only listed litellm/llms/anthropic and litellm/llms/anthropic/chat -- no listing of the top-level litellm/llms directory or other providers was performed to substantiate a repo-wide pattern claim.</li></ul></div>
+</div>
+</body>
+</html>

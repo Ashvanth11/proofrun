@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>zenml-io/zenml &mdash; Proofrun</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e0e0db;
+  --card: #ffffff; --accent: #2a5d8f; --bad: #a33; --good: #2e6b3e;
+  --obs: #1d4f2b; --obs-bg: #e6f2e9; --insp: #1f4d73; --insp-bg: #e6eff7;
+  --rep: #6b6b66; --rep-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a; --fg: #e6e6e3; --muted: #9a9a94; --line: #2c2e33;
+    --card: #1d1f23; --accent: #7fb0e0; --bad: #e08585; --good: #7fc08f;
+    --obs: #9fe0b0; --obs-bg: #1c3325; --insp: #9fc9ec; --insp-bg: #1a2c3d;
+    --rep: #9a9a94; --rep-bg: #24262b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin: 2.5rem 0 .75rem; font-weight: 600;
+}
+a { color: var(--accent); }
+.sub { color: var(--muted); margin: 0 0 2rem; }
+.back { display: inline-block; margin-bottom: 1.5rem; font-size: .85rem; }
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .82rem;
+}
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td {
+  text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.n, th.n { text-align: right; }
+tr.row:hover td { background: var(--card); }
+td a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+.yes { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; margin-bottom: .6rem;
+}
+.q { font-size: 1.05rem; margin: 0 0 .5rem; }
+.verdict {
+  display: inline-block; padding: .3rem .7rem; border-radius: 4px;
+  font-weight: 700; letter-spacing: .04em; background: var(--rep-bg);
+}
+.verdict.supported, .verdict.refuted { background: var(--obs-bg); color: var(--obs); }
+.step {
+  border-left: 3px solid var(--line); padding: .45rem 0 .45rem .8rem;
+  margin-bottom: .5rem;
+}
+.step.err { border-left-color: var(--bad); }
+.step .hd { font-weight: 600; }
+.step .out { color: var(--muted); display: block; margin-top: .2rem; word-break: break-word; }
+.tag {
+  display: inline-block; min-width: 5.5rem; text-align: center;
+  padding: .1rem .45rem; border-radius: 3px; font-size: .7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.observed { background: var(--obs-bg); color: var(--obs); }
+.tag.inspected { background: var(--insp-bg); color: var(--insp); }
+.tag.reported { background: var(--rep-bg); color: var(--rep); }
+.entry { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: 0; }
+.entry .src { color: var(--muted); display: block; margin-top: .2rem; }
+.side { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts { margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts dd { margin: 0 0 .6rem; }
+.legend { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
+ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
+ul.issues li { margin-bottom: .4rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">&larr; all investigations</a>
+<h1 class="q">Can zenml-io/zenml be installed from source and initialise a local project with a working default stack, with no server or account?</h1>
+<p class="sub"><span class="mono">zenml-io/zenml</span> &middot; execution</p>
+<h2>Verdict</h2>
+<div class="card"><span class="verdict could_not_test">COULD_NOT_TEST</span><p class="sub" style="margin:.6rem 0 0">blockers: install_failed &middot; not downgraded &middot; stopped: sandbox_cap &middot; 7 steps &middot; $0.272 &middot; 137s</p><p style='margin:.4rem 0 0'><span class="no">fails</span> stop_reason</p></div>
+<h2>Summary</h2>
+<div class="card">Cloning zenml-io/zenml succeeded, but every attempt to `pip install -e .` (plain, with --no-build-isolation, and after installing uv/uv-build) failed during the editable-metadata build step, with truncated tracebacks that point at pip&#x27;s build-isolation/candidate-preparation code without ever surfacing a clean, human-readable error string. The exact root cause (e.g. a missing uv-build executable on PATH) was not confirmed by any command output — it is a plausible inference from the package layout, not something the evidence directly shows. The sandbox_setup call budget was exhausted before a working install could be achieved, so `zenml init` and default-stack initialization were never reached. This is an environment/tooling failure during install, not evidence about ZenML&#x27;s actual local-install or server-free capability.</div>
+<h2>Trajectory</h2>
+<div class="card"><div class="step mono"><span class="hd">step 1 get_repo_metadata</span>({&#x27;repo&#x27;: &#x27;zenml-io/zenml&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;zenml-io/zenml&quot;, &quot;license&quot;: &quot;Apache-2.0&quot;, &quot;language&quot;: &quot;Python&quot;, &quot;size_kb&quot;: 913783, &quot;archived&quot;: false, &quot;created_at&quot;: &quot;2020-11-19T09:25:46Z&quot;, &quot;pushed_at&quot;: &quot;2026-09-12T14:11:41Z&quot;, &quot;homepage&quot;: &quot;https://zenml.io&quot;, &quot;stars&quot;: 5579, &quot;forks&quot;: 654, &quot;open_issues&quot;: 169}</span></div><div class="step mono"><span class="hd">step 1 get_repo_description</span>({&#x27;repo&#x27;: &#x27;zenml-io/zenml&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;zenml-io/zenml&quot;, &quot;description&quot;: &quot;ZenML \ud83d\ude4f: One AI Platform from Pipelines to Agents. https://zenml.io.&quot;, &quot;topics&quot;: [&quot;agentops&quot;, &quot;agents&quot;, &quot;ai&quot;, &quot;automl&quot;, &quot;data-science&quot;, &quot;deep-learning&quot;, &quot;devops-tools&quot;, &quot;genai&quot;, &quot;llm&quot;, &quot;llmops&quot;, &quot;machine-learning&quot;, &quot;metadata-tracking&quot;, &quot;ml&quot;, &quot;mlops&quot;, &quot;pipelines&quot;, &quot;production-ready&quot;, &quot;pytorch&quot;, &quot;tensorflow&quot;, &quot;workflow&quot;, &quot;zenml&quot;]}</span></div><div class="step mono"><span class="hd">step 2 sandbox_clone</span>({&#x27;repo&#x27;: &#x27;zenml-io/zenml&#x27;})<span class="out">&rarr; {&quot;command&quot;: &quot;git clone --depth 1 https://github.com/zenml-io/zenml.git /work/repo&quot;, &quot;stdout&quot;: &quot;&quot;, &quot;stderr&quot;: &quot;Cloning into &#x27;/work/repo&#x27;...\n&quot;, &quot;exit_code&quot;: 0, &quot;elapsed_s&quot;: 34.10358654100003, &quot;truncated&quot;: false, &quot;timed_out&quot;: false}</span></div><div class="step mono"><span class="hd">step 3 sandbox_setup</span>({&#x27;command&#x27;: &#x27;cd /work/repo &amp;&amp; pip install -e . --no-deps -q 2&gt;&amp;1 | tail -30 &amp;&amp; pip install -q &quot;zenml[server]&quot; 2&gt;&amp;1 | tail -5 || true&#x27;})<span class="out">&rarr; {&quot;command&quot;: &quot;cd /work/repo &amp;&amp; pip install -e . --no-deps -q 2&gt;&amp;1 | tail -30 &amp;&amp; pip install -q \&quot;zenml[server]\&quot; 2&gt;&amp;1 | tail -5 || true&quot;, &quot;stdout&quot;: &quot; error: subprocess-exited-with-error\n \n \u00d7 Preparing editable metadata (pyproject.toml) did not run successfully.\n \u2502 exit code: 1\n \u2570\u2500&gt; [15 lines of output]\n Traceback (most recent call last):\n File \&quot;/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\&quot;, line 389, in &lt;module&gt;\n main()\n File \&quot;/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\&quot;, line 373, in main\n json_out[\&quot;return_val\&quot;] = hook(**hook_input[\&quot;kwargs\&quot;])\n ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n File \&quot;/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\&quot;, line 209, in prepare_metadata_for_build_editable\n return hook(metadata_directory, ...</span></div><div class="step mono"><span class="hd">step 4 sandbox_setup</span>({&#x27;command&#x27;: &#x27;cd /work/repo &amp;&amp; pip install --no-build-isolation -e . -q 2&gt;&amp;1 | tail -40&#x27;})<span class="out">&rarr; {&quot;command&quot;: &quot;cd /work/repo &amp;&amp; pip install --no-build-isolation -e . -q 2&gt;&amp;1 | tail -40&quot;, &quot;stdout&quot;: &quot; ^^^^^\n File \&quot;/usr/local/lib/python3.12/site-packages/pip/_internal/resolution/resolvelib/factory.py\&quot;, line 501, in _make_requirements_from_install_req\n cand = self._make_base_candidate_from_link(\n ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n File \&quot;/usr/local/lib/python3.12/site-packages/pip/_internal/resolution/resolvelib/factory.py\&quot;, line 212, in _make_base_candidate_from_link\n self._editable_candidate_cache[link] = EditableCandidate(\n ^^^^^^^^^^^^^^^^^^\n File \&quot;/usr/local/lib/python3.12/site-packages/pip/_internal/resolution/resolvelib/candidates.py\&quot;, line 329, in __init__\n super().__init__(\n File \&quot;/usr/local/lib/python3.12/site-packages/pip/_internal/resolution/resolvelib/candidates.py\&quot;, line 159, in __init__\n self.dist = self._prepare()\n ^^^^^^^^^^^^^^^\n File \&quot;/usr/local/lib/py...</span></div><div class="step mono"><span class="hd">step 5 sandbox_setup</span>({&#x27;command&#x27;: &#x27;pip install -q uv uv-build 2&gt;&amp;1 | tail -20; cd /work/repo &amp;&amp; pip install --no-build-isolation -e . -q 2&gt;&amp;1 | tail -40&#x27;})<span class="out">&rarr; {&quot;command&quot;: &quot;pip install -q uv uv-build 2&gt;&amp;1 | tail -20; cd /work/repo &amp;&amp; pip install --no-build-isolation -e . -q 2&gt;&amp;1 | tail -40&quot;, &quot;stdout&quot;: &quot; error: subprocess-exited-with-error\n \n \u00d7 Preparing editable metadata (pyproject.toml) did not run successfully.\n \u2502 exit code: 1\n \u2570\u2500&gt; [15 lines of output]\n Traceback (most recent call last):\n File \&quot;/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\&quot;, line 389, in &lt;module&gt;\n main()\n File \&quot;/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\&quot;, line 373, in main\n json_out[\&quot;return_val\&quot;] = hook(**hook_input[\&quot;kwargs\&quot;])\n ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n File \&quot;/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\&quot;, line 209, in prepare_metadata_for_build_editable\n return hook(metadata_directory, conf...</span></div><div class="step mono"><span class="hd">step 6 sandbox_setup</span>({&#x27;command&#x27;: &#x27;python3 -c &quot;import uv_build, os; print(uv_build.__file__)&quot;; python3 -c &quot;from uv_build import __init__ as u&quot; ; find / -iname &quot;uv&quot; -type f 2&gt;/dev/null | grep -v proc; python3 -c &quot;\nimport uv_build\nprint(uv_build.__file__)\n&quot;\ncat /work/.local/lib/python3.12/site-packages/uv_build/__init_...)<span class="out">&rarr; {&quot;command&quot;: &quot;python3 -c \&quot;import uv_build, os; print(uv_build.__file__)\&quot;; python3 -c \&quot;from uv_build import __init__ as u\&quot; ; find / -iname \&quot;uv\&quot; -type f 2&gt;/dev/null | grep -v proc; python3 -c \&quot;\nimport uv_build\nprint(uv_build.__file__)\n\&quot;\ncat /work/.local/lib/python3.12/site-packages/uv_build/__init__.py | head -60&quot;, &quot;stdout&quot;: &quot;/work/.local/lib/python3.12/site-packages/uv_build/__init__.py\n/work/.local/bin/uv\n/work/.local/lib/python3.12/site-packages/uv_build/__init__.py\n\&quot;\&quot;\&quot;\nPython shims for the PEP 517 and PEP 660 build backend.\n\nMajor imports in this module are required to be lazy:\n```\n$ hyperfine \\\n \&quot;/usr/bin/python3 -c \\\&quot;print(&#x27;hi&#x27;)\\\&quot;\&quot; \\\n \&quot;/usr/bin/python3 -c \\\&quot;from subprocess import check_call; print(&#x27;hi&#x27;)\\\&quot;\&quot;\nBase: Time (mean \u00b1 \u03c3): 11.0 ms \u00b1 1.7 ms [User: 8.5 ms, System: 2.5 ms]\nWith import: Time (mean \u00b1 \u03c3): 15.2 ms \u00b1 2.0 ms [User: 12.3 ms, System: 2.9 ms]\nBase 1.38 \u00b1 0.28 times fas...</span></div><div class="step err mono"><span class="hd">step 7 sandbox_setup</span>({&#x27;command&#x27;: &#x27;export PATH=/work/.local/bin:$PATH; which uv-build uv; ls /work/.local/bin | grep uv\ncd /work/repo &amp;&amp; PATH=/work/.local/bin:$PATH pip install --no-build-isolation -e . -q 2&gt;&amp;1 | tail -40&#x27;}) <span class="err-flag">error</span><span class="out">&rarr; {&quot;error&quot;: &quot;sandbox_setup budget exhausted (4 calls); conclude from what you have&quot;}</span></div></div>
+<h2>Ledger</h2>
+<div class="card"><div class="entry"><span class="tag inspected">inspected</span> <span class="side">unknown</span> Repo metadata shows Apache-2.0 license, pure Python, ~890MB, actively maintained (pushed 2026-09-12)<span class="src mono">from: get_repo_metadata(zenml-io/zenml)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">unknown</span> Repo description calls it &#x27;One AI Platform from Pipelines to Agents&#x27;<span class="src mono">from: get_repo_description(zenml-io/zenml)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">unknown</span> git clone of zenml-io/zenml succeeded<span class="src mono">from: sandbox_clone(zenml-io/zenml)</span></div><div class="entry"><span class="tag observed">observed</span> <span class="side">against</span> pip install -e . (with --no-deps) failed while preparing editable metadata from pyproject.toml, raising a traceback during the build hook<span class="src mono">from: sandbox_setup(pip install -e . --no-deps)</span></div><div class="entry"><span class="tag observed">observed</span> <span class="side">against</span> Retrying with --no-build-isolation also failed during editable install, with a traceback pointing into pip&#x27;s resolvelib candidate preparation code<span class="src mono">from: sandbox_setup(pip install --no-build-isolation -e .)</span></div><div class="entry"><span class="tag observed">observed</span> <span class="side">against</span> Installing uv and uv-build into the sandbox and retrying still failed the same way (editable metadata preparation error)<span class="src mono">from: sandbox_setup(pip install uv uv-build; pip install --no-build-isolation -e .)</span></div><div class="entry"><span class="tag inspected">inspected</span> <span class="side">unknown</span> uv_build package was present in site-packages and its __init__.py was inspected, but the shown content was only a docstring/benchmark comment, not a demonstration of the actual root cause<span class="src mono">from: sandbox_setup(cat uv_build/__init__.py)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">unknown</span> A final attempt to put uv on PATH and retry the editable install could not be run because the sandbox_setup call budget (4 calls) was exhausted<span class="src mono">from: sandbox_setup(export PATH; pip install --no-build-isolation -e .) [FAILED - budget exhausted]</span></div></div>
+<h2>Facts</h2>
+<div class="card"><dl class="facts"><dt>setup</dt><dd>85.1s over 4 command(s), install succeeded</dd><dt>disk</dt><dd>341 MB cloned, 589 MB total</dd><dt>needs</dt><dd>nothing special</dd><dt>exercised</dt><dd>-</dd><dt>output</dt><dd>RuntimeError: uv-build was not properly installed</dd></dl></div>
+<h2>Grounding critique</h2>
+<div class="card"><p class="sub" style="margin:0">ran &middot; not grounded &middot; revised</p><ul class="issues"><li>Ledger claims pip install failed with &#x27;RuntimeError: uv-build was not properly installed&#x27; but the actual tool output shown in step 3/4/5 is truncated tracebacks that never display this specific error text — the exact error message is not observed in the evidence.</li><li>Ledger asserts the --no-build-isolation retry failed &#x27;because uv_build shim couldn&#x27;t find uv-build binary via shutil.which&#x27;, but no tool output shows a shutil.which call or that specific failure mechanism; this is an inferred explanation not directly returned by any command.</li><li>Ledger claims &#x27;uv_build/__init__.py shows failure is purely that the uv-build executable is not on PATH&#x27;, but the actual file content quoted in step 6 is just a docstring about a hyperfine benchmark, not a demonstration that the executable is missing from PATH.</li></ul></div>
+</div>
+</body>
+</html>

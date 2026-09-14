@@ -27,56 +27,64 @@ configured agent files with a single command?*
 
 ```
 s1   get_repo_metadata(microsoft/apm)      MIT · Python · 43,847 kb
-s1   list_files(/)                         .agents/ .apm/ apm.yml ...
+s1   get_repo_description(microsoft/apm)   "Agent Package Manager"  ← author's words
+s2   list_files(/)                         .agents/ .apm/ apm.yml ...
 s2   read_file(README.md)                  "one command reproduces it everywhere"
                                            ← a claim, not evidence
 s3   sandbox_clone()                       git clone --depth 1 → 54.8 MB
-s4   sandbox_setup(pip install -e .)       19.7s, exit 0
-s5   sandbox_run(apm --version; apm --help)
-s6   sandbox_run(apm init --help)
-s7   read_file(apm.yml)                    a real manifest, 7 dependencies
-s8   sandbox_run(rm -rf .agents .github/agents ...)   ← delete the outputs
-s9   sandbox_run(find .agents/skills .github/agents)  ← prove they're gone
-s10  sandbox_run(md5sum ...)               ERROR  command not found
-s11  sandbox_run(md5sum ...)               ERROR  missing file
-s12  sandbox_run(ls .github/agents; ls .agents/skills)
-s13  sandbox_run(apm install)              ← re-run it, check they come back
+s4   sandbox_setup(pip install -e .)       24.4s, exit 0 → apm-cli 0.30.0
+s5   sandbox_run(apm compile ...)          ERROR
+s6   read_file(apm.yml)                    a real manifest
+s6   list_files(.apm)                      agents/ instructions/ ...
+s7   list_files(.apm/instructions)
+s8   read_file(.apm/instructions/python.instructions.md)
+s9   sandbox_run(write apm.yml, compile)   ERROR
+s10  sandbox_run(cat AGENTS.md; find .)    ← did the file actually appear?
+s11  sandbox_run(copy manifest to a third  ← does it reproduce from the
+     empty dir, recompile)                   manifest alone?
 
 verdict: supported     stop_reason: sufficient_info
-14 steps (the 14th answered, with no tool call) · 14 tool calls
-$0.596 · 100s · clone 54.8 MB · volume 149 MB
+12 steps · 14 tool calls · $0.475 · 87s · clone 54.8 MB · volume 150 MB
 ```
 
-The shape of steps 8–13 is the point. The agent was not told to design an
-experiment; it deleted the artifacts the claim is about, confirmed they were
-gone, ran the single command, and checked they returned. Steps 10 and 11 are
-failed commands, left in because a trace that hides its own dead ends is not a
-trace.
+Full trace, all 14 tool calls with their outputs, the ledger and the critique:
+[`site/microsoft-apm.html`](site/microsoft-apm.html) — open it from a clone, or
+from the published site once Pages is enabled (see [Publishing the
+traces](#publishing-the-traces)).
 
-The ledger it produced (6 entries, a second README quote elided), with the kind of each:
+The shape of steps 9–11 is the point. The agent was not told to design an
+experiment. It wrote its own minimal `apm.yml` and primitive file in an empty
+directory, compiled it, checked the output file had really appeared, then
+copied *only the manifest* into a third unrelated directory and compiled again
+— testing whether the claim "one file reproduces it everywhere" survives being
+moved away from the repository that made it. Steps 5 and 9 are failed commands,
+left in because a trace that hides its own dead ends is not a trace.
+
+The ledger it produced:
 
 ```
-[reported ] for  "One file describes every agent's context; one command
+[reported ] ???  "One file describes every agent's context; one command
                   reproduces it everywhere"          ← read_file(README.md)
-[reported ] for  The repo ships a real apm.yml manifest declaring local path
-                  dependencies                       ← read_file(apm.yml)
-[observed ] for  apm install resolved 7 transitive dependencies and
-                  materialized SKILL.md, agent definition and instruction
-                  files on disk                      ← sandbox_run, step 8-9
-[observed ] for  A second install from a clean state completed and reported
-                  21 agent files                     ← sandbox_run, step 13
-[observed ] ???  The byte-identical reproduction check failed to run
-                  (command-not-found)                ← sandbox_run, step 10-13
+[observed ] for  Installed the CLI via pip install -e . from a fresh shallow
+                  clone; apm-cli 0.30.0 works        ← sandbox_run
+[observed ] for  Wrote a minimal apm.yml plus one .apm/instructions primitive
+                  in a fresh directory and compiled it to AGENTS.md
+[observed ] for  Copied only apm.yml and its .apm/ directory into a separate
+                  unrelated directory; recompiling reproduced the same file
 ```
 
-The first two entries are the project describing itself. Only the third and
-fourth are evidence, and the verdict rests on them — the rules below would have
+The first entry is the project describing itself, and it is the only
+`reported` one. The verdict rests on the three below it — the rules would have
 refused `supported` on the README alone.
 
 ### And an investigation that correctly refused
 
 Question: *Is `maximhq/bifrost` actually fifty times faster than LiteLLM, as
 its description claims?*
+
+*This is the run-2 trace, kept because it is what exposed the hole described
+below. The [current run](site/maximhq-bifrost.html) reaches the same verdict
+with no `inspected` entry at all, which is the fix working.*
 
 ```
 s1  get_repo_metadata(maximhq/bifrost)   Apache-2.0 · Go · 967,590 kb
@@ -352,6 +360,9 @@ Three full runs, with a fix pass between each:
 | wall clock | 18 min | 18 min | 24 min |
 | evidence | — | 16 / 15 / 27 | 15 observed / 15 inspected / 33 reported |
 
+Every run, every step, every ledger entry:
+[`site/index.html`](site/index.html).
+
 **No pass has ever regressed.** Every row that passed in run 1 passed in runs 2
 and 3; every run-2 pass held in run 3.
 
@@ -475,6 +486,34 @@ failure, which is the kind worth having tests for:
   extraction and again, independently, in the critique pass.
 - **A tool description went stale.** It advertised a 200 MB clone limit after the
   gate moved to 1 GB; it now interpolates the constant, with a test.
+
+---
+
+## Publishing the traces
+
+The `site/` directory is a complete static site: no build step, no JavaScript,
+no external assets. It opens from a `file://` URL, so you can check it before
+publishing anything:
+
+```bash
+python export_traces.py            # regenerate from the database
+open site/index.html               # or just double-click it
+```
+
+To publish it on GitHub Pages, once the repository has a remote:
+
+1. Push the repository, `site/` included — the generated HTML is committed, not
+   built by CI.
+2. On GitHub, open **Settings → Pages**.
+3. Under **Build and deployment → Source**, choose **Deploy from a branch**.
+4. Set **Branch** to `main` and the folder to **`/site`**, then **Save**.
+5. Wait for the green banner; the URL is
+   `https://<your-username>.github.io/<repository>/`.
+
+There is no workflow to configure and nothing for Pages to build — it serves
+the committed files as they are. After a new eval run, `python
+export_traces.py` and commit the result, or the site will show the previous
+run while the README quotes the current one.
 
 ---
 
