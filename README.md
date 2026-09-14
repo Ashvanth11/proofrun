@@ -72,8 +72,8 @@ directory, compiled it, confirmed the output appeared, then copied *only the
 manifest* somewhere unrelated and compiled again — testing whether "one file
 reproduces it everywhere" survives leaving the repository that said it.
 
-[Full trace, ledger and critique](site/microsoft-apm.html) ·
-[every run, every step](site/index.html)
+[Full trace, ledger and critique](https://ashvanth11.github.io/proofrun/microsoft-apm.html) ·
+[every run, every step](https://ashvanth11.github.io/proofrun/)
 
 ---
 
@@ -223,9 +223,11 @@ branch**, set **Branch** to `gh-pages` and the folder to **`/ (root)`**, and
 **Save**.
 
 The branch exists because Pages only serves from a repository's root or its
-`/docs` folder, and `/docs` here holds the written documentation. Nothing is
-built by CI either way — Pages serves the committed files as they are. After a
-new run, regenerate, commit, and push the subtree again.
+`/docs` folder, and `/docs` here holds the written documentation. The
+`.nojekyll` file at the root of `gh-pages` tells Pages to serve the files
+byte-for-byte instead of running Jekyll over them, which would otherwise ignore
+any path beginning with an underscore. After a new run, regenerate, commit, and
+push the subtree again.
 
 ---
 
