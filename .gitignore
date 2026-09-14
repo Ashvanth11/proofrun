@@ -14,3 +14,6 @@ reports/*.md
 !reports/.gitkeep
 .pytest_cache/
 .DS_Store
+
+# Planning notes, written to myself rather than to a reader.
+ROADMAP-*.md
