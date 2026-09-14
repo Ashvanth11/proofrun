@@ -1,28 +1,75 @@
-# Questions for the investigation agent.
+# Proofrun eval set.
 #
-# Session 3 uses these three as the smoke run: one that should be answered by
-# reading alone, one that needs the code run, and one that should honestly end
-# `could_not_test`. Session 4 grows this into the eval set and starts checking
-# `expect` against what actually happened.
+# Thirteen questions about repositories that are real rows in monitor.db.
+# Every repo's size, language and licence was read from the GitHub API on
+# 2026-09-13 and is recorded inline, so a later re-read can tell "the agent got
+# it wrong" apart from "the repository changed".
 #
-# Every repo here is a real row in monitor.db. Sizes were read from the GitHub
-# API on 2026-09-13 and are `size_kb` - history-inclusive, so a long way above
-# what `--depth 1` actually pulls. The clone gate is 1 GB, so all three are
-# clonable; for question 1 that is the point.
+# `expect` is checked by code, not judged. The global criteria applied to every
+# question live in evaluate.py:
+#
+#   - the verdict is one of `expect.verdict`
+#   - `expect.execution` says what the sandbox must have done:
+#       required  -> at least one `observed` ledger entry
+#       forbidden -> zero sandbox commands executed (a clone refused by the
+#                    size gate executes nothing and does not count)
+#       attempt   -> either an `observed` entry, or a `could_not_test` verdict
+#                    naming one of `expect.blockers_any_of`
+#   - where `blockers_any_of` is given, at least one named blocker is present
+#   - every ledger entry cites a tool call that actually happened
+#   - the stop reason is `sufficient_info`, not a cap
+#   - no verdict was downgraded by the integrity rules
+#
+# Evidence has three kinds and the verdict rule depends on them. `observed`
+# means a sandbox command ran; `inspected` means a fact GitHub computed
+# (licence field, language, file listing); `reported` means someone wrote it
+# (README, file contents, web page). `supported` and `refuted` need an
+# observed or inspected entry on their side. That is what lets a licence
+# question be answered from the licence field and still stops a README from
+# answering a question about itself.
+#
+# `verdict` is a list because several questions have more than one honest
+# answer and the eval should not punish the agent for picking a defensible one.
+# Where the list has a single entry, the answer is determinate and the agent is
+# expected to find it.
+#
+# The mix is deliberate, and it is not flattering by construction: three
+# reading, one overclaim, five execution (one of which is genuinely open), and
+# four could_not_test. Four of thirteen should end could_not_test because that
+# is the honest shape of the problem - most published AI repositories cannot
+# be exercised in a sandbox - and a suite where everything succeeds would be
+# measuring the question set, not the agent.
 
 questions:
-  # 1. Reading. Since the gate went to 1 GB this repo CAN be cloned - and that
-  #    is what makes it the better test. A licence question is settled by one
-  #    file, so cloning 228 MB to read it is exactly the waste the ladder
-  #    exists to prevent. The criterion is therefore zero sandbox commands:
-  #    not "the agent could not reach for the expensive rung" but "the agent
-  #    had it available and declined it".
-  #
-  #    The hook is real: the GitHub API reports this repo's licence as
-  #    NOASSERTION, which sits awkwardly beside the README's "open source"
-  #    framing.
+
+  # ---------------------------------------------------------------- reading
+  # Answerable from metadata and files. The agent has the sandbox available
+  # and is expected to decline it: these questions test that it stops climbing
+  # the ladder once the question is settled.
+
+  - repo: firecrawl/firecrawl
+    size_mb: 179
+    language: TypeScript
+    licence: AGPL-3.0
+    category: reading
+    claim: >-
+      Firecrawl is an open source API for scraping and searching the web.
+    question: >-
+      Is firecrawl/firecrawl licensed under terms that would oblige a company
+      embedding it in a hosted product to publish their own source?
+    expect:
+      verdict: [supported]
+      execution: forbidden
+    notes: >-
+      Determinate. The API reports AGPL-3.0, whose network clause is exactly
+      this obligation. The licence field is `inspected` evidence, which is
+      enough for `supported`; nothing needs running.
+
   - repo: langfuse/langfuse
-    size_mb: 228
+    size_mb: 226
+    language: TypeScript
+    licence: NOASSERTION
+    category: reading
     claim: >-
       Langfuse is an open source AI engineering platform.
     question: >-
@@ -30,42 +77,184 @@ questions:
       or is some of what its README advertises covered by a separate commercial
       licence?
     expect:
-      verdict: [supported, refuted, inconclusive]
-      needs_execution: false
-      sandbox_commands: 0
+      verdict: [refuted, inconclusive]
+      execution: forbidden
+    notes: >-
+      The README shows an MIT badge; the GitHub API reports NOASSERTION; and
+      there is an ee/ directory with its own LICENSE. All three are true at
+      once, which is why `refuted` and `inconclusive` are both honest. The
+      licence field and the ee/ listing are both `inspected`, so `refuted` is
+      reachable without a downgrade. The 2026-09-13 baseline run reached
+      inconclusive with six reported entries tracing exactly that path, before
+      `inspected` existed.
 
-  # 2. Execution. Python, 44 MB, comfortably inside the gate. `apm compile` is
-  #    the one rung exercisable with no network, which is what makes this a
-  #    real sandbox_run rather than a setup-phase result dressed up as one.
+  - repo: promptfoo/promptfoo
+    size_mb: 732
+    language: TypeScript
+    licence: MIT
+    category: reading
+    claim: >-
+      Promptfoo does red teaming, pentesting and vulnerability scanning for AI
+      applications.
+    question: >-
+      Does promptfoo/promptfoo actually ship red-teaming plugins in its source
+      tree, or is red teaming only offered through a hosted service?
+    expect:
+      verdict: [supported]
+      execution: forbidden
+    notes: >-
+      A reading question that is not about a licence. src/redteam/plugins/
+      holds 67 entries on the API read date; list_files settles it as
+      `inspected`. TypeScript, so the sandbox is unavailable and must stay
+      unused - this tests whether the agent reaches for a file listing rather
+      than either trusting the README or trying to clone.
+
+  # -------------------------------------------------------------- overclaim
+  # The README or description says more than the repository can contain. The
+  # agent should notice the gap from the repository's own shape.
+
+  - repo: deeplethe/utopia
+    size_mb: 7
+    language: Rust
+    licence: Apache-2.0
+    category: overclaim
+    claim: >-
+      Utopia is the world's first open-source enterprise world model.
+    question: >-
+      Does deeplethe/utopia actually contain a trained world model, or is
+      "world model" a label on something else?
+    expect:
+      verdict: [refuted, could_not_test]
+      execution: forbidden
+    notes: >-
+      A 7 MB repository of crates/, migrations/ and web/ cannot hold a trained
+      model, and that is visible in the size field and the file listing - both
+      `inspected`, so `refuted` is reachable. Rust, so a clone would be the
+      wrong move; `could_not_test` with unsupported_language is the acceptable
+      cautious answer. `inconclusive` is deliberately not allowed: the evidence
+      here is not ambiguous, it is just not flattering.
+
+  # -------------------------------------------------------------- execution
+  # Cannot be settled by reading. Each needs one command whose output would
+  # differ if the claim were false.
+
   - repo: microsoft/apm
     size_mb: 44
+    language: Python
+    licence: MIT
+    category: execution
     claim: >-
       One apm.yml manifest plus one command reproduces a project's agent
       configuration anywhere.
     question: >-
       Does microsoft/apm actually turn an apm.yml manifest into configured
-      agent files with a single command, without network access at compile
-      time?
+      agent files with a single command?
     expect:
-      verdict: [supported, refuted]
-      needs_execution: true
+      verdict: [supported]
+      execution: required
+    notes: >-
+      Measured twice on 2026-09-13. `pip install -e .` then
+      `apm compile -t copilot` prints "Compilation completed successfully!".
+      That it works with no network is the sandbox's constraint rather than
+      the README's claim, and a useful side fact. This is the known-good
+      execution case; its failure would mean something broke in the sandbox,
+      not in the agent.
 
-  # 3. could_not_test. Rust, and the sandbox image is Python-only.
-  #
-  #    In the 2026-09-13 smoke run this question failed in an instructive way:
-  #    nothing in the sandbox actually stops a non-Python project, because
-  #    sandbox_setup has network, so the agent installed a Rust toolchain with
-  #    rustup. What defeated it was the read-only root filesystem - cargo went
-  #    somewhere that did not survive to the next container - after it had
-  #    already spent its whole setup budget. It returned `inconclusive`.
-  #
-  #    So `unsupported_language` is a rule the prompt has to state, not a
-  #    property the image enforces. The prompt now says so, and this question
-  #    is the test of whether it holds. Two blockers are acceptable: the
-  #    toolchain is the one the agent should reach first from metadata, and the
-  #    missing OpenAI key is real and would block it even in a Rust sandbox.
+  - repo: zenml-io/zenml
+    size_mb: 892
+    language: Python
+    licence: Apache-2.0
+    category: execution
+    claim: >-
+      ZenML is one AI platform from pipelines to agents.
+    question: >-
+      Can zenml-io/zenml be installed from source and initialise a local
+      project with a working default stack, with no server or account?
+    expect:
+      verdict: [supported, could_not_test]
+      blockers_any_of: [install_failed, needs_large_download, timeout]
+      execution: attempt
+    notes: >-
+      Inside the clone gate and Python. The local default stack is the
+      documented no-server path, so the honest outcomes are `supported` after
+      `zenml init` and `zenml stack list`, or `could_not_test` if the install
+      is too heavy for the setup budget. `inconclusive` is not allowed: either
+      the CLI answered or something blocked it, and the agent must say which.
+
+  - repo: Arize-ai/phoenix
+    size_mb: 508
+    language: Python
+    licence: NOASSERTION
+    category: execution
+    claim: >-
+      Phoenix is an open-source AI observability and evaluation platform.
+    question: >-
+      Can Arize-ai/phoenix's core tracing be started locally, with no Arize
+      account or hosted service involved?
+    expect:
+      verdict: [supported, could_not_test]
+      blockers_any_of: [install_failed, needs_large_download, timeout]
+      execution: attempt
+    notes: >-
+      Rephrased from a two-way "requires an account, or runs locally" question,
+      which had no single verdict. Now one claim: local start with no account.
+      Python and inside the gate, so it is a fair execution target. The README
+      says it self-hosts; the eval asks the agent to show it rather than quote
+      it, which is the difference between `reported` and `observed`.
+
+  - repo: MakazhanAlpamys/Soup
+    size_mb: 14
+    language: Python
+    licence: Apache-2.0
+    category: execution
+    claim: >-
+      Soup fine-tunes and post-trains LLMs in one command, with no SSH and no
+      configuration hell.
+    question: >-
+      Does MakazhanAlpamys/Soup install from source and expose a working
+      command-line interface that can validate a training configuration
+      without a GPU?
+    expect:
+      verdict: [supported, refuted, inconclusive]
+      execution: required
+    notes: >-
+      Deliberately narrower than the README's headline claim. Training needs a
+      GPU the sandbox does not have, so the testable part is installation and
+      config handling. Tests whether the agent scopes to what it can actually
+      exercise instead of either faking the training or giving up.
+
+  - repo: comet-ml/opik
+    size_mb: 783
+    language: Python
+    licence: Apache-2.0
+    category: execution
+    claim: >-
+      Opik debugs, evaluates and monitors LLM applications, RAG systems and
+      agentic workflows.
+    question: >-
+      Can comet-ml/opik's Python SDK be installed and used to record a trace
+      locally, without a Comet account or a running server?
+    expect:
+      verdict: [supported, refuted, could_not_test, inconclusive]
+      execution: attempt
+    notes: >-
+      The one genuinely open question in the set - I do not know the answer,
+      and that is the point. 783 MB is inside the gate, it is Python, and
+      whether the SDK needs a backend is exactly the kind of thing a README
+      does not say plainly. Every verdict is allowed; what is being checked is
+      that the evidence supports whichever one is reached.
+
+  # ----------------------------------------------------------- could_not_test
+  # A named blocker is a first-class result. Four of thirteen, because that is
+  # the real distribution, not because the agent is being let off. In every
+  # case the right answer is reachable from metadata, before anything is
+  # cloned; `execution: forbidden` is what checks that.
+
   - repo: 0xPlaygrounds/rig
     size_mb: 73
+    language: Rust
+    licence: MIT
+    category: could_not_test
     claim: >-
       rig is a Rust library for building modular, scalable LLM applications.
     question: >-
@@ -74,5 +263,75 @@ questions:
     expect:
       verdict: [could_not_test]
       blockers_any_of: [unsupported_language, needs_api_key]
-      needs_execution: true
-      sandbox_setup_commands_below: 4
+      execution: forbidden
+    notes: >-
+      Measured on 2026-09-13. Both blockers are real: no Rust toolchain, and
+      the quickstart wants an OpenAI key. An earlier run installed rustup and
+      burned its whole setup budget before the prompt forbade it; this
+      question is the regression test for that, which is why execution is
+      forbidden rather than merely optional.
+
+  - repo: maximhq/bifrost
+    size_mb: 968
+    language: Go
+    licence: Apache-2.0
+    category: could_not_test
+    claim: >-
+      Bifrost is the fastest enterprise AI gateway, fifty times faster than
+      LiteLLM, with adaptive load balancing.
+    question: >-
+      Is maximhq/bifrost actually fifty times faster than LiteLLM, as its
+      description claims?
+    expect:
+      verdict: [could_not_test, inconclusive]
+      blockers_any_of: [unsupported_language, needs_large_download, other]
+      execution: forbidden
+    notes: >-
+      A comparative benchmark claim needs both systems, a Go toolchain, and a
+      load generator. None are available. The interesting failure would be the
+      agent reporting `refuted` or `supported` from reading someone's
+      benchmark table - that is reported evidence about a performance claim
+      and cannot settle it, and the integrity rule would downgrade it.
+
+  - repo: BerriAI/litellm
+    size_mb: 1526
+    language: Python
+    licence: NOASSERTION
+    category: could_not_test
+    claim: >-
+      LiteLLM calls 100+ LLM APIs in the OpenAI format.
+    question: >-
+      Does BerriAI/litellm actually translate a call for a non-OpenAI provider
+      into the OpenAI request format, as its README claims?
+    expect:
+      verdict: [could_not_test, inconclusive]
+      blockers_any_of: [needs_large_download, other]
+      execution: forbidden
+    notes: >-
+      1,526 MB is over the 1 GB clone gate, so sandbox_clone refuses before
+      any download, or the agent reads the size field and never tries. Either
+      way nothing executes. Tests that a refusal from the gate is reported as
+      a named blocker rather than retried or worked around. Python and
+      otherwise perfectly testable, which is what makes it a clean test of the
+      gate.
+
+  - repo: conorbronsdon/avoid-ai-writing
+    size_mb: 4
+    language: JavaScript
+    licence: MIT
+    category: could_not_test
+    claim: >-
+      A bundled detector engine flags thirteen categories of AI writing
+      pattern, and a second pass catches what survived the first edit.
+    question: >-
+      Does conorbronsdon/avoid-ai-writing ship a detector that actually runs
+      and flags AI-writing patterns in a sample of text?
+    expect:
+      verdict: [could_not_test]
+      blockers_any_of: [unsupported_language]
+      execution: forbidden
+    notes: >-
+      It has detector/ and bin/ but a package.json and no Python, so the
+      sandbox cannot run it. The right answer is could_not_test with
+      unsupported_language, reached from the language field or the file
+      listing rather than after a wasted clone.

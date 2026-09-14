@@ -299,8 +299,13 @@ def critique_and_revise_investigation(
     total.output_tokens += usage.output_tokens
 
     if verdict is None:
+        # A grounding check that did not happen must not read as one that
+        # passed. The run still publishes a verdict either way, so the
+        # difference has to be recorded rather than inferred from a None.
+        run.critique_status = "failed"
         return run, total
 
+    run.critique_status = "ok"
     run.critique = verdict
     if verdict.grounded or not verdict.issues:
         return run, total

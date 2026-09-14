@@ -3,7 +3,8 @@
 An investigation agent that answers questions about newly published AI
 repositories by reading them, searching the web, and running them in a
 sandbox - and that keeps an evidence ledger separating what it **observed** by
-running a command from what it merely **read**.
+running a command, and what it **inspected** in the repository's metadata,
+from what it merely **read** in someone's prose.
 
 The name is that distinction: a proof run is a trial run you do before you
 commit, and the only evidence Proofrun treats as first-hand is the kind it

@@ -308,6 +308,15 @@ SANDBOX_TOOL_NAMES = frozenset(s["name"] for s in SANDBOX_TOOL_SCHEMAS)
 # not one of them - it demonstrates nothing about what the code does.
 OBSERVING_TOOLS = frozenset({"sandbox_setup", "sandbox_run"})
 
+# Which tools produce *inspected* evidence: structured facts about the
+# repository that GitHub computed rather than the author wrote - the licence
+# field, the language, whether it is archived, which files exist. A README is
+# not on this list, and neither is read_file: a file's contents are the
+# author's words, and the author is one of the parties with a stake in the
+# answer. (`description` and `topics` are author-written too; they are the
+# weak spot in this set, and the critique pass is what covers them.)
+INSPECTING_TOOLS = frozenset({"get_repo_metadata", "list_files"})
+
 
 class SandboxTools:
     """Sandbox tools bound to one investigation's container.
