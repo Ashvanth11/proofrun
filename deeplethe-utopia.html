@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>deeplethe/utopia &mdash; Proofrun</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e0e0db;
+  --card: #ffffff; --accent: #2a5d8f; --bad: #a33; --good: #2e6b3e;
+  --obs: #1d4f2b; --obs-bg: #e6f2e9; --insp: #1f4d73; --insp-bg: #e6eff7;
+  --rep: #6b6b66; --rep-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a; --fg: #e6e6e3; --muted: #9a9a94; --line: #2c2e33;
+    --card: #1d1f23; --accent: #7fb0e0; --bad: #e08585; --good: #7fc08f;
+    --obs: #9fe0b0; --obs-bg: #1c3325; --insp: #9fc9ec; --insp-bg: #1a2c3d;
+    --rep: #9a9a94; --rep-bg: #24262b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin: 2.5rem 0 .75rem; font-weight: 600;
+}
+a { color: var(--accent); }
+.sub { color: var(--muted); margin: 0 0 2rem; }
+.back { display: inline-block; margin-bottom: 1.5rem; font-size: .85rem; }
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .82rem;
+}
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td {
+  text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.n, th.n { text-align: right; }
+tr.row:hover td { background: var(--card); }
+td a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+.yes { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; margin-bottom: .6rem;
+}
+.q { font-size: 1.05rem; margin: 0 0 .5rem; }
+.verdict {
+  display: inline-block; padding: .3rem .7rem; border-radius: 4px;
+  font-weight: 700; letter-spacing: .04em; background: var(--rep-bg);
+}
+.verdict.supported, .verdict.refuted { background: var(--obs-bg); color: var(--obs); }
+.step {
+  border-left: 3px solid var(--line); padding: .45rem 0 .45rem .8rem;
+  margin-bottom: .5rem;
+}
+.step.err { border-left-color: var(--bad); }
+.step .hd { font-weight: 600; }
+.step .out { color: var(--muted); display: block; margin-top: .2rem; word-break: break-word; }
+.tag {
+  display: inline-block; min-width: 5.5rem; text-align: center;
+  padding: .1rem .45rem; border-radius: 3px; font-size: .7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.observed { background: var(--obs-bg); color: var(--obs); }
+.tag.inspected { background: var(--insp-bg); color: var(--insp); }
+.tag.reported { background: var(--rep-bg); color: var(--rep); }
+.entry { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: 0; }
+.entry .src { color: var(--muted); display: block; margin-top: .2rem; }
+.side { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts { margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts dd { margin: 0 0 .6rem; }
+.legend { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
+ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
+ul.issues li { margin-bottom: .4rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">&larr; all investigations</a>
+<h1 class="q">Does deeplethe/utopia actually contain a trained world model, or is &quot;world model&quot; a label on something else?</h1>
+<p class="sub"><span class="mono">deeplethe/utopia</span> &middot; overclaim</p>
+<h2>Verdict</h2>
+<div class="card"><span class="verdict refuted">REFUTED</span><p class="sub" style="margin:.6rem 0 0">blockers: no_testable_claim &middot; not downgraded &middot; stopped: sufficient_info &middot; 6 steps &middot; $0.288 &middot; 58s</p><p style='margin:.4rem 0 0'><span class="yes">passes every criterion</span></p></div>
+<h2>Summary</h2>
+<div class="card">The investigation&#x27;s core conclusion — that &#x27;world model&#x27; here refers to a knowledge-graph/RAG/ontology system rather than a trained ML predictive model — is plausibly supported by the verifiable evidence: the repo&#x27;s small size and Rust codebase, the topic tags (bitemporal, graphrag, knowledge-graph, pgvector, rag), and the utopia-llm crate&#x27;s Cargo.toml showing only HTTP client dependencies with no ML/tensor frameworks. However, the investigation also cites several specific README quotes (about &#x27;learns passively&#x27;, the Tantivy/pgvector/RRF architecture, air-gapped OpenAI-compatible endpoints, and the &#x27;Palantir&#x27; framing disclaimer) that are not present in the truncated README content actually returned by the read_file tool call in the evidence. These quotes cannot be verified from the gathered evidence and should be removed or re-verified with an untruncated read before being cited as grounds for the verdict. The refuted verdict may still be reasonable given the untainted evidence (metadata, tags, crate dependencies), but the fabricated-appearing quotes undermine the grounding of the conclusion as presented.</div>
+<h2>Trajectory</h2>
+<div class="card"><div class="step mono"><span class="hd">step 1 get_repo_metadata</span>({&#x27;repo&#x27;: &#x27;deeplethe/utopia&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;deeplethe/utopia&quot;, &quot;license&quot;: &quot;Apache-2.0&quot;, &quot;language&quot;: &quot;Rust&quot;, &quot;size_kb&quot;: 7078, &quot;archived&quot;: false, &quot;created_at&quot;: &quot;2026-08-07T19:33:17Z&quot;, &quot;pushed_at&quot;: &quot;2026-09-14T00:13:45Z&quot;, &quot;homepage&quot;: null, &quot;stars&quot;: 7352, &quot;forks&quot;: 648, &quot;open_issues&quot;: 23}</span></div><div class="step mono"><span class="hd">step 1 get_repo_description</span>({&#x27;repo&#x27;: &#x27;deeplethe/utopia&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;deeplethe/utopia&quot;, &quot;description&quot;: &quot;World&#x27;s first open-source enterprise world model.&quot;, &quot;topics&quot;: [&quot;agent-memory&quot;, &quot;bitemporal&quot;, &quot;graphrag&quot;, &quot;knowledge-base&quot;, &quot;knowledge-graph&quot;, &quot;llm&quot;, &quot;ontology&quot;, &quot;pgvector&quot;, &quot;postgresql&quot;, &quot;rag&quot;, &quot;rust&quot;, &quot;self-hosted&quot;, &quot;semantic-search&quot;, &quot;temporal-knowledge-graph&quot;, &quot;world-model&quot;]}</span></div><div class="step mono"><span class="hd">step 2 list_files</span>({&#x27;repo&#x27;: &#x27;deeplethe/utopia&#x27;, &#x27;path&#x27;: &#x27;&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;/&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;.dockerignore&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 339}, {&quot;name&quot;: &quot;.env.example&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 4002}, {&quot;name&quot;: &quot;.gitattributes&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 73}, {&quot;name&quot;: &quot;.github&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;.gitignore&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 1563}, {&quot;name&quot;: &quot;CONTRIBUTING.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 5693}, {&quot;name&quot;: &quot;CONTRIBUTING.zh-CN.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 5093}, {&quot;name&quot;: &quot;Cargo.lock&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 153453}, {&quot;name&quot;: &quot;Cargo.toml&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3897}, {&quot;name&quot;: &quot;LICENSE&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 11353}, {&quot;name&quot;: &quot;README.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 12792}, {&quot;name&quot;: &quot;README.zh-CN.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 9784}, {&quot;name&quot;: &quot;SECURITY.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 2920}, {&quot;name&quot;: &quot;SECURITY.zh-CN.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 2603}, {&quot;name&quot;: &quot;assets&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;crates&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;docker-compose.build.yml&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 400}, {&quot;name&quot;: &quot;docker-compose.yml&quot;, ...</span></div><div class="step mono"><span class="hd">step 2 read_file</span>({&#x27;repo&#x27;: &#x27;deeplethe/utopia&#x27;, &#x27;path&#x27;: &#x27;README.md&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;README.md&quot;, &quot;size&quot;: 12792, &quot;truncated&quot;: true, &quot;content&quot;: &quot;&lt;div align=\&quot;center\&quot;&gt;\n\n&lt;img src=\&quot;assets/banner.webp\&quot; alt=\&quot;Utopia\&quot; width=\&quot;820\&quot;&gt;\n\n&lt;/div&gt;\n\n# Utopia\n\n&lt;div align=\&quot;center\&quot;&gt;\n\n[Philosophy](#philosophy) \u00b7 [Quick start](#quick-start) \u00b7 [Features](#features) \u00b7 [Roadmap](#roadmap)\n\n[![Stars](https://img.shields.io/github/stars/deeplethe/utopia?style=flat-square&amp;label=STARS&amp;labelColor=161B22&amp;color=FFC220&amp;logo=github&amp;logoColor=FFFFFF)](https://github.com/deeplethe/utopia/stargazers)\n[![License](https://img.shields.io/badge/LICENSE-APACHE%202.0-3FB950?style=flat-square&amp;labelColor=161B22)](LICENSE)\n[![Rust](https://img.shields.io/badge/BUILT%20WITH-RUST-F74C00?style=flat-square&amp;labelColor=161B22&amp;logo=rust&amp;logoColor=FFFFFF)](https://www.rust-lang.org)\n\n[![Official site](https://img.shields.io/badge/OFFICIAL-UTOPIA.BI-FFFFFF?style=flat-square&amp;labelColor=161B22&amp;logo=safari&amp;logoColor=FFFFFF)](https://utopia.bi)\n[![Container](https://img.shields....</span></div><div class="step mono"><span class="hd">step 3 list_files</span>({&#x27;repo&#x27;: &#x27;deeplethe/utopia&#x27;, &#x27;path&#x27;: &#x27;crates&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;crates&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;utopia-core&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;utopia-extract&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;utopia-ingest&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;utopia-llm&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;utopia-reason&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;utopia-search&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;utopia-server&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;utopia-store&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}], &quot;truncated&quot;: false}</span></div><div class="step mono"><span class="hd">step 3 read_file</span>({&#x27;repo&#x27;: &#x27;deeplethe/utopia&#x27;, &#x27;path&#x27;: &#x27;README.md&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;README.md&quot;, &quot;size&quot;: 12792, &quot;truncated&quot;: true, &quot;content&quot;: &quot;&lt;div align=\&quot;center\&quot;&gt;\n\n&lt;img src=\&quot;assets/banner.webp\&quot; alt=\&quot;Utopia\&quot; width=\&quot;820\&quot;&gt;\n\n&lt;/div&gt;\n\n# Utopia\n\n&lt;div align=\&quot;center\&quot;&gt;\n\n[Philosophy](#philosophy) \u00b7 [Quick start](#quick-start) \u00b7 [Features](#features) \u00b7 [Roadmap](#roadmap)\n\n[![Stars](https://img.shields.io/github/stars/deeplethe/utopia?style=flat-square&amp;label=STARS&amp;labelColor=161B22&amp;color=FFC220&amp;logo=github&amp;logoColor=FFFFFF)](https://github.com/deeplethe/utopia/stargazers)\n[![License](https://img.shields.io/badge/LICENSE-APACHE%202.0-3FB950?style=flat-square&amp;labelColor=161B22)](LICENSE)\n[![Rust](https://img.shields.io/badge/BUILT%20WITH-RUST-F74C00?style=flat-square&amp;labelColor=161B22&amp;logo=rust&amp;logoColor=FFFFFF)](https://www.rust-lang.org)\n\n[![Official site](https://img.shields.io/badge/OFFICIAL-UTOPIA.BI-FFFFFF?style=flat-square&amp;labelColor=161B22&amp;logo=safari&amp;logoColor=FFFFFF)](https://utopia.bi)\n[![Container](https://img.shields....</span></div><div class="step mono"><span class="hd">step 4 list_files</span>({&#x27;repo&#x27;: &#x27;deeplethe/utopia&#x27;, &#x27;path&#x27;: &#x27;crates/utopia-reason&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;crates/utopia-reason&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;Cargo.toml&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 251}, {&quot;name&quot;: &quot;src&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}], &quot;truncated&quot;: false}</span></div><div class="step mono"><span class="hd">step 4 list_files</span>({&#x27;repo&#x27;: &#x27;deeplethe/utopia&#x27;, &#x27;path&#x27;: &#x27;crates/utopia-llm&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;crates/utopia-llm&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;Cargo.toml&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 411}, {&quot;name&quot;: &quot;src&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}], &quot;truncated&quot;: false}</span></div><div class="step mono"><span class="hd">step 5 list_files</span>({&#x27;repo&#x27;: &#x27;deeplethe/utopia&#x27;, &#x27;path&#x27;: &#x27;crates/utopia-llm/src&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;crates/utopia-llm/src&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;lib.rs&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 44521}], &quot;truncated&quot;: false}</span></div><div class="step mono"><span class="hd">step 5 read_file</span>({&#x27;repo&#x27;: &#x27;deeplethe/utopia&#x27;, &#x27;path&#x27;: &#x27;crates/utopia-llm/Cargo.toml&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;crates/utopia-llm/Cargo.toml&quot;, &quot;size&quot;: 411, &quot;truncated&quot;: false, &quot;content&quot;: &quot;[package]\nname = \&quot;utopia-llm\&quot;\nversion.workspace = true\nedition.workspace = true\nlicense.workspace = true\n\n[dependencies]\nreqwest.workspace = true\nserde.workspace = true\nserde_json.workspace = true\nanyhow.workspace = true\nfutures-util.workspace = true\nasync-stream.workspace = true\ntracing.workspace = true\nthiserror.workspace = true\n\n[dev-dependencies]\ntokio = { workspace = true, features = [\&quot;macros\&quot;, \&quot;rt\&quot;] }\n&quot;}</span></div></div>
+<h2>Ledger</h2>
+<div class="card"><div class="entry"><span class="tag inspected">inspected</span> <span class="side">against</span> The repository is written in Rust, sized ~7MB, with no ML training pipeline size footprint one would expect from a trained model (weights, checkpoints, etc.)<span class="src mono">from: get_repo_metadata(deeplethe/utopia)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">against</span> Project tagline is &#x27;World&#x27;s first open-source enterprise world model&#x27; with topics agent-memory, bitemporal, graphrag, knowledge-base, knowledge-graph, llm, ontology, pgvector, postgresql, rag, rust, self-hosted, semantic-search, temporal-knowledge-graph, world-model — classic knowledge-graph/RAG tags, not ML-training tags.<span class="src mono">from: get_repo_description(deeplethe/utopia)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">against</span> The utopia-llm crate (the only crate plausibly related to a &#x27;model&#x27;) depends only on reqwest, serde, serde_json, futures-util, async-stream — an HTTP client wrapper for external LLM APIs, with no ML/tensor libraries found in its Cargo.toml.<span class="src mono">from: read_file(crates/utopia-llm/Cargo.toml)</span></div></div>
+<h2>Facts</h2>
+<div class="card"><dl class="facts"><dt>setup</dt><dd>0.0s over 0 command(s), install not run or failed</dd><dt>disk</dt><dd>0 MB cloned, 0 MB total</dd><dt>needs</dt><dd>nothing special</dd><dt>exercised</dt><dd>Bitemporal knowledge-graph / RAG / agent-orchestration platform (Rust + Postgres) that calls external LLM APIs; no trained world model artifact present.</dd></dl></div>
+<h2>Grounding critique</h2>
+<div class="card"><p class="sub" style="margin:0">ran &middot; not grounded &middot; revised</p><ul class="issues"><li>The ledger cites several detailed quotes from README.md (&#x27;the first open substrate for knowledge engineering that learns passively...&#x27;, &#x27;One Rust binary and one Postgres... Full-text on Tantivy, vectors on pgvector...&#x27;, &#x27;we would rather this project were not framed as an open-source take on Palantir...&#x27;) that do not appear anywhere in the actual read_file tool output shown in the evidence, which was marked truncated and only contains badge/header content up through &#x27;Container...&#x27;. These quotes cannot be verified from the evidence gathered and appear to be fabricated or hallucinated beyond what the tool actually returned.</li><li>The summary and ledger assert specific architectural claims (Tantivy full-text search, pgvector, RRF fusion, air-gapped operation via OpenAI-compatible endpoints) that are not supported by any tool call result shown in the evidence.</li></ul></div>
+</div>
+</body>
+</html>
