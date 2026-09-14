@@ -231,4 +231,3 @@ recommit after a new run.
 | [testing.md](docs/testing.md) | What the suite caught, and what it pins |
 | [eval-findings.md](docs/eval-findings.md) | Stage 1: the models agree with each other, not with the human |
 | [api-setup.md](docs/api-setup.md) | Keys, the Console, and billing |
-| [resume-line.md](docs/resume-line.md) | The one-line version, with what not to claim |

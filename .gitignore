@@ -17,3 +17,6 @@ reports/*.md
 
 # Planning notes, written to myself rather than to a reader.
 ROADMAP-*.md
+
+# Notes to myself about how to talk about this, not documentation.
+docs/resume-line.md
