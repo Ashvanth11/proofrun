@@ -107,7 +107,16 @@ class LoopResult(BaseModel):
     messages: list[dict] = Field(default_factory=list)
 
 
-def summarize(result: Any, limit: int = 300) -> str:
+# The stored summary is the *critic's* entire view of what a tool returned:
+# `critique.format_investigation_evidence` renders exactly this. At 300
+# characters a repository's licence field fell off the end behind its topics
+# list, and the critic flagged the agent for asserting facts the critic simply
+# could not see - then forced a revision that deleted them. Wide enough to hold
+# a metadata record, still far short of a file read.
+SUMMARY_CHARS = 1000
+
+
+def summarize(result: Any, limit: int = SUMMARY_CHARS) -> str:
     text = json.dumps(result, default=str)
     return text[:limit] + ("..." if len(text) > limit else "")
 

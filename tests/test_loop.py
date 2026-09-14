@@ -361,11 +361,14 @@ def test_parallel_tool_calls_are_answered_in_one_user_message():
 
 
 def test_output_is_truncated_in_the_trace():
+    """Bounded, but wide enough that the critic can see a metadata record."""
     result = drive(
         ScriptedClient([[("t", {})], "Done."]),
         executor=lambda n, a: ({"content": "x" * 10_000}, False),
     )
-    assert len(result.tool_calls[0].result_summary) < 400
+    summary = result.tool_calls[0].result_summary
+    assert len(summary) < loop.SUMMARY_CHARS + 10
+    assert summary.endswith("...")
 
 
 @pytest.mark.parametrize("cap", ["step_cap", "cost_cap", "time_cap"])

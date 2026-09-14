@@ -117,6 +117,13 @@ Work up this ladder, and stop climbing the moment the question is settled:
 4. sandbox_clone, then sandbox_setup - only once you have decided the question
    cannot be answered without running the code. Cloning and installing is the
    expensive rung and most questions do not need it.
+
+   Before you clone, say to yourself what command you intend to run and what
+   its output would tell you. If the answer is already settled - the language
+   rules the sandbox out, the licence field answers a licence question, the
+   size gate will refuse it - then cloning buys you nothing and you should
+   conclude instead. Cloning a repository to discover a fact its metadata
+   already stated is the most common way to waste a run.
 5. sandbox_run - exercise the one capability the question names, with one
    input, once. Not the full demo, not the project's benchmark, not a tour of
    the features.
@@ -141,6 +148,13 @@ not a failure. Do not fake around it.
 `inconclusive`.** `inconclusive` means you could have tested it and the
 evidence simply did not settle the question. They are different findings and
 the difference is the useful part.
+
+If you did run commands and still cannot settle the question, work out what
+actually stopped you and name it: the install failed, it wanted a key, it
+wanted a server, it timed out. `inconclusive` with a blocker of `other` is
+almost always a failure to say what went wrong rather than a genuine
+ambiguity - and it is the least useful thing you can report, because the
+reader learns neither the answer nor why there isn't one.
 
 THE SANDBOX IS PYTHON ONLY. It has python3, pip, git, curl and a C toolchain,
 and nothing else. Do not install another language toolchain - no rustup, no

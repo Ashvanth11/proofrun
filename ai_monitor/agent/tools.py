@@ -55,20 +55,24 @@ def _get(path: str, timeout: float = 20.0) -> Any:
 def get_repo_metadata(repo: str) -> dict:
     """Cheapest rung of the ladder: one request, no file contents."""
     data = _get(f"/repos/{repo}")
+    # Field order is load-bearing. This dict is serialised and truncated into
+    # the trace, and that truncation is the critic's whole view of the call, so
+    # the fields a verdict can actually turn on - licence, language, size - go
+    # first and the long, decorative ones go last.
     return {
         "full_name": data.get("full_name"),
-        "description": data.get("description"),
-        "topics": data.get("topics", []),
+        "license": (data.get("license") or {}).get("spdx_id"),
         "language": data.get("language"),
+        "size_kb": data.get("size"),
         "stars": data.get("stargazers_count"),
         "forks": data.get("forks_count"),
         "open_issues": data.get("open_issues_count"),
-        "license": (data.get("license") or {}).get("spdx_id"),
+        "archived": data.get("archived"),
         "created_at": data.get("created_at"),
         "pushed_at": data.get("pushed_at"),
-        "size_kb": data.get("size"),
-        "archived": data.get("archived"),
         "homepage": data.get("homepage"),
+        "description": data.get("description"),
+        "topics": data.get("topics", []),
     }
 
 
