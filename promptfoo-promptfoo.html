@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>promptfoo/promptfoo &mdash; Proofrun</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e0e0db;
+  --card: #ffffff; --accent: #2a5d8f; --bad: #a33; --good: #2e6b3e;
+  --obs: #1d4f2b; --obs-bg: #e6f2e9; --insp: #1f4d73; --insp-bg: #e6eff7;
+  --rep: #6b6b66; --rep-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a; --fg: #e6e6e3; --muted: #9a9a94; --line: #2c2e33;
+    --card: #1d1f23; --accent: #7fb0e0; --bad: #e08585; --good: #7fc08f;
+    --obs: #9fe0b0; --obs-bg: #1c3325; --insp: #9fc9ec; --insp-bg: #1a2c3d;
+    --rep: #9a9a94; --rep-bg: #24262b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin: 2.5rem 0 .75rem; font-weight: 600;
+}
+a { color: var(--accent); }
+.sub { color: var(--muted); margin: 0 0 2rem; }
+.back { display: inline-block; margin-bottom: 1.5rem; font-size: .85rem; }
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .82rem;
+}
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td {
+  text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.n, th.n { text-align: right; }
+tr.row:hover td { background: var(--card); }
+td a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+.yes { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; margin-bottom: .6rem;
+}
+.q { font-size: 1.05rem; margin: 0 0 .5rem; }
+.verdict {
+  display: inline-block; padding: .3rem .7rem; border-radius: 4px;
+  font-weight: 700; letter-spacing: .04em; background: var(--rep-bg);
+}
+.verdict.supported, .verdict.refuted { background: var(--obs-bg); color: var(--obs); }
+.step {
+  border-left: 3px solid var(--line); padding: .45rem 0 .45rem .8rem;
+  margin-bottom: .5rem;
+}
+.step.err { border-left-color: var(--bad); }
+.step .hd { font-weight: 600; }
+.step .out { color: var(--muted); display: block; margin-top: .2rem; word-break: break-word; }
+.tag {
+  display: inline-block; min-width: 5.5rem; text-align: center;
+  padding: .1rem .45rem; border-radius: 3px; font-size: .7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.observed { background: var(--obs-bg); color: var(--obs); }
+.tag.inspected { background: var(--insp-bg); color: var(--insp); }
+.tag.reported { background: var(--rep-bg); color: var(--rep); }
+.entry { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: 0; }
+.entry .src { color: var(--muted); display: block; margin-top: .2rem; }
+.side { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts { margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts dd { margin: 0 0 .6rem; }
+.legend { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
+ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
+ul.issues li { margin-bottom: .4rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">&larr; all investigations</a>
+<h1 class="q">Does promptfoo/promptfoo actually ship red-teaming plugins in its source tree, or is red teaming only offered through a hosted service?</h1>
+<p class="sub"><span class="mono">promptfoo/promptfoo</span> &middot; reading</p>
+<h2>Verdict</h2>
+<div class="card"><span class="verdict supported">SUPPORTED</span><p class="sub" style="margin:.6rem 0 0">blockers: none &middot; not downgraded &middot; stopped: sufficient_info &middot; 3 steps &middot; $0.117 &middot; 29s</p><p style='margin:.4rem 0 0'><span class="yes">passes every criterion</span></p></div>
+<h2>Summary</h2>
+<div class="card">Verdict: Supported (with a nuance). Promptfoo does ship red-teaming plugins directly in its own source tree — it is not merely a thin client to a hosted service. The claim that promptfoo does red-teaming/pentesting/vulnerability-scanning is well supported by the actual source tree — it ships a large, locally-implemented library of red-team plugins and grading/scoring code, not just a wrapper around a hosted service, though some auxiliary generation features do call out to remote endpoints.</div>
+<h2>Trajectory</h2>
+<div class="card"><div class="step mono"><span class="hd">step 1 get_repo_description</span>({&#x27;repo&#x27;: &#x27;promptfoo/promptfoo&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;promptfoo/promptfoo&quot;, &quot;description&quot;: &quot;Test your prompts, agents, and RAGs. Red teaming/pentesting/vulnerability scanning for AI. Compare performance of GPT, Claude, Gemini, DeepSeek, and more. Simple declarative configs with command line and CI/CD integration. Used by OpenAI and Anthropic.&quot;, &quot;topics&quot;: [&quot;ci&quot;, &quot;ci-cd&quot;, &quot;cicd&quot;, &quot;evaluation&quot;, &quot;evaluation-framework&quot;, &quot;llm&quot;, &quot;llm-eval&quot;, &quot;llm-evaluation&quot;, &quot;llm-evaluation-framework&quot;, &quot;llmops&quot;, &quot;pentesting&quot;, &quot;prompt-engineering&quot;, &quot;prompt-testing&quot;, &quot;prompts&quot;, &quot;rag&quot;, &quot;red-teaming&quot;, &quot;testing&quot;, &quot;vulnerability-scanners&quot;]}</span></div><div class="step mono"><span class="hd">step 1 list_files</span>({&#x27;path&#x27;: &#x27;src/redteam&#x27;, &#x27;repo&#x27;: &#x27;promptfoo/promptfoo&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;src/redteam&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;AGENTS.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3083}, {&quot;name&quot;: &quot;CLAUDE.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 11}, {&quot;name&quot;: &quot;commands&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;constants.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 155}, {&quot;name&quot;: &quot;constants&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;extraction&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;generationTokenUsage.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3286}, {&quot;name&quot;: &quot;graders.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 20517}, {&quot;name&quot;: &quot;grading&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;index.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 63247}, {&quot;name&quot;: &quot;inputVariables.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 29998}, {&quot;name&quot;: &quot;mcpMaterialization.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3486}, {&quot;name&quot;: &quot;mcpTargetProvider.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 6610}, {&quot;name&quot;: &quot;mcpToolCall.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 2387}, {&quot;name&quot;: &quot;metrics.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 415}, {&quot;name&quot;: &quot;plugins&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;providers&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;remoteGeneration.ts&quot;, &quot;type&quot;...</span></div><div class="step mono"><span class="hd">step 2 list_files</span>({&#x27;path&#x27;: &#x27;src/redteam/plugins&#x27;, &#x27;repo&#x27;: &#x27;promptfoo/promptfoo&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;src/redteam/plugins&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;AGENTS.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 576}, {&quot;name&quot;: &quot;aegis.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3640}, {&quot;name&quot;: &quot;agentic&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;asciiSmuggling.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 2041}, {&quot;name&quot;: &quot;base.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 24263}, {&quot;name&quot;: &quot;beavertails.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 16054}, {&quot;name&quot;: &quot;bfla.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 4856}, {&quot;name&quot;: &quot;bias.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3105}, {&quot;name&quot;: &quot;bola.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3874}, {&quot;name&quot;: &quot;codingAgent&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;competitors.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 4555}, {&quot;name&quot;: &quot;compliance&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;contextComplianceAttack.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3201}, {&quot;name&quot;: &quot;contracts.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 5084}, {&quot;name&quot;: &quot;crossSessionLeak.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 6258}, {&quot;name&quot;: &quot;custom.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 2784}, {&quot;name&quot;: &quot;cyberseceval.ts&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3571}, {&quot;name&quot;: &quot;dataExfil....</span></div></div>
+<h2>Ledger</h2>
+<div class="card"><div class="entry"><span class="tag reported">reported</span> <span class="side">for</span> The repo&#x27;s own topics/description list includes &quot;pentesting&quot;, &quot;red-teaming&quot;, and &quot;vulnerability-scanners&quot;, i.e. the project explicitly categorizes itself this way — this is the claim being checked, not proof by itself.<span class="src mono">from: get_repo_description(promptfoo/promptfoo)</span></div><div class="entry"><span class="tag inspected">inspected</span> <span class="side">for</span> A dedicated src/redteam directory exists in the source tree containing substantial logic files (graders.ts ~20KB, index.ts ~63KB, riskScoring.ts, strategies/, providers/, types.ts, etc.), indicating red-teaming is a first-class, locally implemented subsystem rather than a thin API wrapper.<span class="src mono">from: list_files(src/redteam)</span></div><div class="entry"><span class="tag inspected">inspected</span> <span class="side">for</span> The plugins subdirectory contains dozens of concrete, individually implemented attack/vulnerability plugin files shipped in source — e.g. sqlInjection.ts, shellInjection.ts, ssrf.ts, rbac.ts, bola.ts, bfla.ts, pii.ts, harmbench.ts, cyberseceval.ts, debugAccess.ts, dataExfil.ts, crossSessionLeak.ts, hallucination.ts, competitors.ts, politics.ts, religion.ts, and many more, plus category subfolders. This is genuine, non-trivial local implementation logic, not stub files that merely call out to an external API.<span class="src mono">from: list_files(src/redteam/plugins)</span></div><div class="entry"><span class="tag inspected">inspected</span> <span class="side">against</span> There are also remoteGeneration.ts, remoteGenerationTask.ts, and remoteMaterialization.ts files, which suggests some plugin/test-case generation (particularly for advanced or proprietary attack strategies) is fetched from a remote/hosted promptfoo service — so while plugin execution and grading logic lives locally, some generation of adversarial inputs for certain plugins/strategies may depend on a hosted backend.<span class="src mono">from: list_files(src/redteam)</span></div></div>
+<h2>Facts</h2>
+<div class="card"><dl class="facts"><dt>setup</dt><dd>0.0s over 0 command(s), install not run or failed</dd><dt>disk</dt><dd>0 MB cloned, 0 MB total</dd><dt>needs</dt><dd>nothing special</dd><dt>exercised</dt><dd>Ships a large, locally-implemented library of red-team plugins and grading/scoring code in src/redteam, not just a wrapper around a hosted service, though some auxiliary generation features call out to remote endpoints.</dd></dl></div>
+<h2>Grounding critique</h2>
+<div class="card"><p class="sub" style="margin:0">ran &middot; grounded &middot; no revision</p><ul class="issues"><li>The ledger entry for src/redteam claims the directory contains &#x27;riskScoring.ts, strategies/, providers/, types.ts&#x27; but the actual tool output was truncated after &#x27;remoteGeneration.ts...&#x27; and never explicitly listed riskScoring.ts, strategies/, or types.ts — these specific file/folder names are not confirmed by the evidence shown.</li><li>The claim that plugin files represent &#x27;genuine, non-trivial local implementation logic, not stub files&#x27; is inferred solely from file names and byte sizes; no file contents were actually opened or read to verify this.</li><li>The characterization of remoteGeneration.ts/remoteGenerationTask.ts/remoteMaterialization.ts as evidence that &#x27;some generation of adversarial inputs... may depend on a hosted backend&#x27; is a plausible but unverified inference from filenames alone, not confirmed by reading the file contents.</li></ul></div>
+</div>
+</body>
+</html>

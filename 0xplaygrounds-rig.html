@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0xPlaygrounds/rig &mdash; Proofrun</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e0e0db;
+  --card: #ffffff; --accent: #2a5d8f; --bad: #a33; --good: #2e6b3e;
+  --obs: #1d4f2b; --obs-bg: #e6f2e9; --insp: #1f4d73; --insp-bg: #e6eff7;
+  --rep: #6b6b66; --rep-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a; --fg: #e6e6e3; --muted: #9a9a94; --line: #2c2e33;
+    --card: #1d1f23; --accent: #7fb0e0; --bad: #e08585; --good: #7fc08f;
+    --obs: #9fe0b0; --obs-bg: #1c3325; --insp: #9fc9ec; --insp-bg: #1a2c3d;
+    --rep: #9a9a94; --rep-bg: #24262b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin: 2.5rem 0 .75rem; font-weight: 600;
+}
+a { color: var(--accent); }
+.sub { color: var(--muted); margin: 0 0 2rem; }
+.back { display: inline-block; margin-bottom: 1.5rem; font-size: .85rem; }
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .82rem;
+}
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td {
+  text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.n, th.n { text-align: right; }
+tr.row:hover td { background: var(--card); }
+td a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+.yes { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; margin-bottom: .6rem;
+}
+.q { font-size: 1.05rem; margin: 0 0 .5rem; }
+.verdict {
+  display: inline-block; padding: .3rem .7rem; border-radius: 4px;
+  font-weight: 700; letter-spacing: .04em; background: var(--rep-bg);
+}
+.verdict.supported, .verdict.refuted { background: var(--obs-bg); color: var(--obs); }
+.step {
+  border-left: 3px solid var(--line); padding: .45rem 0 .45rem .8rem;
+  margin-bottom: .5rem;
+}
+.step.err { border-left-color: var(--bad); }
+.step .hd { font-weight: 600; }
+.step .out { color: var(--muted); display: block; margin-top: .2rem; word-break: break-word; }
+.tag {
+  display: inline-block; min-width: 5.5rem; text-align: center;
+  padding: .1rem .45rem; border-radius: 3px; font-size: .7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.observed { background: var(--obs-bg); color: var(--obs); }
+.tag.inspected { background: var(--insp-bg); color: var(--insp); }
+.tag.reported { background: var(--rep-bg); color: var(--rep); }
+.entry { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: 0; }
+.entry .src { color: var(--muted); display: block; margin-top: .2rem; }
+.side { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts { margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts dd { margin: 0 0 .6rem; }
+.legend { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
+ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
+ul.issues li { margin-bottom: .4rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">&larr; all investigations</a>
+<h1 class="q">Does 0xPlaygrounds/rig actually build and run a working LLM agent from its own quickstart example?</h1>
+<p class="sub"><span class="mono">0xPlaygrounds/rig</span> &middot; could_not_test</p>
+<h2>Verdict</h2>
+<div class="card"><span class="verdict could_not_test">COULD_NOT_TEST</span><p class="sub" style="margin:.6rem 0 0">blockers: needs_api_key &middot; not downgraded &middot; stopped: sufficient_info &middot; 9 steps &middot; $0.358 &middot; 50s</p><p style='margin:.4rem 0 0'><span class="yes">passes every criterion</span></p></div>
+<h2>Summary</h2>
+<div class="card">The repo&#x27;s own description and README match the claim, and the examples/ directory contains a genuine, minimal quickstart agent example (examples/agent/src/main.rs) that builds an OpenAI-backed agent and prompts it. No tool call actually attempted to compile or run this Rust example, so it&#x27;s unknown whether the sandbox could build it; the investigation did not demonstrate a Rust-toolchain limitation. What is clear from the code itself is that the example requires an OPENAI_API_KEY, which was not available, preventing execution. The investigation could not be tested because of the missing API key, not because Rust was shown to be unsupported.</div>
+<h2>Trajectory</h2>
+<div class="card"><div class="step mono"><span class="hd">step 1 get_repo_metadata</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;0xPlaygrounds/rig&quot;, &quot;license&quot;: &quot;MIT&quot;, &quot;language&quot;: &quot;Rust&quot;, &quot;size_kb&quot;: 73630, &quot;archived&quot;: false, &quot;created_at&quot;: &quot;2024-06-05T13:42:28Z&quot;, &quot;pushed_at&quot;: &quot;2026-09-14T03:39:41Z&quot;, &quot;homepage&quot;: &quot;https://rig.rs&quot;, &quot;stars&quot;: 8617, &quot;forks&quot;: 960, &quot;open_issues&quot;: 121}</span></div><div class="step mono"><span class="hd">step 1 get_repo_description</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;0xPlaygrounds/rig&quot;, &quot;description&quot;: &quot;\u2699\ufe0f\ud83e\udd80 Build modular and scalable LLM Applications in Rust&quot;, &quot;topics&quot;: [&quot;agent&quot;, &quot;ai&quot;, &quot;artificial-intelligence&quot;, &quot;automation&quot;, &quot;generative-ai&quot;, &quot;large-language-model&quot;, &quot;llm&quot;, &quot;llmops&quot;, &quot;rust&quot;, &quot;scalable-ai&quot;]}</span></div><div class="step mono"><span class="hd">step 2 read_file</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;, &#x27;path&#x27;: &#x27;README.md&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;README.md&quot;, &quot;size&quot;: 12258, &quot;truncated&quot;: true, &quot;content&quot;: &quot;&lt;p align=\&quot;center\&quot;&gt;\n&lt;picture&gt;\n &lt;source media=\&quot;(prefers-color-scheme: dark)\&quot; srcset=\&quot;img/rig-rebranded-logo-white.svg\&quot;&gt;\n &lt;source media=\&quot;(prefers-color-scheme: light)\&quot; srcset=\&quot;img/rig-rebranded-logo-black.svg\&quot;&gt;\n &lt;img src=\&quot;img/rig-rebranded-logo-white.svg\&quot; style=\&quot;width: 40%; height: 40%;\&quot; alt=\&quot;Rig logo\&quot;&gt;\n&lt;/picture&gt;\n&lt;br&gt;\n&lt;br&gt;\n&lt;a href=\&quot;https://rig.rs/docs\&quot;&gt;&lt;img src=\&quot;https://img.shields.io/badge/\ud83d\udcd6 docs-rig.rs-dca282.svg\&quot; /&gt;&lt;/a&gt; &amp;nbsp;\n&lt;a href=\&quot;https://docs.rs/rig/latest/rig/\&quot;&gt;&lt;img src=\&quot;https://img.shields.io/badge/docs-API Reference-dca282.svg\&quot; /&gt;&lt;/a&gt; &amp;nbsp;\n&lt;a href=\&quot;https://crates.io/crates/rig\&quot;&gt;&lt;img src=\&quot;https://img.shields.io/crates/v/rig.svg?color=dca282\&quot; /&gt;&lt;/a&gt;\n&amp;nbsp;\n&lt;a href=\&quot;https://crates.io/crates/rig\&quot;&gt;&lt;img src=\&quot;https://img.shields.io/crates/d/rig-core.svg?color=dca282\&quot; /&gt;&lt;/a&gt;\n&amp;nbsp;\n&lt;a href=\&quot;LICENSE\&quot;&gt;&lt;img src=\&quot;https://img.shields.io/crates/l/rig.sv...</span></div><div class="step err mono"><span class="hd">step 3 list_files</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;, &#x27;path&#x27;: &#x27;rig-core/examples&#x27;}) <span class="err-flag">error</span><span class="out">&rarr; {&quot;error&quot;: &quot;not found: /repos/0xPlaygrounds/rig/contents/rig-core/examples&quot;}</span></div><div class="step err mono"><span class="hd">step 3 read_file</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;, &#x27;path&#x27;: &#x27;rig-core/README.md&#x27;}) <span class="err-flag">error</span><span class="out">&rarr; {&quot;error&quot;: &quot;not found: /repos/0xPlaygrounds/rig/contents/rig-core/README.md&quot;}</span></div><div class="step mono"><span class="hd">step 4 list_files</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;, &#x27;path&#x27;: &#x27;&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;/&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;.cargo&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;.config&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;.gitattributes&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 370}, {&quot;name&quot;: &quot;.github&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;.gitignore&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 393}, {&quot;name&quot;: &quot;.pre-commit-config.yaml&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 673}, {&quot;name&quot;: &quot;AGENTS.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 13258}, {&quot;name&quot;: &quot;CHANGELOG.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 162669}, {&quot;name&quot;: &quot;CONTRIBUTING.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 13220}, {&quot;name&quot;: &quot;Cargo.lock&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 345854}, {&quot;name&quot;: &quot;Cargo.toml&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 19906}, {&quot;name&quot;: &quot;DEVELOPING.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 5780}, {&quot;name&quot;: &quot;LICENSE&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 1071}, {&quot;name&quot;: &quot;MIGRATING.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 279664}, {&quot;name&quot;: &quot;README.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 12258}, {&quot;name&quot;: &quot;crates&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;examples&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;flake.lock&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 2038}, {&quot;name&quot;...</span></div><div class="step mono"><span class="hd">step 5 list_files</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;, &#x27;path&#x27;: &#x27;examples&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;examples&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;README.md&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 5963}, {&quot;name&quot;: &quot;agent&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_autonomous&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_evaluator_optimizer&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_no_tokio&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_orchestrator&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_parallelization&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_prompt_chaining&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_routing&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_run_stepping&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_stream_chat&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_with_agent_tool&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_with_approval_policy&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_with_context&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_with_default_max_turns&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_with_durable_approval&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}, {&quot;name&quot;: &quot;agent_with_echoc...</span></div><div class="step mono"><span class="hd">step 5 read_file</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;, &#x27;path&#x27;: &#x27;README.md&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;README.md&quot;, &quot;size&quot;: 12258, &quot;truncated&quot;: true, &quot;content&quot;: &quot;&lt;p align=\&quot;center\&quot;&gt;\n&lt;picture&gt;\n &lt;source media=\&quot;(prefers-color-scheme: dark)\&quot; srcset=\&quot;img/rig-rebranded-logo-white.svg\&quot;&gt;\n &lt;source media=\&quot;(prefers-color-scheme: light)\&quot; srcset=\&quot;img/rig-rebranded-logo-black.svg\&quot;&gt;\n &lt;img src=\&quot;img/rig-rebranded-logo-white.svg\&quot; style=\&quot;width: 40%; height: 40%;\&quot; alt=\&quot;Rig logo\&quot;&gt;\n&lt;/picture&gt;\n&lt;br&gt;\n&lt;br&gt;\n&lt;a href=\&quot;https://rig.rs/docs\&quot;&gt;&lt;img src=\&quot;https://img.shields.io/badge/\ud83d\udcd6 docs-rig.rs-dca282.svg\&quot; /&gt;&lt;/a&gt; &amp;nbsp;\n&lt;a href=\&quot;https://docs.rs/rig/latest/rig/\&quot;&gt;&lt;img src=\&quot;https://img.shields.io/badge/docs-API Reference-dca282.svg\&quot; /&gt;&lt;/a&gt; &amp;nbsp;\n&lt;a href=\&quot;https://crates.io/crates/rig\&quot;&gt;&lt;img src=\&quot;https://img.shields.io/crates/v/rig.svg?color=dca282\&quot; /&gt;&lt;/a&gt;\n&amp;nbsp;\n&lt;a href=\&quot;https://crates.io/crates/rig\&quot;&gt;&lt;img src=\&quot;https://img.shields.io/crates/d/rig-core.svg?color=dca282\&quot; /&gt;&lt;/a&gt;\n&amp;nbsp;\n&lt;a href=\&quot;LICENSE\&quot;&gt;&lt;img src=\&quot;https://img.shields.io/crates/l/rig.sv...</span></div><div class="step mono"><span class="hd">step 6 list_files</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;, &#x27;path&#x27;: &#x27;examples/agent&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;examples/agent&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;Cargo.toml&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 234}, {&quot;name&quot;: &quot;src&quot;, &quot;type&quot;: &quot;dir&quot;, &quot;size&quot;: 0}], &quot;truncated&quot;: false}</span></div><div class="step mono"><span class="hd">step 7 list_files</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;, &#x27;path&#x27;: &#x27;examples/agent/src&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;examples/agent/src&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;main.rs&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 633}], &quot;truncated&quot;: false}</span></div><div class="step mono"><span class="hd">step 8 read_file</span>({&#x27;repo&#x27;: &#x27;0xPlaygrounds/rig&#x27;, &#x27;path&#x27;: &#x27;examples/agent/src/main.rs&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;examples/agent/src/main.rs&quot;, &quot;size&quot;: 633, &quot;truncated&quot;: false, &quot;content&quot;: &quot;//! Demonstrates the smallest useful agent setup with OpenAI.\n//! Requires `OPENAI_API_KEY`.\n//! Run it to see the provider/client/agent/prompt flow end to end.\n\nuse anyhow::Result;\nuse rig::prelude::*;\nuse rig::providers::openai;\n\nconst PREAMBLE: &amp;str = \&quot;You are a comedian here to entertain the user using humour and jokes.\&quot;;\nconst PROMPT: &amp;str = \&quot;Entertain me!\&quot;;\n\n#[tokio::main]\nasync fn main() -&gt; Result&lt;()&gt; {\n let agent = openai::Client::from_env()?\n .agent(openai::GPT_4O)\n .preamble(PREAMBLE)\n .build();\n\n let response = agent.prompt(PROMPT).await?.output;\n println!(\&quot;{response}\&quot;);\n\n Ok(())\n}\n&quot;}</span></div></div>
+<h2>Ledger</h2>
+<div class="card"><div class="entry"><span class="tag inspected">inspected</span> <span class="side">unknown</span> The repository&#x27;s language is Rust, not Python, and it is a sizeable, active project (8,617 stars, pushed as recently as Sept 2026, MIT licensed).<span class="src mono">from: get_repo_metadata(0xPlaygrounds/rig)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">for</span> ⚙️🐠 Build modular and scalable LLM Applications in Rust<span class="src mono">from: get_repo_description(0xPlaygrounds/rig)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">for</span> Rig is a Rust library for building scalable, modular, and ergonomic LLM-powered applications, with agentic workflows and 20+ model providers under one interface.<span class="src mono">from: read_file(README.md)</span></div><div class="entry"><span class="tag inspected">inspected</span> <span class="side">for</span> The repo contains a large, real examples/ directory with dozens of runnable agent examples (agent, agent_with_tools, agent_with_memory, rag, multi_turn_agent, etc.).<span class="src mono">from: list_files(examples)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">for</span> The quickstart &#x27;agent&#x27; example builds an OpenAI-backed agent via openai::Client::from_env()?.agent(openai::GPT_4O).preamble(...).build() and calls agent.prompt(PROMPT).await?, printing the model&#x27;s response; comment notes it requires OPENAI_API_KEY.<span class="src mono">from: read_file(examples/agent/src/main.rs)</span></div></div>
+<h2>Facts</h2>
+<div class="card"><dl class="facts"><dt>setup</dt><dd>0.0s over 0 command(s), install not run or failed</dd><dt>disk</dt><dd>0 MB cloned, 0 MB total</dd><dt>needs</dt><dd>api_key</dd><dt>exercised</dt><dd>Build modular and scalable LLM applications in Rust</dd></dl></div>
+<h2>Grounding critique</h2>
+<div class="card"><p class="sub" style="margin:0">ran &middot; not grounded &middot; revised</p><ul class="issues"><li>The conclusion asserts &#x27;unsupported_language&#x27; as a blocker (i.e., that the sandbox cannot build or run Rust), but no tool call in the evidence attempted to compile or execute the Rust example, nor did any tool return an error indicating Rust is unsupported. This blocker is inferred/asserted rather than demonstrated by the gathered evidence.</li></ul></div>
+</div>
+</body>
+</html>
