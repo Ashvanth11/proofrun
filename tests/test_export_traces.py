@@ -137,8 +137,11 @@ def test_export_writes_an_index_and_a_page_per_investigation(conn, tmp_path):
     written = ex.export(conn, tmp_path / "site", questions_file(tmp_path))
 
     names = {p.name for p in written}
-    assert names == {"index.html", "owner-name.html"}
-    assert all(p.exists() and p.stat().st_size > 0 for p in written)
+    assert names == {"index.html", "owner-name.html", ".nojekyll"}
+    assert all(p.exists() for p in written)
+    # .nojekyll is a marker and is meant to be empty; the pages are not.
+    pages = [p for p in written if p.suffix == ".html"]
+    assert all(p.stat().st_size > 0 for p in pages)
 
 
 def test_a_question_with_no_stored_run_still_gets_a_page(conn, tmp_path):
@@ -352,3 +355,14 @@ def _one_page(conn, tmp_path) -> Path:
     out = tmp_path / "site"
     ex.export(conn, out, questions_file(tmp_path))
     return out / "owner-name.html"
+
+
+def test_a_nojekyll_file_is_written_for_github_pages(conn, tmp_path):
+    """Without it Pages runs Jekyll, which drops paths starting with an
+    underscore - and a dropped page is a 404 with no error anywhere."""
+    store(conn)
+    out = tmp_path / "site"
+    written = ex.export(conn, out, questions_file(tmp_path))
+
+    assert (out / ".nojekyll").exists()
+    assert out / ".nojekyll" in written

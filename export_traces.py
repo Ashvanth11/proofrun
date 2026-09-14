@@ -388,6 +388,15 @@ def export(
     index.write_text(render_index(results, stats, generated), encoding="utf-8")
     written.append(index)
 
+    # GitHub Pages runs Jekyll over a published branch unless this file exists,
+    # and Jekyll silently drops any path beginning with an underscore. Nothing
+    # `slug()` produces starts with one today, but the failure mode is a page
+    # that is simply missing with no error anywhere, so it is written every
+    # time rather than left as a thing someone has to remember.
+    nojekyll = out_dir / ".nojekyll"
+    nojekyll.write_text("", encoding="utf-8")
+    written.append(nojekyll)
+
     log.info(
         "wrote %d pages to %s (%d/%d passing)",
         len(written), out_dir, stats["passed"], stats["n"],
