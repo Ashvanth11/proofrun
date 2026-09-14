@@ -211,12 +211,21 @@ assets. It opens straight from disk:
 python export_traces.py && open site/index.html
 ```
 
-To publish on GitHub Pages, once the repository has a remote: push it with
-`site/` included, then **Settings → Pages → Build and deployment → Source →
-Deploy from a branch**, set **Branch** to `main` and the folder to **`/site`**,
-and **Save**. The URL is `https://<username>.github.io/<repository>/`. Nothing
-is built by CI; Pages serves the committed files as they are. Regenerate and
-recommit after a new run.
+To publish it on GitHub Pages, push `site/` as the root of a `gh-pages`
+branch:
+
+```bash
+git subtree push --prefix site origin gh-pages
+```
+
+Then **Settings → Pages → Build and deployment → Source → Deploy from a
+branch**, set **Branch** to `gh-pages` and the folder to **`/ (root)`**, and
+**Save**.
+
+The branch exists because Pages only serves from a repository's root or its
+`/docs` folder, and `/docs` here holds the written documentation. Nothing is
+built by CI either way — Pages serves the committed files as they are. After a
+new run, regenerate, commit, and push the subtree again.
 
 ---
 
