@@ -371,3 +371,110 @@ def test_an_empty_batch_file_is_refused(tmp_path):
     path.write_text("questions: []\n")
     with pytest.raises(SystemExit):
         batch.load_questions(path)
+
+
+# --- the batch budget guard ----------------------------------------------
+
+
+def test_the_batch_stops_before_a_question_that_could_break_the_budget(
+    tmp_path, monkeypatch, capsys
+):
+    """A ceiling noticed after the spend is not a ceiling.
+
+    The check runs before each question, using the per-question worst case, so
+    the budget is a guarantee rather than a hope - which matters when the
+    batch's own worst case exceeds the credit available.
+    """
+    from types import SimpleNamespace
+
+    import investigate_batch as batch_mod
+    from ai_monitor.agent import investigate as inv_mod
+    from ai_monitor.analysis.analyzer import Usage
+
+    path = tmp_path / "q.yaml"
+    path.write_text(
+        "questions:\n"
+        + "".join(
+            f"  - repo: owner/r{i}\n    question: Does owner/r{i} work?\n"
+            for i in range(6)
+        )
+    )
+
+    started = []
+
+    def fake_investigate(question, client, **kwargs):
+        started.append(question.repo)
+        return inv_mod.InvestigationRun(
+            question=question,
+            steps_taken=1,
+            stop_reason="sufficient_info",
+            usage=Usage(input_tokens=500_000, model="claude-sonnet-5"),  # $1.00
+            wall_seconds=1.0,
+        )
+
+    monkeypatch.setattr(batch_mod.inv, "investigate", fake_investigate)
+    monkeypatch.setattr(batch_mod.sandbox, "prune", lambda *a, **k: None)
+    monkeypatch.setattr(batch_mod.anthropic, "Anthropic", lambda **k: object())
+    monkeypatch.setattr(batch_mod.settings, "anthropic_api_key", "x")
+    monkeypatch.setattr(
+        batch_mod.critique_mod,
+        "critique_and_revise_investigation",
+        lambda run, client, **k: (run, Usage(model="claude-sonnet-5")),
+    )
+
+    code = batch_mod.main(
+        [
+            "--questions", str(path),
+            "--out", str(tmp_path / "out.md"),
+            "--budget", "3.50",
+            "--no-store",
+            "--yes",
+        ]
+    )
+
+    assert code == 2
+    assert "BUDGET STOP" in capsys.readouterr().out
+    # $1.00 a question against a $3.50 budget, minus one question's worst-case
+    # headroom: it must stop well short of six.
+    assert len(started) < 6
+    assert (tmp_path / "out.md").exists()  # what finished is still reported
+
+
+def test_no_budget_means_the_whole_set_runs(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    import investigate_batch as batch_mod
+    from ai_monitor.agent import investigate as inv_mod
+    from ai_monitor.analysis.analyzer import Usage
+
+    path = tmp_path / "q.yaml"
+    path.write_text(
+        "questions:\n"
+        + "".join(
+            f"  - repo: owner/r{i}\n    question: Does owner/r{i} work?\n"
+            for i in range(3)
+        )
+    )
+    started = []
+
+    def fake_investigate(question, client, **kwargs):
+        started.append(question.repo)
+        return inv_mod.InvestigationRun(
+            question=question, steps_taken=1, stop_reason="sufficient_info",
+            usage=Usage(model="claude-sonnet-5"), wall_seconds=1.0,
+        )
+
+    monkeypatch.setattr(batch_mod.inv, "investigate", fake_investigate)
+    monkeypatch.setattr(batch_mod.sandbox, "prune", lambda *a, **k: None)
+    monkeypatch.setattr(batch_mod.anthropic, "Anthropic", lambda **k: object())
+    monkeypatch.setattr(batch_mod.settings, "anthropic_api_key", "x")
+    monkeypatch.setattr(
+        batch_mod.critique_mod, "critique_and_revise_investigation",
+        lambda run, client, **k: (run, Usage(model="claude-sonnet-5")),
+    )
+
+    assert batch_mod.main(
+        ["--questions", str(path), "--out", str(tmp_path / "o.md"),
+         "--no-store", "--yes"]
+    ) == 0
+    assert len(started) == 3
