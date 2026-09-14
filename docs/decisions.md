@@ -264,12 +264,33 @@ dependencies were guessed in advance.
 
 ### Consequences
 
-- **Python-only in practice, by accident rather than design.** The read-only
-  root defeats toolchain installers that want to write outside `/work`; one run
-  installed rustup during setup and then could not use it. This is a real
-  limitation, and the questions in the eval set record language explicitly so
-  that a Go or Rust repo produces an honest `could_not_test` rather than a
-  fabricated answer.
+- **Python-only, and now enforced.** The read-only root defeats toolchain
+  installers that want to write outside `/work`; one run installed rustup
+  during setup and then could not use it. That made "Python only" true by
+  accident rather than by design, so it was stated as a *prompt* rule — and
+  the prompt rule did not hold. In eval run 2, `rig` (Rust) and
+  `avoid-ai-writing` (JavaScript) each cloned a repository to discover a fact
+  its metadata had already stated, on questions where reaching for a container
+  was itself the wrong move; two separate prompt edits asking the model to
+  justify a clone before making one changed nothing measurable.
+
+  **So the limit moved into code**, as `RUNNABLE_LANGUAGES` checked in
+  `Sandbox.create` beside the size gate: a refusal before any Docker call,
+  reading `language` from the same `get_repo_metadata` request that already
+  supplied `size_kb` and was discarding it. The refusal reaches the model as a
+  tool error naming the language and the token `unsupported_language`, which
+  the extraction prompt already maps onto the blocker of that name, and it
+  carries no exit code — so the eval still scores it as zero sandbox commands
+  and an `execution: forbidden` question stays passable.
+
+  The general lesson is the one worth keeping: **a rule the prompt states and
+  the code does not enforce is a request.** It held for the two questions where
+  the model had no reason to disagree and failed on the two where it did. This
+  is the same argument the caps already make, applied a rung lower.
+
+  `None` — GitHub could not detect a language — is allowed through, exactly as
+  `size_kb=None` skips the size gate. An absent fact is not evidence of a bad
+  one, and the alternative is a metadata hiccup silently narrowing the agent.
 - **No state survives a call except the volume.** A fresh container per verb
   means the agent cannot start a background server in one call and curl it in
   the next. Anything needing a live service is untestable here.
@@ -368,6 +389,32 @@ into `reported` made licence questions unanswerable at the correct rung, since
 `supported` would need an execution that has nothing to do with licensing.
 Forcing it into `observed` would have made a file listing count as proof that
 code runs.
+
+### The hole the bifrost run found, and how it was closed
+
+`inspected` originally meant "came from `get_repo_metadata`", and that tool
+returned `description` and `topics` alongside the licence and the language.
+Those two fields are written by the repository's author. So an entry quoting a
+project's own marketing copy arrived as `inspected`, which under rule 3 is
+enough to carry `supported` — a claim proving itself. The `bifrost`
+investigation is the demonstration: its single `for`-side entry cited
+`get_repo_metadata(description)` and restated the very benchmark claim being
+investigated. The agent declined to call it `supported`, but nothing in the
+rules required that.
+
+The fix is a **split, not a new rule**: `get_repo_metadata` now returns only
+fields GitHub computed, and a separate `get_repo_description` returns the
+author's description and topics. That tool is simply absent from
+`INSPECTING_TOOLS`, so the existing cap in rule 2 writes `reported` for
+anything citing it, alongside the README it paraphrases.
+
+A split rather than a heuristic because `cited_tools` matches *tool names* in
+a source string the model writes. A rule that instead inspected which field
+the source mentioned would depend on the model spelling `description`
+correctly — and the model is the thing being constrained, so a rule that rests
+on its cooperation is not a rule. This is the same argument as the language
+gate in §6, one layer up: the enforcement has to sit somewhere the model does
+not reach.
 
 ### Consequences
 

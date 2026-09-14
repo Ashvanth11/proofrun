@@ -15,7 +15,7 @@ scores each item against configured interest areas, and writes a weekly themed
 brief — which is where the questions come from.
 
 Built to be honest about what it is, including where it fails. It currently
-passes **8 of 13** questions on its own eval, and the five failures are
+passes **10 of 13** questions on its own eval, and the three failures are
 enumerated below rather than omitted.
 
 ---
@@ -96,14 +96,13 @@ Go, so the sandbox cannot build it; and reproducing the benchmark would need
 provider API keys and load infrastructure that do not exist here. It never
 cloned, and it did not reach for a verdict it could not support.
 
-This one also exposes a hole in the rules, which is why it is here. Its single
-`for`-side entry is marked `inspected`, citing `get_repo_metadata(description)`
-— GitHub's own field, so first-hand by rule 2. But the *content* of that field
-is the project's marketing copy. Under rule 3 an `inspected` entry is enough to
-carry `supported`, so the rules would not have stopped a `supported` verdict
-resting on nothing but the claim restating itself. The agent declined anyway;
-the rules did not make it decline. `get_repo_metadata(description)` should
-probably be capped at `reported` like any other prose.
+This run also found a hole in the rules. Its one `for`-side entry cited
+`get_repo_metadata(description)` and was therefore `inspected` — first-hand,
+and enough to carry `supported` — even though the content of that field is the
+author's marketing copy. The agent declined anyway; the rules did not make it.
+Splitting the tool closed it: `description` and `topics` now come from a
+separate `get_repo_description`, which is absent from the inspecting set, so
+the existing cap makes anything citing it `reported`.
 
 ---
 
@@ -337,55 +336,86 @@ the overshoot turn, the wrap-up, the extraction, and the critique.
 
 ## Evaluation
 
-### The investigation agent: 8 of 13
+### The investigation agent: 10 of 13
 
 13 questions across 13 repositories, each scored on six independent criteria:
 the verdict is in the allowed set; execution happened, or correctly did not;
-every ledger entry cites a real call; the run was not downgraded; it did not
-stop on a cap; and it ran at all.
+the blocker named is one the question allows; every ledger entry cites a real
+call; the run was not downgraded; and it did not stop on a cap.
 
-Two full runs, with a fix pass between them:
+Three full runs, with a fix pass between each:
 
-| | run 1 | run 2 |
-|---|---|---|
-| passing | 6/13 | **8/13** |
-| cost | $4.98 | $4.31 |
-| wall clock | 18 min | 18 min |
-| evidence | — | 16 observed / 15 inspected / 27 reported |
+| | run 1 | run 2 | run 3 |
+|---|---|---|---|
+| passing | 6/13 | 8/13 | **10/13** |
+| cost | $4.98 | $4.31 | $4.92 |
+| wall clock | 18 min | 18 min | 24 min |
+| evidence | — | 16 / 15 / 27 | 15 observed / 15 inspected / 33 reported |
 
-Every run-1 pass held; the two that moved were `firecrawl` and `phoenix`.
+**No pass has ever regressed.** Every row that passed in run 1 passed in runs 2
+and 3; every run-2 pass held in run 3.
 
-**The five that still fail, and why:**
+**The three that still fail:**
 
 | repo | criterion | what happened |
 |---|---|---|
 | `langfuse` | `not_downgraded` | Answered a licence question by reading `LICENSE` as a file rather than citing the metadata field, so rule 3 downgraded a correct answer. |
-| `utopia` | `verdict` | Returned `inconclusive` where the question expects a judgment on an overclaim. |
 | `zenml` | `stop_reason` | Burned all 12 sandbox calls and stopped on `sandbox_cap`. |
-| `rig` | `execution` | Ran 2 commands on a question its metadata already settled. |
-| `avoid-ai-writing` | `execution` | Ran 3 commands, same failure. |
+| `avoid-ai-writing` | `blockers` | Correctly declined to run a JavaScript project, but named the blocker `other` where the question allows only `unsupported_language`. |
 
-The last two are the interesting ones. Between the runs, four fixes were made,
-each traceable to a specific failed row — and **two of the four did not work**.
-The two prompt changes asking the agent to justify a clone before making one
-changed nothing measurable; `rig` and `avoid-ai-writing` still reach for a
-container when metadata would do. That is a prompt-level fix failing against a
-behaviour that probably needs a code-level one, and it is recorded here rather
-than iterated away.
+**What moved between runs 2 and 3, and what it cost to learn.** Two failures in
+run 2 — `rig` and `avoid-ai-writing` — were repositories that cloned a project
+to discover something their metadata had already stated. Two prompt edits
+asking the model to justify a clone before making one had changed nothing
+measurable, so the limit moved into code: a language gate in `Sandbox.create`
+beside the size gate, refusing any repository GitHub reports as non-Python
+before a container starts.
 
-**The two fixes that did work** are worth the detail, because the bug was three
-layers from the symptom. The critic was flagging the agent for asserting a
-licence it had supposedly invented, and forcing a revision that deleted the
-true entry. Cause: `loop.summarize` truncated every tool result to 300
-characters, and `result_summary` is the critic's *entire* view of what a tool
-returned. A repository's `license` field sat behind its `description` and
-`topics`, past the cut. Two changes — a 1,000-character window, and reordering
-`get_repo_metadata` so the fields a verdict can turn on come before the
-decorative ones — fixed both `not_downgraded` failures.
+Both rows stopped reaching for the sandbox. But **the gate never fired**. The
+agent read `"language": "Rust"` from the metadata and simply never attempted a
+clone, so what changed the behaviour was most likely the *tool description*
+naming the restriction, not the refusal behind it. The gate is what makes the
+limit a guarantee rather than a hope, and it is still unexercised against a
+live model. Saying so is more useful than claiming the code-level fix did it.
 
-No question was edited after seeing results. Two failures initially blamed on
-badly-written questions turned out to be that truncation bug, and `utopia`'s
-expectation was left standing rather than relaxed to fit its outcome.
+The half-result is `avoid-ai-writing`, which traded an `execution` failure for
+a `blockers` one. It declined to run a JavaScript project — the expensive wrong
+behaviour is gone — but reported the blocker as `other`. The reason is worth
+keeping: the refusal message is what teaches the model the token
+`unsupported_language`, and a model that never triggers the refusal never sees
+it. **The fix removed the signal that produced the right answer.** That is
+recorded rather than iterated away, and the question's expectation was not
+relaxed to fit it.
+
+**The other change in run 3** closed a hole the `bifrost` write-up had exposed:
+`description` and `topics` are author-written but arrived through
+`get_repo_metadata`, so an entry quoting a project's own marketing copy counted
+as `inspected` and could carry a verdict. Splitting them into a separate
+`get_repo_description` — absent from the inspecting set — makes them `reported`
+through the existing rule, with no new code path. It is visible in the ledgers:
+
+```
+promptfoo:  [reported ][for] get_repo_description(promptfoo/promptfoo)
+            [inspected][for] list_files(src/redteam)      ← what carries the verdict
+```
+
+**Earlier, between runs 1 and 2**, four fixes were made and **two did not
+work** — the two prompt edits above. The two that did are worth the detail,
+because the bug sat three layers from the symptom: `loop.summarize` truncated
+every tool result to 300 characters, and `result_summary` is the critic's
+entire view of a call. A repository's `license` field sat behind its
+`description` and `topics`, past the cut, so the critic concluded the agent had
+invented it and forced a revision deleting the true entry. A 1,000-character
+window and a field reorder fixed both `not_downgraded` failures.
+
+No question has been edited after seeing results, across all three runs. Two
+run-1 failures initially blamed on badly-written questions turned out to be the
+truncation bug.
+
+*Run 3 was executed in two parts — ten questions, then the remaining three —
+because the batch budget guard refused to start a question whose worst case
+would breach the ceiling. No code changed between the parts, which is the only
+condition under which a resumed batch is one measurement.*
 
 ### The analyzer: what it found
 
@@ -453,11 +483,6 @@ failure, which is the kind worth having tests for:
 - **Python only, in practice.** The read-only container root defeats toolchain
   installers that write outside `/work`. Go and Rust repos produce an honest
   `could_not_test`, which is correct but narrow.
-- **A metadata `description` counts as first-hand evidence.** `get_repo_metadata`
-  is capped at `inspected`, but the `description` field contains the project's
-  own prose, so a marketing claim can currently carry a `supported` verdict on
-  its own. Demonstrated in the `bifrost` trace above. The field should be capped
-  at `reported`; it is not yet.
 - **Web search results may be unreadable to the agent.** In the one run that
   used it, the agent reported that search returned opaque encrypted blocks
   rather than text, and marked the entry `reported`/unknown accordingly. Not yet

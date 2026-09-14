@@ -45,9 +45,11 @@ QUESTION = Question(
 class FakeSandbox:
     """The Sandbox surface SandboxTools uses, with no Docker underneath."""
 
-    def __init__(self, repo, size_kb=None, disk_mb=1.0, outputs=None, elapsed=1.0):
+    def __init__(self, repo, size_kb=None, language=None, disk_mb=1.0,
+                 outputs=None, elapsed=1.0):
         self.repo = repo
         self.size_kb = size_kb
+        self.language = language
         self.disk_mb = disk_mb
         self.outputs = outputs or {}
         self.elapsed = elapsed
@@ -77,16 +79,22 @@ class FakeSandbox:
         self.destroyed = True
 
 
-def sandbox_tools(repo="owner/name", size_kb=1000, **kwargs):
-    """A SandboxTools bound to a FakeSandbox, plus the sandbox itself."""
+def sandbox_tools(repo="owner/name", size_kb=1000, language="Python", **kwargs):
+    """A SandboxTools bound to a FakeSandbox, plus the sandbox itself.
+
+    `language` defaults to Python because that is what the gate admits; a test
+    about anything else passes it explicitly.
+    """
     made = {}
 
-    def factory(r, size_kb=None):
-        made["box"] = FakeSandbox(r, size_kb=size_kb, **kwargs)
+    def factory(r, size_kb=None, language=None):
+        made["box"] = FakeSandbox(r, size_kb=size_kb, language=language, **kwargs)
         return made["box"]
 
     box = tools.SandboxTools(
-        repo, factory=factory, metadata=lambda r: {"size_kb": size_kb}
+        repo,
+        factory=factory,
+        metadata=lambda r: {"size_kb": size_kb, "language": language},
     )
     return box, made
 
@@ -629,8 +637,8 @@ def test_the_sandbox_is_destroyed_on_every_exit_path(caps, monkeypatch):
     """A volume left behind is disk the next run cannot use."""
     made = {}
 
-    def factory(r, size_kb=None):
-        made["box"] = FakeSandbox(r, size_kb=size_kb)
+    def factory(r, size_kb=None, language=None):
+        made["box"] = FakeSandbox(r, size_kb=size_kb, language=language)
         return made["box"]
 
     monkeypatch.setattr(
@@ -649,8 +657,8 @@ def test_the_sandbox_is_destroyed_when_the_loop_raises(monkeypatch):
     """Cleanup has to survive the paths where something has already gone wrong."""
     made = {}
 
-    def factory(r, size_kb=None):
-        made["box"] = FakeSandbox(r, size_kb=size_kb)
+    def factory(r, size_kb=None, language=None):
+        made["box"] = FakeSandbox(r, size_kb=size_kb, language=language)
         return made["box"]
 
     monkeypatch.setattr(
@@ -687,7 +695,7 @@ def _patched_init(factory):
 
     def init(self, repo, **kwargs):
         kwargs.setdefault("factory", factory)
-        kwargs.setdefault("metadata", lambda r: {"size_kb": 100})
+        kwargs.setdefault("metadata", lambda r: {"size_kb": 100, "language": "Python"})
         original(self, repo, **kwargs)
 
     return init
@@ -750,6 +758,92 @@ def test_a_repository_inside_the_raised_gate_is_allowed():
     assert made["box"].size_kb == 900_000
 
 
+def test_a_non_python_repo_is_refused_through_sandbox_tools():
+    """End to end from the metadata call the agent already makes.
+
+    `language` was fetched and thrown away before this; the gate is the same
+    request, read twice.
+    """
+    box = tools.SandboxTools(
+        "owner/name",
+        factory=_real_gate_factory,
+        metadata=lambda r: {"size_kb": 1000, "language": "Rust"},
+    )
+    result, is_error = box.execute("sandbox_clone", {"repo": "owner/name"})
+
+    assert is_error is True
+    assert "Rust" in result["error"]
+    assert "unsupported_language" in result["error"]
+    # Nothing was built, so there is nothing to clean up.
+    assert box.cloned is False
+
+
+def test_a_language_refusal_reports_no_exit_code():
+    """Which is what keeps it out of the eval's executed-command count.
+
+    `eval.investigations.executed_sandbox_calls` separates a call that started
+    a container from one refused before it by looking for an exit code. A
+    refusal that carried one would make `execution: forbidden` unpassable for
+    exactly the repositories this gate exists to turn away.
+    """
+    box = tools.SandboxTools(
+        "owner/name",
+        factory=_real_gate_factory,
+        metadata=lambda r: {"size_kb": 1000, "language": "JavaScript"},
+    )
+    result, _ = box.execute("sandbox_clone", {"repo": "owner/name"})
+
+    assert "exit_code" not in json.dumps(result)
+
+
+def test_a_python_repo_still_clones():
+    """The positive control, through the same path."""
+    box, made = sandbox_tools(language="Python")
+    result, is_error = box.execute("sandbox_clone", {"repo": "owner/name"})
+
+    assert is_error is False
+    assert made["box"].language == "Python"
+
+
+def test_the_language_reaches_the_gate_from_the_metadata_call():
+    """One request feeds both gates; neither may silently read nothing."""
+    box, made = sandbox_tools(size_kb=4321, language="Python")
+    box.execute("sandbox_clone", {"repo": "owner/name"})
+
+    assert (made["box"].size_kb, made["box"].language) == (4321, "Python")
+
+
+def test_a_failed_metadata_call_refuses_the_clone():
+    """No language and no size means both gates are blind, so nothing is cloned."""
+    def broken(repo):
+        raise tools.ToolError("rate limit exhausted")
+
+    box = tools.SandboxTools(
+        "owner/name", factory=_real_gate_factory, metadata=broken
+    )
+    result, is_error = box.execute("sandbox_clone", {"repo": "owner/name"})
+
+    assert is_error is True
+    assert "language" in result["error"]
+    assert box.cloned is False
+
+
+def test_the_clone_description_states_both_gates():
+    """A description that goes stale teaches the model a rule code stopped enforcing.
+
+    This already caught one drift: the size limit was typed out as a literal and
+    survived the gate moving from 200 MB to 1 GB.
+    """
+    from ai_monitor.agent import sandbox as sandbox_mod
+
+    clone = next(
+        t for t in tools.SANDBOX_TOOL_SCHEMAS if t["name"] == "sandbox_clone"
+    )
+    assert f"{sandbox_mod.MAX_REPO_KB // 1000} MB" in clone["description"]
+    for language in sandbox_mod.RUNNABLE_LANGUAGES:
+        assert language in clone["description"]
+
+
 def test_the_gate_sits_below_the_disk_cap():
     """So a clone alone can never exhaust the volume, even at history == tree."""
     from ai_monitor.agent import sandbox as sandbox_mod
@@ -773,10 +867,12 @@ def test_the_measured_clone_size_is_recorded(monkeypatch):
     assert run.report.facts.volume_mb == 180.0
 
 
-def _real_gate_factory(repo, size_kb=None):
+def _real_gate_factory(repo, size_kb=None, language=None):
     from ai_monitor.agent import sandbox as sandbox_mod
 
-    return sandbox_mod.Sandbox.create(repo, size_kb=size_kb, runner=_never_called)
+    return sandbox_mod.Sandbox.create(
+        repo, size_kb=size_kb, language=language, runner=_never_called
+    )
 
 
 def _never_called(argv, timeout=None, **kwargs):
@@ -1400,8 +1496,7 @@ def test_the_critics_view_is_wide_enough_for_a_metadata_record():
     assert "language" in summary
 
 
-def test_metadata_puts_the_decisive_fields_before_the_decorative_ones(monkeypatch):
-    """Field order is load-bearing once the dict is serialised and truncated."""
+def _fake_repo(monkeypatch):
     monkeypatch.setattr(
         tools,
         "_get",
@@ -1410,14 +1505,115 @@ def test_metadata_puts_the_decisive_fields_before_the_decorative_ones(monkeypatc
             "license": {"spdx_id": "AGPL-3.0"},
             "language": "Python",
             "size": 100,
+            "stargazers_count": 7,
             "topics": ["t"] * 50,
             "description": "d" * 500,
         },
     )
+
+
+def test_metadata_puts_the_decisive_fields_before_the_decorative_ones(monkeypatch):
+    """Field order is load-bearing once the dict is serialised and truncated."""
+    _fake_repo(monkeypatch)
     keys = list(tools.get_repo_metadata("a/b"))
     for decisive in ("license", "language", "size_kb"):
-        assert keys.index(decisive) < keys.index("topics")
-        assert keys.index(decisive) < keys.index("description")
+        assert keys.index(decisive) < keys.index("stars")
+
+
+def test_metadata_carries_nothing_the_author_wrote(monkeypatch):
+    """The bifrost hole, closed at the source.
+
+    While `description` arrived through this tool it was capped at `inspected`,
+    so a verdict could rest on the project's own marketing copy asserting the
+    very claim under investigation.
+    """
+    _fake_repo(monkeypatch)
+    data = tools.get_repo_metadata("a/b")
+
+    assert "description" not in data
+    assert "topics" not in data
+    # And the computed facts a verdict legitimately turns on are still here.
+    assert data["license"] == "AGPL-3.0"
+    assert data["language"] == "Python"
+
+
+def test_the_description_tool_returns_the_authors_words(monkeypatch):
+    _fake_repo(monkeypatch)
+    data = tools.get_repo_description("a/b")
+
+    assert data["description"] == "d" * 500
+    assert data["topics"] == ["t"] * 50
+
+
+def test_the_description_tool_is_not_an_inspecting_tool():
+    """The whole of the fix: no new rule, just absence from this set.
+
+    `apply_integrity_rules` caps an entry's kind by the tool it cites, so a
+    tool that is not here can only ever produce `reported`.
+    """
+    assert "get_repo_description" not in tools.INSPECTING_TOOLS
+    assert "get_repo_description" not in tools.OBSERVING_TOOLS
+    assert "get_repo_description" in tools.REGISTRY
+    assert "get_repo_description" in {t["name"] for t in tools.TOOL_SCHEMAS}
+
+
+def test_a_description_entry_is_capped_at_reported_and_cannot_carry_a_verdict(
+    monkeypatch,
+):
+    """bifrost, replayed: the claim restating itself is not evidence for it.
+
+    The tool call has to *succeed*, or this would pass for the wrong reason:
+    an errored call is excluded from the inspected set too, and would look
+    identical to the cap doing its job.
+    """
+    _fake_repo(monkeypatch)
+    box, _ = sandbox_tools()
+    client = ScriptedClient(
+        [[("get_repo_description", {"repo": "owner/name"})], "Done."],
+        report=report(
+            verdict="supported",
+            ledger=[
+                evidence(
+                    kind="inspected",
+                    source="get_repo_description(owner/name)",
+                    statement="Fifty times faster than the alternative",
+                )
+            ],
+        ),
+    )
+    run = run_investigation(client, box)
+
+    assert run.report.ledger[0].kind == "reported"
+    assert run.report.verdict == "inconclusive"
+    assert run.downgraded is True
+
+
+def test_a_metadata_entry_still_carries_a_verdict(monkeypatch):
+    """The control: narrowing the tool must not break the licence questions.
+
+    firecrawl passes on exactly this path - a licence question answered from
+    the field GitHub computed, with nothing executed.
+    """
+    _fake_repo(monkeypatch)
+    box, _ = sandbox_tools()
+    client = ScriptedClient(
+        [[("get_repo_metadata", {"repo": "owner/name"})], "Done."],
+        report=report(
+            verdict="supported",
+            ledger=[
+                evidence(
+                    kind="inspected",
+                    source="get_repo_metadata(owner/name)",
+                    statement="The licence field reads AGPL-3.0",
+                )
+            ],
+        ),
+    )
+    run = run_investigation(client, box)
+
+    assert run.report.ledger[0].kind == "inspected"
+    assert run.report.verdict == "supported"
+    assert run.downgraded is False
 
 
 def test_the_prompt_tells_the_agent_not_to_clone_a_settled_question():

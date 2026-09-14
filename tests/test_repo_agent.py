@@ -209,7 +209,12 @@ def test_tool_schemas_are_offered_every_turn(stub_tools):
     client = ScriptedClient([[("get_repo_metadata", {"repo": "a/b"})], "done"])
     repo_agent.analyze_repo("a/b", client, model="ollama/test", interests=INTERESTS)
     names = {t["name"] for t in client.seen_tools[0]}
-    assert names == {"get_repo_metadata", "list_files", "read_file"}
+    assert names == {
+        "get_repo_metadata",
+        "get_repo_description",
+        "list_files",
+        "read_file",
+    }
 
 
 def test_tool_errors_are_fed_back_not_fatal(monkeypatch):

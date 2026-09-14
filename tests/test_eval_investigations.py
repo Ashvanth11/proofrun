@@ -154,6 +154,34 @@ def test_a_clone_refused_by_the_gate_does_not_count_as_using_the_sandbox(conn):
     assert score_one(conn, q).passed
 
 
+def test_a_clone_refused_by_the_language_gate_also_counts_as_no_sandbox_use(conn):
+    """rig and avoid-ai-writing are the rows this has to make passable.
+
+    Both are `execution: forbidden` on questions their metadata settles. The
+    language gate turns the clone away before any container starts, and that
+    refusal must not be scored as having reached for the sandbox - otherwise
+    the fix for the failure would itself keep the row failing.
+    """
+    store(
+        conn,
+        verdict="could_not_test",
+        blockers=["unsupported_language"],
+        ledger=[("unknown", "inspected", "get_repo_metadata(a/b)")],
+        tool_calls=[
+            call("sandbox_clone", executed=False, is_error=True),
+            call("get_repo_metadata", executed=False),
+        ],
+    )
+    q = question(
+        expect={
+            "verdict": ["could_not_test"],
+            "execution": "forbidden",
+            "blockers_any_of": ["unsupported_language"],
+        }
+    )
+    assert score_one(conn, q).passed
+
+
 def test_attempt_accepts_a_real_execution(conn):
     store(conn, ledger=[("for", "observed", "sandbox_run(x)")],
           tool_calls=[call("sandbox_run")])
