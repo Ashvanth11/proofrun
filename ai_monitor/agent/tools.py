@@ -16,7 +16,7 @@ from typing import Any, Callable, Optional
 
 import httpx
 
-from ai_monitor.agent.sandbox import MAX_REPO_KB
+from ai_monitor.agent.sandbox import MAX_REPO_KB, RUNNABLE_LANGUAGES
 from ai_monitor.watchers.github import _headers
 
 log = logging.getLogger(__name__)
@@ -53,24 +53,50 @@ def _get(path: str, timeout: float = 20.0) -> Any:
 
 
 def get_repo_metadata(repo: str) -> dict:
-    """Cheapest rung of the ladder: one request, no file contents."""
+    """Cheapest rung of the ladder: one request, no file contents.
+
+    **Only fields GitHub computed.** Nothing the repository's author wrote is
+    in here - that is `get_repo_description`, deliberately a separate tool.
+    The split is what makes this tool's membership of `INSPECTING_TOOLS` safe:
+    every field below is a fact about the repository rather than a claim by
+    it, so an entry citing this call can carry a verdict.
+
+    Field order is load-bearing. This dict is serialised and truncated into
+    the trace, and that truncation is the critic's whole view of the call, so
+    the fields a verdict can actually turn on - licence, language, size - go
+    first and the numeric trivia goes last.
+    """
     data = _get(f"/repos/{repo}")
-    # Field order is load-bearing. This dict is serialised and truncated into
-    # the trace, and that truncation is the critic's whole view of the call, so
-    # the fields a verdict can actually turn on - licence, language, size - go
-    # first and the long, decorative ones go last.
     return {
         "full_name": data.get("full_name"),
         "license": (data.get("license") or {}).get("spdx_id"),
         "language": data.get("language"),
         "size_kb": data.get("size"),
-        "stars": data.get("stargazers_count"),
-        "forks": data.get("forks_count"),
-        "open_issues": data.get("open_issues_count"),
         "archived": data.get("archived"),
         "created_at": data.get("created_at"),
         "pushed_at": data.get("pushed_at"),
         "homepage": data.get("homepage"),
+        "stars": data.get("stargazers_count"),
+        "forks": data.get("forks_count"),
+        "open_issues": data.get("open_issues_count"),
+    }
+
+
+def get_repo_description(repo: str) -> dict:
+    """The author's own summary of the project. Their words, not GitHub's.
+
+    Split out of `get_repo_metadata` because of what the bifrost investigation
+    showed: `description` is author-written marketing copy, but arriving via
+    the metadata tool it was capped at `inspected` and could therefore carry a
+    `supported` verdict on its own - a claim proving itself.
+
+    A separate tool fixes that with no new rule. This one is simply absent
+    from `INSPECTING_TOOLS`, so the existing cap in `apply_integrity_rules`
+    makes anything citing it `reported`, alongside the README it paraphrases.
+    """
+    data = _get(f"/repos/{repo}")
+    return {
+        "full_name": data.get("full_name"),
         "description": data.get("description"),
         "topics": data.get("topics", []),
     }
@@ -126,9 +152,12 @@ TOOL_SCHEMAS = [
     {
         "name": "get_repo_metadata",
         "description": (
-            "Get high-level repository facts: description, topics, language, "
-            "stars, license, activity dates. Costs one request. Start here - "
-            "for many repositories this alone is enough to judge relevance."
+            "Get the facts GitHub computed about a repository: language, "
+            "licence, size, stars, forks, open issues, whether it is "
+            "archived, and activity dates. Nothing the author wrote is here - "
+            "for the project's own description use get_repo_description. "
+            "Costs one request. Start here: language and size decide whether "
+            "the question can be tested at all."
         ),
         "input_schema": {
             "type": "object",
@@ -137,6 +166,24 @@ TOOL_SCHEMAS = [
                     "type": "string",
                     "description": "Repository in owner/name form, e.g. langfuse/langfuse",
                 }
+            },
+            "required": ["repo"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "get_repo_description",
+        "description": (
+            "Get the repository's own one-line description and topic tags. "
+            "This is the author's summary of their own project - a claim "
+            "about it, not a measurement of it - so treat it exactly as you "
+            "would a sentence from the README, and never as evidence that "
+            "what it says is true."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "repo": {"type": "string", "description": "owner/name"}
             },
             "required": ["repo"],
             "additionalProperties": False,
@@ -187,6 +234,7 @@ TOOL_SCHEMAS = [
 
 REGISTRY: dict[str, Callable[..., dict]] = {
     "get_repo_metadata": get_repo_metadata,
+    "get_repo_description": get_repo_description,
     "list_files": list_files,
     "read_file": read_file,
 }
@@ -246,10 +294,15 @@ SANDBOX_TOOL_SCHEMAS = [
         "description": (
             "Shallow-clone the repository into a fresh isolated container "
             "volume at /work/repo. Call this once, and only once you have "
-            "decided the question actually needs the code run. Repositories "
-            f"over {MAX_REPO_KB // 1000} MB are refused. Only /work persists "
-            "between commands; the rest of the container's filesystem is "
-            "read-only and is discarded after every call."
+            "decided the question actually needs the code run. Two refusals "
+            "happen before anything is downloaded, both read from "
+            "get_repo_metadata: repositories "
+            f"over {MAX_REPO_KB // 1000} MB are refused, and so is any "
+            f"repository whose language is not "
+            f"{' or '.join(sorted(RUNNABLE_LANGUAGES))} - check the language "
+            "before you call this. Only /work persists between commands; the "
+            "rest of the container's filesystem is read-only and is discarded "
+            "after every call."
         ),
         "input_schema": {
             "type": "object",
@@ -317,8 +370,18 @@ OBSERVING_TOOLS = frozenset({"sandbox_setup", "sandbox_run"})
 # field, the language, whether it is archived, which files exist. A README is
 # not on this list, and neither is read_file: a file's contents are the
 # author's words, and the author is one of the parties with a stake in the
-# answer. (`description` and `topics` are author-written too; they are the
-# weak spot in this set, and the critique pass is what covers them.)
+# answer.
+#
+# `get_repo_description` is deliberately absent, which is the whole of the fix
+# for the hole the bifrost run exposed. `description` and `topics` used to
+# arrive through get_repo_metadata and were therefore capped at `inspected`,
+# so a verdict could rest on the project's own marketing copy restating the
+# claim under investigation. Splitting the tool closes that with no new rule:
+# the existing cap sees a tool that is not on this list and writes `reported`.
+#
+# A split rather than a heuristic, because the alternative is inspecting which
+# *field* the model named in its source string - and the model is the thing
+# being constrained, so a rule that depends on its spelling is not a rule.
 INSPECTING_TOOLS = frozenset({"get_repo_metadata", "list_files"})
 
 
@@ -427,13 +490,20 @@ class SandboxTools:
             return {"error": f"{self.repo} has already been cloned"}, True
 
         try:
-            size_kb = self._metadata(self.repo).get("size_kb")
+            meta = self._metadata(self.repo)
         except ToolError as exc:
             # Unknown size means the gate cannot fire, and an ungated clone is
-            # exactly the unbounded download the cap exists to prevent.
-            return {"error": f"cannot check repository size: {exc}"}, True
+            # exactly the unbounded download the cap exists to prevent. The
+            # same request carries the language, so both gates fail together.
+            return {
+                "error": f"cannot check the repository's size or language: {exc}"
+            }, True
 
-        self._box = self._factory(self.repo, size_kb=size_kb)
+        self._box = self._factory(
+            self.repo,
+            size_kb=meta.get("size_kb"),
+            language=meta.get("language"),
+        )
         result = self._finish(self._box.clone())
         # What --depth 1 really cost, as opposed to the history-inclusive
         # size_kb the gate had to guess from. MAX_REPO_KB gets re-tuned from

@@ -79,6 +79,27 @@ MAX_OUTPUT_CHARS = 4000
 MAX_REPO_KB = 1_000_000  # 1 GB of history-inclusive size_kb
 DISK_CAP_MB = 2048
 
+# The language gate, and why it is code rather than a sentence in the prompt.
+#
+# The image is python:3.12-slim plus git, curl and a C toolchain. "Python only"
+# was originally a prompt rule, and the prompt rule did not hold: in eval run 2
+# `rig` (Rust) and `avoid-ai-writing` (JavaScript) each cloned a repository to
+# discover a fact the metadata had already stated, on questions where reaching
+# for a container was itself the wrong move. Two separate prompt edits asking
+# the model to justify a clone before making one changed nothing measurable.
+#
+# So it moves here, beside the size gate, as a refusal in code before any
+# docker call - the same shape, from the same metadata request, which already
+# returns `language` and was throwing it away.
+#
+# Only Python. Not "Jupyter Notebook", not "Shell", not "TypeScript with a
+# Python SDK inside": GitHub reports one dominant language, the eval set's
+# expectations were written against a Python-only image, and widening this set
+# is a change that should be measured rather than guessed. `None` - GitHub
+# could not detect a language - is allowed through, exactly as `size_kb=None`
+# skips the size gate: an absent fact is not evidence of a bad one.
+RUNNABLE_LANGUAGES = frozenset({"Python"})
+
 # The repo name reaches us from the model, and from there would reach a clone
 # URL, a volume name, and an argv. Anything that is not plainly owner/name is
 # refused before any of that happens.
@@ -239,17 +260,28 @@ class Sandbox:
         cls,
         repo: str,
         size_kb: Optional[int] = None,
+        language: Optional[str] = None,
         runner: Optional[Runner] = None,
         image: str = IMAGE,
     ) -> "Sandbox":
-        """Validate, gate on size, then create the volume.
+        """Validate, gate on language and size, then create the volume.
 
-        Both refusals happen before any Docker call: an invalid name must never
-        reach an argv, and a 5 GB repository should cost nothing to decline.
-        ``size_kb`` comes from ``tools.get_repo_metadata``; ``None`` means the
-        caller did not look it up and the gate is skipped.
+        Every refusal happens before any Docker call: an invalid name must
+        never reach an argv, and a Rust monorepo should cost nothing to
+        decline. ``size_kb`` and ``language`` both come from
+        ``tools.get_repo_metadata``; ``None`` means the caller did not look it
+        up and that gate is skipped.
         """
         validate_repo(repo)
+        # Language first: it is categorical ("this can never work here"),
+        # while size is circumstantial ("not this one, not today").
+        if language is not None and language not in RUNNABLE_LANGUAGES:
+            raise SandboxError(
+                f"{repo} is a {language} project and the sandbox image runs "
+                f"Python only - it has no cargo, node, go or jdk, and a "
+                f"toolchain installed during setup does not survive the call. "
+                f"Blocker: unsupported_language"
+            )
         if size_kb is not None and size_kb > MAX_REPO_KB:
             raise SandboxError(
                 f"{repo} is {size_kb / 1000:.0f} MB, over the "

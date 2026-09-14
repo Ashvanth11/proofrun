@@ -275,6 +275,61 @@ def test_oversize_repo_is_refused_before_any_docker_call():
     assert runner.calls == []
 
 
+@pytest.mark.parametrize("language", ["Rust", "JavaScript", "Go", "TypeScript"])
+def test_a_non_python_repo_is_refused_before_any_docker_call(language):
+    """The gate that two prompt edits could not enforce.
+
+    `rig` (Rust) and `avoid-ai-writing` (JavaScript) both cloned in eval run 2
+    on questions their metadata already settled. The refusal has to cost
+    nothing, so it happens before `docker volume create`.
+    """
+    runner = FakeRunner()
+    with pytest.raises(SandboxError, match="unsupported_language"):
+        Sandbox.create("owner/name", language=language, runner=runner)
+    assert runner.calls == []
+
+
+def test_the_refusal_names_the_language_it_refused():
+    """The message is the model's whole view of why, so it has to say."""
+    with pytest.raises(SandboxError) as caught:
+        Sandbox.create("owner/name", language="Rust", runner=FakeRunner())
+
+    message = str(caught.value)
+    assert "Rust" in message
+    # The extraction prompt maps this token onto the blocker of the same name.
+    assert "unsupported_language" in message
+
+
+def test_a_python_repo_passes_the_language_gate():
+    """The positive control: the gate must not refuse what the image can run."""
+    runner = FakeRunner()
+    box = Sandbox.create("owner/name", language="Python", runner=runner)
+    assert runner.calls[0][:3] == ["docker", "volume", "create"]
+    assert box.volume.startswith("ai-monitor-owner-name-")
+
+
+def test_an_undetected_language_is_allowed_through():
+    """`None` means GitHub could not tell, not that it told us something bad.
+
+    Same treatment as `size_kb=None`: an absent fact does not get to refuse a
+    repository, because then a metadata hiccup would silently narrow the agent.
+    """
+    runner = FakeRunner()
+    Sandbox.create("owner/name", language=None, runner=runner)
+    assert runner.calls[0][:3] == ["docker", "volume", "create"]
+
+
+def test_the_language_gate_fires_before_the_size_gate():
+    """Categorical beats circumstantial: Rust is never runnable here, at any size."""
+    with pytest.raises(SandboxError, match="unsupported_language"):
+        Sandbox.create(
+            "owner/name",
+            size_kb=sb.MAX_REPO_KB + 1,
+            language="Rust",
+            runner=FakeRunner(),
+        )
+
+
 def test_repo_under_the_size_gate_is_allowed():
     box, runner = make_sandbox()
     assert runner.calls[0][:3] == ["docker", "volume", "create"]
