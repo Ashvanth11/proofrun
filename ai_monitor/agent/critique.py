@@ -24,6 +24,9 @@ log = logging.getLogger(__name__)
 
 CRITIQUE_MODEL = "claude-sonnet-5"
 
+# Room for a full list of issues and a full revised report.
+CRITIQUE_MAX_TOKENS = 8192
+
 SYSTEM_PROMPT = """You review an automated assessment of a GitHub repository for grounding.
 
 You are given the evidence that was actually gathered (tool results) and the
@@ -253,7 +256,10 @@ def _parse(
     try:
         response = client.messages.parse(
             model=model,
-            max_tokens=2048,
+            # Same failure as the extraction call had: at 2048 the JSON gets
+            # cut mid-string, pydantic rejects it, and the pass silently does
+            # not happen. It took out the apm critique on 2026-09-13.
+            max_tokens=CRITIQUE_MAX_TOKENS,
             system=system,
             messages=[{"role": "user", "content": prompt}],
             output_format=schema,

@@ -50,11 +50,20 @@ questions:
       verdict: [supported, refuted]
       needs_execution: true
 
-  # 3. could_not_test. Rust, and the sandbox image is Python-only this cycle.
-  #    A named blocker is the right answer, not a guess - and the agent should
-  #    reach it from metadata rather than by burning the sandbox budget first.
-  #    Worth watching in the trace: at 73 MB nothing stops it cloning, so the
-  #    language gate has to come from the agent's own judgement.
+  # 3. could_not_test. Rust, and the sandbox image is Python-only.
+  #
+  #    In the 2026-09-13 smoke run this question failed in an instructive way:
+  #    nothing in the sandbox actually stops a non-Python project, because
+  #    sandbox_setup has network, so the agent installed a Rust toolchain with
+  #    rustup. What defeated it was the read-only root filesystem - cargo went
+  #    somewhere that did not survive to the next container - after it had
+  #    already spent its whole setup budget. It returned `inconclusive`.
+  #
+  #    So `unsupported_language` is a rule the prompt has to state, not a
+  #    property the image enforces. The prompt now says so, and this question
+  #    is the test of whether it holds. Two blockers are acceptable: the
+  #    toolchain is the one the agent should reach first from metadata, and the
+  #    missing OpenAI key is real and would block it even in a Rust sandbox.
   - repo: 0xPlaygrounds/rig
     size_mb: 73
     claim: >-
@@ -64,5 +73,6 @@ questions:
       its own quickstart example?
     expect:
       verdict: [could_not_test]
-      blockers: [unsupported_language]
+      blockers_any_of: [unsupported_language, needs_api_key]
       needs_execution: true
+      sandbox_setup_commands_below: 4

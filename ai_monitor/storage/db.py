@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS investigations (
     verdict TEXT,
     blockers TEXT DEFAULT '[]',
     report TEXT,            -- Investigation json
+    final_text TEXT,        -- the agent's prose conclusion, kept even when
+                            -- structuring it into `report` failed
     steps_taken INTEGER,
     tool_calls TEXT DEFAULT '[]',
     stop_reason TEXT,
@@ -94,12 +96,32 @@ CREATE TABLE IF NOT EXISTS briefs (
 """
 
 
+# Columns added to a table after it first shipped. CREATE TABLE IF NOT EXISTS
+# silently does nothing on an existing database, so a new column has to be
+# added explicitly or every older monitor.db breaks on the next insert.
+MIGRATIONS = [
+    ("investigations", "final_text", "TEXT"),
+]
+
+
 def connect(db_path: Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
+    _migrate(conn)
     return conn
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Add any missing columns. Idempotent, and safe on a fresh database."""
+    for table, column, decl in MIGRATIONS:
+        existing = {
+            row["name"] for row in conn.execute(f"PRAGMA table_info({table})")
+        }
+        if existing and column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+    conn.commit()
 
 
 def _iso(dt: Optional[datetime]) -> Optional[str]:

@@ -885,3 +885,221 @@ def test_web_search_is_offered_with_a_use_cap():
     )
     web = [t for t in seen["tools"] if t.get("type")]
     assert web == [{"type": "web_search_20260209", "name": "web_search", "max_uses": 5}]
+
+
+# --- regressions from the 2026-09-13 smoke run ---------------------------
+
+
+def test_a_failed_extraction_keeps_the_prose_conclusion(tmp_path):
+    """The langfuse bug: the answer existed, and we stored nothing.
+
+    Extraction overran max_tokens, the JSON arrived truncated, pydantic
+    rejected it, and a paid-for investigation became a hole in the record.
+    Structuring is allowed to fail; losing the conclusion is not.
+    """
+    conn = db.connect(tmp_path / "t.db")
+    box, _ = sandbox_tools()
+
+    class NoExtraction(ScriptedClient):
+        def parse(self, **kwargs):
+            raise ValueError("Invalid JSON: EOF while parsing a string")
+
+    client = NoExtraction(
+        [[("read_file", {"repo": "owner/name", "path": "LICENSE"})], "It is MIT."]
+    )
+    run = run_investigation(client, box)
+    store_investigation(conn, run)
+
+    assert run.report is None
+    assert run.final_text == "It is MIT."
+
+    row = conn.execute("SELECT * FROM investigations").fetchone()
+    assert row["verdict"] is None
+    assert row["final_text"] == "It is MIT."
+    conn.close()
+
+
+def test_extraction_is_given_room_for_a_full_ledger():
+    """2048 tokens truncated a six-entry ledger in the smoke run."""
+    assert inv.EXTRACTION_MAX_TOKENS >= 8192
+
+
+def test_the_extraction_prompt_demands_a_tool_name_in_the_source(tmp_path):
+    """The other half of the same failure mode.
+
+    The rule drops entries citing no tool call. In the smoke run it discarded
+    real evidence because the model wrote `README.md` instead of
+    `read_file(README.md)` - a false positive that deletes true evidence, which
+    is worse than the hallucination it was built to catch.
+    """
+    seen = {}
+    box, _ = sandbox_tools()
+
+    class Spy(ScriptedClient):
+        def parse(self, **kwargs):
+            seen.setdefault("system", kwargs.get("system"))
+            return super().parse(**kwargs)
+
+    run_investigation(Spy(["Done."], report=report()), box)
+    system = seen["system"]
+    assert "tool_name(" in system
+    assert "read_file(README.md)" in system
+
+
+def test_a_bare_filename_source_is_still_dropped():
+    """The prompt asks for the tool name; the rule keeps enforcing it."""
+    run = inv.InvestigationRun(
+        question=QUESTION,
+        steps_taken=1,
+        stop_reason="sufficient_info",
+        usage=inv.Usage(model="ollama/test"),
+        tool_calls=[
+            inv.ToolCall(
+                step=1,
+                tool="read_file",
+                arguments={"path": "README.md"},
+                is_error=False,
+                result_summary="{}",
+            )
+        ],
+        report=report(
+            ledger=[
+                evidence(kind="reported", source="README.md"),
+                evidence(kind="reported", source="read_file(README.md)"),
+            ]
+        ),
+    )
+    inv.apply_integrity_rules(run)
+
+    assert len(run.report.ledger) == 1
+    assert run.dropped_entries == 1
+
+
+def test_the_clone_description_tracks_the_actual_gate():
+    """It said 200 MB for a whole smoke run after the gate moved to 1 GB.
+
+    A tool description is prompt, and a prompt asserting a limit the code does
+    not enforce is a lie told to the model every turn.
+    """
+    from ai_monitor.agent import sandbox as sandbox_mod
+
+    clone = next(
+        t for t in tools.SANDBOX_TOOL_SCHEMAS if t["name"] == "sandbox_clone"
+    )
+    assert f"{sandbox_mod.MAX_REPO_KB // 1000} MB" in clone["description"]
+
+
+def test_the_prompt_rules_out_installing_other_toolchains():
+    """rig burned its whole setup budget on rustup, which cannot persist."""
+    assert "rustup" in inv.SYSTEM_PROMPT
+    assert "unsupported_language" in inv.SYSTEM_PROMPT
+
+
+def test_the_prompt_ties_a_named_blocker_to_could_not_test():
+    """rig named two blockers and still returned `inconclusive`."""
+    assert "`could_not_test`, not" in inv.SYSTEM_PROMPT
+
+
+def test_the_migration_adds_the_column_to_an_older_database(tmp_path):
+    """CREATE TABLE IF NOT EXISTS does nothing to a table that already exists."""
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    old.executescript(
+        """
+        CREATE TABLE items (id INTEGER PRIMARY KEY);
+        CREATE TABLE investigations (
+            id INTEGER PRIMARY KEY, item_id INTEGER, repo TEXT NOT NULL,
+            question TEXT NOT NULL, verdict TEXT, report TEXT
+        );
+        """
+    )
+    old.commit()
+    old.close()
+
+    conn = db.connect(path)
+    columns = {r["name"] for r in conn.execute("PRAGMA table_info(investigations)")}
+    assert "final_text" in columns
+    conn.close()
+
+
+def test_the_migration_is_idempotent(tmp_path):
+    path = tmp_path / "t.db"
+    db.connect(path).close()
+    db.connect(path).close()
+    conn = db.connect(path)
+    assert conn.execute("SELECT COUNT(*) n FROM investigations").fetchone()["n"] == 0
+    conn.close()
+
+
+def test_a_revision_cannot_overwrite_the_measured_facts():
+    """The rig re-run reported "0 MB cloned, 1 setup command" after a revision.
+
+    A revision is a fresh Investigation straight from the model, carrying its
+    own account of how long the install took and how large the clone was.
+    Those are measurements. The critique gets to change the reasoning, not the
+    instrument readings.
+    """
+    box, _ = sandbox_tools(disk_mb=116.5, elapsed=2.0)
+    client = ScriptedClient(
+        CLONE_AND_RUN,
+        report=report(
+            verdict="supported", ledger=[evidence(source="sandbox_run(demo)")]
+        ),
+        critique=critique_mod.Critique(grounded=False, issues=["overstated"]),
+    )
+    run = run_investigation(client, box)
+    assert run.report.facts.clone_mb == 116.5
+
+    # The reviser returns a report claiming nothing was cloned at all.
+    revised = report(
+        verdict="supported", ledger=[evidence(source="sandbox_run(demo)")]
+    )
+    revised.facts.clone_mb = 0.0
+    revised.facts.setup_commands = 99
+    client.report = revised
+    run, _ = critique_mod.critique_and_revise_investigation(
+        run, client, model="ollama/test"
+    )
+
+    assert run.revised is True
+    assert run.report.facts.clone_mb == 116.5
+    assert run.report.facts.setup_commands == 0
+
+
+def test_the_extraction_prompt_defines_the_blocker_vocabulary():
+    """rig came back `install_failed, no_testable_claim` having attempted no
+    install and having had a perfectly testable claim."""
+    seen = {}
+    box, _ = sandbox_tools()
+
+    class Spy(ScriptedClient):
+        def parse(self, **kwargs):
+            seen.setdefault("system", kwargs.get("system"))
+            return super().parse(**kwargs)
+
+    run_investigation(Spy(["Done."], report=report()), box)
+    system = seen["system"]
+    assert "unsupported_language:" in system
+    assert "never attempted" in system
+    assert "no_testable_claim: ONLY" in system
+
+
+def test_the_sandbox_tools_say_what_the_image_contains():
+    """Otherwise the agent probes for cargo, gets told to clone first, and
+    clones 116 MB to run `which cargo`."""
+    by_name = {t["name"]: t for t in tools.SANDBOX_TOOL_SCHEMAS}
+    for name in ("sandbox_setup", "sandbox_run"):
+        assert "no cargo" in by_name[name]["description"]
+        assert "python3" in by_name[name]["description"]
+
+
+def test_the_critique_is_given_room_for_a_full_revision():
+    """2048 truncated the apm critique's JSON mid-string, so it never ran.
+
+    A critique that fails silently is worse than no critique: the run still
+    reports a verdict, and nothing records that the grounding check was
+    skipped.
+    """
+    assert critique_mod.CRITIQUE_MAX_TOKENS >= 8192
