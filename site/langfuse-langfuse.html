@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>langfuse/langfuse &mdash; Proofrun</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e0e0db;
+  --card: #ffffff; --accent: #2a5d8f; --bad: #a33; --good: #2e6b3e;
+  --obs: #1d4f2b; --obs-bg: #e6f2e9; --insp: #1f4d73; --insp-bg: #e6eff7;
+  --rep: #6b6b66; --rep-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a; --fg: #e6e6e3; --muted: #9a9a94; --line: #2c2e33;
+    --card: #1d1f23; --accent: #7fb0e0; --bad: #e08585; --good: #7fc08f;
+    --obs: #9fe0b0; --obs-bg: #1c3325; --insp: #9fc9ec; --insp-bg: #1a2c3d;
+    --rep: #9a9a94; --rep-bg: #24262b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin: 2.5rem 0 .75rem; font-weight: 600;
+}
+a { color: var(--accent); }
+.sub { color: var(--muted); margin: 0 0 2rem; }
+.back { display: inline-block; margin-bottom: 1.5rem; font-size: .85rem; }
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .82rem;
+}
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td {
+  text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.n, th.n { text-align: right; }
+tr.row:hover td { background: var(--card); }
+td a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+.yes { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; margin-bottom: .6rem;
+}
+.q { font-size: 1.05rem; margin: 0 0 .5rem; }
+.verdict {
+  display: inline-block; padding: .3rem .7rem; border-radius: 4px;
+  font-weight: 700; letter-spacing: .04em; background: var(--rep-bg);
+}
+.verdict.supported, .verdict.refuted { background: var(--obs-bg); color: var(--obs); }
+.step {
+  border-left: 3px solid var(--line); padding: .45rem 0 .45rem .8rem;
+  margin-bottom: .5rem;
+}
+.step.err { border-left-color: var(--bad); }
+.step .hd { font-weight: 600; }
+.step .out { color: var(--muted); display: block; margin-top: .2rem; word-break: break-word; }
+.tag {
+  display: inline-block; min-width: 5.5rem; text-align: center;
+  padding: .1rem .45rem; border-radius: 3px; font-size: .7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.observed { background: var(--obs-bg); color: var(--obs); }
+.tag.inspected { background: var(--insp-bg); color: var(--insp); }
+.tag.reported { background: var(--rep-bg); color: var(--rep); }
+.entry { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: 0; }
+.entry .src { color: var(--muted); display: block; margin-top: .2rem; }
+.side { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts { margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts dd { margin: 0 0 .6rem; }
+.legend { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
+ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
+ul.issues li { margin-bottom: .4rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">&larr; all investigations</a>
+<h1 class="q">Is langfuse/langfuse actually open source under a recognised OSI licence, or is some of what its README advertises covered by a separate commercial licence?</h1>
+<p class="sub"><span class="mono">langfuse/langfuse</span> &middot; reading</p>
+<h2>Verdict</h2>
+<div class="card"><span class="verdict inconclusive">INCONCLUSIVE</span><p class="sub" style="margin:.6rem 0 0">blockers: none &middot; downgraded: no first-hand evidence &middot; stopped: sufficient_info &middot; 4 steps &middot; $0.203 &middot; 52s</p><p style='margin:.4rem 0 0'><span class="no">fails</span> not_downgraded</p></div>
+<h2>Summary</h2>
+<div class="card">The repository&#x27;s own LICENSE file explicitly confirms an open-core model: content outside the ee/ (web/src/ee/, worker/src/ee/) directories is licensed under MIT (an OSI-approved license), while content within those directories is governed by a separate, non-open Enterprise License (ee/LICENSE) that restricts use, copying, and redistribution absent a commercial agreement. GitHub&#x27;s own NOASSERTION license field reflects this mixed licensing rather than a single clean SPDX license. This directly answers the question: Langfuse&#x27;s core is genuinely open source under MIT, but part of what is offered under the Langfuse name is under a separate commercial license, consistent with an &#x27;open core&#x27; rather than fully open source project. Note that the README excerpt actually read was truncated to navigation/header content and did not itself surface license badges or wording, so no claim is made here about how the README specifically frames or omits the commercial-license caveat.</div>
+<h2>Trajectory</h2>
+<div class="card"><div class="step mono"><span class="hd">step 1 get_repo_metadata</span>({&#x27;repo&#x27;: &#x27;langfuse/langfuse&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;langfuse/langfuse&quot;, &quot;license&quot;: &quot;NOASSERTION&quot;, &quot;language&quot;: &quot;TypeScript&quot;, &quot;size_kb&quot;: 226271, &quot;archived&quot;: false, &quot;created_at&quot;: &quot;2023-05-18T17:47:09Z&quot;, &quot;pushed_at&quot;: &quot;2026-09-14T03:27:38Z&quot;, &quot;homepage&quot;: &quot;https://langfuse.com&quot;, &quot;stars&quot;: 34555, &quot;forks&quot;: 3764, &quot;open_issues&quot;: 931}</span></div><div class="step mono"><span class="hd">step 1 get_repo_description</span>({&#x27;repo&#x27;: &#x27;langfuse/langfuse&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;langfuse/langfuse&quot;, &quot;description&quot;: &quot;\ud83e\udea2 Open source agent evals &amp; observability: Trace, evaluate, and improve LLM applications with one open platform.&quot;, &quot;topics&quot;: [&quot;analytics&quot;, &quot;autogen&quot;, &quot;evaluation&quot;, &quot;langchain&quot;, &quot;large-language-models&quot;, &quot;llama-index&quot;, &quot;llm&quot;, &quot;llm-evaluation&quot;, &quot;llm-observability&quot;, &quot;llmops&quot;, &quot;monitoring&quot;, &quot;observability&quot;, &quot;open-source&quot;, &quot;openai&quot;, &quot;playground&quot;, &quot;prompt-engineering&quot;, &quot;prompt-management&quot;, &quot;self-hosted&quot;, &quot;ycombinator&quot;]}</span></div><div class="step err mono"><span class="hd">step 2 list_files</span>({&#x27;repo&#x27;: &#x27;langfuse/langfuse&#x27;, &#x27;path&#x27;: &#x27;&quot;&quot;&#x27;}) <span class="err-flag">error</span><span class="out">&rarr; {&quot;error&quot;: &quot;not found: /repos/langfuse/langfuse/contents/\&quot;\&quot;&quot;}</span></div><div class="step mono"><span class="hd">step 2 read_file</span>({&#x27;repo&#x27;: &#x27;langfuse/langfuse&#x27;, &#x27;path&#x27;: &#x27;LICENSE&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;LICENSE&quot;, &quot;size&quot;: 1612, &quot;truncated&quot;: false, &quot;content&quot;: &quot;Copyright (c) 2023-2026 ClickHouse, Inc.\n\nPortions of this software are licensed as follows:\n\n- All content that resides under the \&quot;ee/\&quot;, \&quot;web/src/ee/\&quot;, and/or \&quot;worker/src/ee/\&quot; directories of this repository, if these directories exist, is licensed under the license defined in \&quot;ee/LICENSE\&quot;.\n- All third party components incorporated into the Langfuse Software are licensed under the original license provided by the owner of the applicable component.\n- Content outside of the above mentioned directories or restrictions above is available under the \&quot;MIT Expat\&quot; license as defined below.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \&quot;Software\&quot;), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the S...</span></div><div class="step mono"><span class="hd">step 3 read_file</span>({&#x27;repo&#x27;: &#x27;langfuse/langfuse&#x27;, &#x27;path&#x27;: &#x27;ee/LICENSE&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;ee/LICENSE&quot;, &quot;size&quot;: 2633, &quot;truncated&quot;: false, &quot;content&quot;: &quot;START NOTE\nLangfuse is an open core project. Langfuse&#x27;s core\nis permissively licensed (MIT license).\nCertain parts of the periphery of Langfuse are commercially\nlicensed and governed by this Enterprise License.\nFor the avoidance of doubt, this license does not apply \nto the core of Langfuse as it is defined in its license in \nthe directory \&quot;/LICENSE\&quot; (as opposed to this file \&quot;ee/LICENSE\&quot;)\nwhich can be used and run without infringing the below license\nand its licensed materials.\nEND NOTE\n\nSTART OF LICENSE\nLangfuse Enterprise license (the \u201cEnterprise License\u201d or \&quot;EE license\&quot;)\n\nCopyright (c) 2023-2026 ClickHouse, Inc\n\nWith regard to the Langfuse Enterprise Software:\nThis software and associated documentation files (the \&quot;Software\&quot;) may only be\nused, if you (and any entity that you represent) have agreed to,\nand are in compliance with, the applicable agreement governing the use of the....</span></div><div class="step mono"><span class="hd">step 3 read_file</span>({&#x27;repo&#x27;: &#x27;langfuse/langfuse&#x27;, &#x27;path&#x27;: &#x27;README.md&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;README.md&quot;, &quot;size&quot;: 52651, &quot;truncated&quot;: true, &quot;content&quot;: &quot;&lt;img width=\&quot;2400\&quot; alt=\&quot;hero-b (1)\&quot; src=\&quot;https://github.com/user-attachments/assets/5810ae13-15d6-4b60-afd2-927adc501861\&quot; /&gt;\n\n&lt;div align=\&quot;center\&quot;&gt;\n &lt;div&gt;\n &lt;h3&gt;\n &lt;a href=\&quot;https://cloud.langfuse.com\&quot;&gt;\n &lt;strong&gt;Langfuse Cloud&lt;/strong&gt;\n &lt;/a&gt; \u00b7 \n &lt;a href=\&quot;https://langfuse.com/docs/deployment/self-host\&quot;&gt;\n &lt;strong&gt;Self Host&lt;/strong&gt;\n &lt;/a&gt; \u00b7 \n &lt;a href=\&quot;https://langfuse.com/demo\&quot;&gt;\n &lt;strong&gt;Demo&lt;/strong&gt;\n &lt;/a&gt;\n &lt;/h3&gt;\n &lt;/div&gt;\n\n &lt;div&gt;\n &lt;a href=\&quot;https://langfuse.com/docs\&quot;&gt;&lt;strong&gt;Docs&lt;/strong&gt;&lt;/a&gt; \u00b7\n &lt;a href=\&quot;https://langfuse.com/issues\&quot;&gt;&lt;strong&gt;Report Bug&lt;/strong&gt;&lt;/a&gt; \u00b7\n &lt;a href=\&quot;https://langfuse.com/ideas\&quot;&gt;&lt;strong&gt;Feature Request&lt;/strong&gt;&lt;/a&gt; \u00b7\n &lt;a href=\&quot;https://langfuse.com/changelog\&quot;&gt;&lt;strong&gt;Changelog&lt;/strong&gt;&lt;/a&gt; \u00b7\n &lt;a href=\&quot;https://l...</span></div><div class="step mono"><span class="hd">step 4 bash_code_execution</span>({&#x27;command&#x27;: &#x27;echo &quot;check readme for license section&quot;&#x27;})[web]<span class="out">&rarr; &quot;BashCodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;check readme for license section\\n&#x27;, type=&#x27;bash_code_execution_result&#x27;)&quot;</span></div></div>
+<h2>Ledger</h2>
+<div class="card"><div class="entry"><span class="tag inspected">inspected</span> <span class="side">against</span> GitHub reports the license as NOASSERTION, i.e., it could not resolve a single clean SPDX license for the whole repo — a signal of mixed licensing.<span class="src mono">from: get_repo_metadata(langfuse/langfuse)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">against</span> The root LICENSE file states that content under the ee/, web/src/ee/, and worker/src/ee/ directories is licensed separately under ee/LICENSE, and that only content outside those directories is MIT-licensed.<span class="src mono">from: read_file(LICENSE)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">for</span> Content outside of the ee/ directories is available under the &#x27;MIT Expat&#x27; license, meaning the core of Langfuse is under an OSI-approved license.<span class="src mono">from: read_file(LICENSE)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">against</span> The ee/LICENSE file states Langfuse is an open core project whose core is MIT licensed, but certain peripheral parts are commercially licensed under the Enterprise License, which forbids copying, merging, publishing, distributing, sublicensing, or selling without a valid Langfuse Enterprise License or agreement.<span class="src mono">from: read_file(ee/LICENSE)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">unknown</span> The README describes Langfuse as an open source LLM engineering platform (per its topics/description), but the truncated excerpt read does not show whether it discloses the separate Enterprise License for ee/ directories.<span class="src mono">from: read_file(README.md)</span></div></div>
+<h2>Facts</h2>
+<div class="card"><dl class="facts"><dt>setup</dt><dd>0.0s over 0 command(s), install not run or failed</dd><dt>disk</dt><dd>0 MB cloned, 0 MB total</dd><dt>needs</dt><dd>nothing special</dd><dt>exercised</dt><dd>-</dd></dl></div>
+<h2>Grounding critique</h2>
+<div class="card"><p class="sub" style="margin:0">ran &middot; not grounded &middot; revised</p><ul class="issues"><li>The ledger entry claims the README &#x27;display[s] an MIT License badge prominently&#x27; but the evidence only shows a truncated README excerpt containing header/navigation links; no license badge or &#x27;MIT License&#x27; text appears in the quoted content, so this specific detail is not supported by the evidence gathered.</li><li>The verdict is labeled &#x27;inconclusive&#x27; yet the summary presents a definitive, confident conclusion (that Langfuse is open-core with MIT core and a separate proprietary Enterprise License) rather than acknowledging any unresolved uncertainty, which is an inconsistency between the stated verdict and the actual finding.</li></ul></div>
+</div>
+</body>
+</html>

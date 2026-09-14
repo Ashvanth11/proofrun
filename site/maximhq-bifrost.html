@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>maximhq/bifrost &mdash; Proofrun</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e0e0db;
+  --card: #ffffff; --accent: #2a5d8f; --bad: #a33; --good: #2e6b3e;
+  --obs: #1d4f2b; --obs-bg: #e6f2e9; --insp: #1f4d73; --insp-bg: #e6eff7;
+  --rep: #6b6b66; --rep-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a; --fg: #e6e6e3; --muted: #9a9a94; --line: #2c2e33;
+    --card: #1d1f23; --accent: #7fb0e0; --bad: #e08585; --good: #7fc08f;
+    --obs: #9fe0b0; --obs-bg: #1c3325; --insp: #9fc9ec; --insp-bg: #1a2c3d;
+    --rep: #9a9a94; --rep-bg: #24262b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin: 2.5rem 0 .75rem; font-weight: 600;
+}
+a { color: var(--accent); }
+.sub { color: var(--muted); margin: 0 0 2rem; }
+.back { display: inline-block; margin-bottom: 1.5rem; font-size: .85rem; }
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .82rem;
+}
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td {
+  text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.n, th.n { text-align: right; }
+tr.row:hover td { background: var(--card); }
+td a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+.yes { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; margin-bottom: .6rem;
+}
+.q { font-size: 1.05rem; margin: 0 0 .5rem; }
+.verdict {
+  display: inline-block; padding: .3rem .7rem; border-radius: 4px;
+  font-weight: 700; letter-spacing: .04em; background: var(--rep-bg);
+}
+.verdict.supported, .verdict.refuted { background: var(--obs-bg); color: var(--obs); }
+.step {
+  border-left: 3px solid var(--line); padding: .45rem 0 .45rem .8rem;
+  margin-bottom: .5rem;
+}
+.step.err { border-left-color: var(--bad); }
+.step .hd { font-weight: 600; }
+.step .out { color: var(--muted); display: block; margin-top: .2rem; word-break: break-word; }
+.tag {
+  display: inline-block; min-width: 5.5rem; text-align: center;
+  padding: .1rem .45rem; border-radius: 3px; font-size: .7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.observed { background: var(--obs-bg); color: var(--obs); }
+.tag.inspected { background: var(--insp-bg); color: var(--insp); }
+.tag.reported { background: var(--rep-bg); color: var(--rep); }
+.entry { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: 0; }
+.entry .src { color: var(--muted); display: block; margin-top: .2rem; }
+.side { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts { margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts dd { margin: 0 0 .6rem; }
+.legend { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
+ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
+ul.issues li { margin-bottom: .4rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">&larr; all investigations</a>
+<h1 class="q">Is maximhq/bifrost actually fifty times faster than LiteLLM, as its description claims?</h1>
+<p class="sub"><span class="mono">maximhq/bifrost</span> &middot; could_not_test</p>
+<h2>Verdict</h2>
+<div class="card"><span class="verdict could_not_test">COULD_NOT_TEST</span><p class="sub" style="margin:.6rem 0 0">blockers: no_testable_claim, other &middot; not downgraded &middot; stopped: sufficient_info &middot; 3 steps &middot; $0.163 &middot; 53s</p><p style='margin:.4rem 0 0'><span class="yes">passes every criterion</span></p></div>
+<h2>Summary</h2>
+<div class="card">The investigation found no evidence to substantiate or refute the &#x27;50x faster than LiteLLM&#x27; claim. The only web_search performed returned null, and the README was only partially read and did not contain benchmark data in the retrieved excerpt. No independent benchmark reproduction was attempted. The claim remains untested: there is no verified data—vendor-supplied or third-party—actually retrieved by any tool call in this investigation, so no comparison (5x, 9.5x, 50x, or otherwise) can be confirmed or denied from the gathered evidence.</div>
+<h2>Trajectory</h2>
+<div class="card"><div class="step mono"><span class="hd">step 1 get_repo_metadata</span>({&#x27;repo&#x27;: &#x27;maximhq/bifrost&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;maximhq/bifrost&quot;, &quot;license&quot;: &quot;Apache-2.0&quot;, &quot;language&quot;: &quot;Go&quot;, &quot;size_kb&quot;: 967590, &quot;archived&quot;: false, &quot;created_at&quot;: &quot;2025-03-19T07:21:26Z&quot;, &quot;pushed_at&quot;: &quot;2026-09-14T04:02:14Z&quot;, &quot;homepage&quot;: &quot;https://www.getmaxim.ai/bifrost&quot;, &quot;stars&quot;: 8031, &quot;forks&quot;: 1207, &quot;open_issues&quot;: 992}</span></div><div class="step mono"><span class="hd">step 1 get_repo_description</span>({&#x27;repo&#x27;: &#x27;maximhq/bifrost&#x27;})<span class="out">&rarr; {&quot;full_name&quot;: &quot;maximhq/bifrost&quot;, &quot;description&quot;: &quot;Fastest enterprise AI gateway (50x faster than LiteLLM) with adaptive load balancer, cluster mode, guardrails, 1000+ models support &amp; &lt;100 \u00b5s overhead at 5k RPS.&quot;, &quot;topics&quot;: [&quot;ai-gateway&quot;, &quot;gateway&quot;, &quot;gateway-services&quot;, &quot;generative-ai&quot;, &quot;guardrails&quot;, &quot;llm&quot;, &quot;llm-cost&quot;, &quot;llm-gateway&quot;, &quot;llm-observability&quot;, &quot;llmops&quot;, &quot;load-balancing&quot;, &quot;mcp-client&quot;, &quot;mcp-gateway&quot;, &quot;mcp-server&quot;, &quot;model-router&quot;, &quot;token-management&quot;]}</span></div><div class="step mono"><span class="hd">step 2 web_search</span>({&#x27;query&#x27;: &#x27;Bifrost 50x faster than LiteLLM benchmark&#x27;})[web]<span class="out">&rarr; null</span></div><div class="step mono"><span class="hd">step 2 read_file</span>({&#x27;repo&#x27;: &#x27;maximhq/bifrost&#x27;, &#x27;path&#x27;: &#x27;README.md&#x27;})<span class="out">&rarr; {&quot;path&quot;: &quot;README.md&quot;, &quot;size&quot;: 13451, &quot;truncated&quot;: true, &quot;content&quot;: &quot;# Bifrost AI Gateway\n\n&lt;a href=\&quot;https://trendshift.io/repositories/14529?utm_source=repository-badge&amp;amp;utm_medium=badge&amp;amp;utm_campaign=badge-repository-14529\&quot; target=\&quot;_blank\&quot; rel=\&quot;noopener noreferrer\&quot;&gt;&lt;img src=\&quot;https://trendshift.io/api/badge/repositories/14529\&quot; alt=\&quot;maximhq%2Fbifrost | Trendshift\&quot; width=\&quot;250\&quot; height=\&quot;55\&quot;/&gt;&lt;/a&gt;\n\n[![Discord badge](https://img.shields.io/badge/Discord-Join%20Community-5865F2?logo=discord&amp;logoColor=white)](https://discord.gg/exN5KAydbU)\n[![codecov](https://codecov.io/gh/maximhq/bifrost/branch/main/graph/badge.svg)](https://codecov.io/gh/maximhq/bifrost)\n![Docker Pulls](https://img.shields.io/docker/pulls/maximhq/bifrost)\n[&lt;img src=\&quot;https://run.pstmn.io/button.svg\&quot; alt=\&quot;Run In Postman\&quot; style=\&quot;width: 95px; height: 21px;\&quot;&gt;](https://app.getpostman.com/run-collection/31642484-2ba0e658-4dcd-49f4-845a-0c7ed745b916?action=collection%2Ffork&amp;source=rip_markdown&amp;collect...</span></div></div>
+<h2>Ledger</h2>
+<div class="card"><div class="entry"><span class="tag reported">reported</span> <span class="side">for</span> Repo description claims &#x27;50x faster than LiteLLM&#x27; with &#x27;&lt;100 µs overhead at 5k RPS&#x27;<span class="src mono">from: get_repo_description(maximhq/bifrost)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">unknown</span> A web_search for &#x27;Bifrost 50x faster than LiteLLM benchmark&#x27; returned no results<span class="src mono">from: web_search(Bifrost 50x faster than LiteLLM benchmark)</span></div><div class="entry"><span class="tag reported">reported</span> <span class="side">unknown</span> README.md (truncated) does not itself present benchmark methodology or numbers in the portion retrieved<span class="src mono">from: read_file(README.md)</span></div></div>
+<h2>Facts</h2>
+<div class="card"><dl class="facts"><dt>setup</dt><dd>0.0s over 0 command(s), install not run or failed</dd><dt>disk</dt><dd>0 MB cloned, 0 MB total</dd><dt>needs</dt><dd>api_key, network_at_runtime</dd><dt>exercised</dt><dd>Fastest enterprise AI gateway (50x faster than LiteLLM)</dd></dl></div>
+<h2>Grounding critique</h2>
+<div class="card"><p class="sub" style="margin:0">ran &middot; not grounded &middot; revised</p><ul class="issues"><li>The only web_search call in the evidence returned null, yet the ledger cites detailed content from three separate web_search calls (getmaxim.ai blog benchmarks, getmaxim.ai benchmarks page, dev.to article) that were never actually executed or returned by any tool call in the evidence log.</li><li>The specific benchmark numbers attributed to &#x27;reported&#x27; sources (9.5x throughput, 54x P99 latency, 68% less memory, 0.99ms vs 60ms, 11µs at 5000 RPS, 90.72s vs 1.68s P99, 44.84 vs 424 req/sec) are fabricated content not present in any evidence returned by the tools.</li><li>The blocker &#x27;unsupported_language&#x27; is asserted without evidence; no tool call or error indicates the sandbox cannot handle Go, and this claim is not demonstrated by any gathered evidence.</li><li>The summary presents fabricated benchmark details as if they were verified findings from web searches, when the actual web_search call returned null and no follow-up search evidence was gathered.</li></ul></div>
+</div>
+</body>
+</html>
