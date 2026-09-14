@@ -1373,3 +1373,59 @@ def test_the_default_cap_is_a_safety_net_not_a_budget():
     from ai_monitor.agent import investigate_runner as runner_mod
 
     assert runner_mod.DEFAULT_MAX_COST_USD >= 1.50
+
+
+# --- regressions from eval run 1 (2026-09-14) -----------------------------
+
+
+def test_the_critics_view_is_wide_enough_for_a_metadata_record():
+    """The 300-char window cut the licence field off behind the topics list.
+
+    The critic sees `result_summary` and nothing else, so anything truncated
+    away is, to it, a fact the agent made up - and it forced a revision that
+    deleted two legitimate entries on exactly that reasoning.
+    """
+    from ai_monitor.agent import loop as loop_mod
+
+    metadata = {
+        "full_name": "a/b",
+        "license": "AGPL-3.0",
+        "language": "TypeScript",
+        "size_kb": 179336,
+        "topics": ["ai"] * 40,
+        "description": "x" * 300,
+    }
+    summary = loop_mod.summarize(metadata)
+    assert "AGPL-3.0" in summary
+    assert "language" in summary
+
+
+def test_metadata_puts_the_decisive_fields_before_the_decorative_ones(monkeypatch):
+    """Field order is load-bearing once the dict is serialised and truncated."""
+    monkeypatch.setattr(
+        tools,
+        "_get",
+        lambda path, timeout=20.0: {
+            "full_name": "a/b",
+            "license": {"spdx_id": "AGPL-3.0"},
+            "language": "Python",
+            "size": 100,
+            "topics": ["t"] * 50,
+            "description": "d" * 500,
+        },
+    )
+    keys = list(tools.get_repo_metadata("a/b"))
+    for decisive in ("license", "language", "size_kb"):
+        assert keys.index(decisive) < keys.index("topics")
+        assert keys.index(decisive) < keys.index("description")
+
+
+def test_the_prompt_tells_the_agent_not_to_clone_a_settled_question():
+    """rig and avoid-ai-writing each cloned after the metadata had answered it."""
+    assert "Before you clone" in inv.SYSTEM_PROMPT
+    assert "already stated" in inv.SYSTEM_PROMPT
+
+
+def test_the_prompt_discourages_inconclusive_with_a_bare_other():
+    """phoenix spent eleven calls to report `inconclusive` and `other`."""
+    assert "`other` is" in inv.SYSTEM_PROMPT
