@@ -7,6 +7,10 @@ __pycache__/
 *.sqlite3
 # Local briefs stay untracked; the scheduled workflow force-adds them in CI.
 reports/*.md
+# Generated weekly briefs are noise; eval and smoke reports are evidence and
+# are committed - every number in the README has to trace back to one.
+!reports/eval-investigations-*.md
+!reports/smoke-*.md
 !reports/.gitkeep
 .pytest_cache/
 .DS_Store

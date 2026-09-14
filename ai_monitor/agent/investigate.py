@@ -7,30 +7,41 @@ matters is that it can *run the code*, so some of its evidence is first-hand.
 That distinction is the whole design. Every piece of evidence carries a kind:
 
 - **observed** - a command ran in the sandbox and printed this.
-- **reported** - a README, a web page, or a maintainer said this.
+- **inspected** - a structured fact GitHub computed about the repository:
+  the licence field, the language, whether it is archived, which files exist.
+  First-party, but not something the agent made happen.
+- **reported** - a README, a file's contents, a web page, or a maintainer
+  said this. Someone's words.
 
 There are deliberately no confidence scores anywhere. The Stage 1 eval showed
 model-reported confidence tracks other models rather than the human, so it
-measures agreement, not truth. observed/reported is the honest substitute: it
-is checkable against the trace, which a number never was.
+measures agreement, not truth. The kind tag is the honest substitute: it is
+checkable against the trace, which a number never was.
 
 Three rules are enforced in code after extraction, not requested in the prompt:
 
 1. A ledger entry whose `source` cites no tool call that actually happened is
    dropped. Free text is cheap to produce; a trace is not.
-2. An entry may only claim `observed` if it cites a sandbox command that ran.
-3. `supported` requires an observed entry on the `for` side, and `refuted` an
-   observed entry on the `against` side. Otherwise the verdict is downgraded
+2. An entry's kind can never outrank the tool it cites. `observed` needs a
+   sandbox command that ran and did more than read; `inspected` needs
+   get_repo_metadata or list_files; anything else is `reported`. The model's
+   own label is only ever lowered, never raised.
+3. `supported` requires an observed or inspected entry on the `for` side, and
+   `refuted` one on the `against` side. Otherwise the verdict is downgraded
    to `inconclusive` and the downgrade is recorded on the run.
 
 Rule 3 is what makes prompt injection expensive. A hostile README can tell the
-model to report a claim as supported, and the model may comply - but the
-verdict still cannot reach `supported` without a command that ran and printed
-something, inside a container with no secrets, no host access, and no network.
+model to report a claim as supported, and the model may comply - but README
+contents are `reported`, so the verdict still cannot reach `supported` without
+either a command that ran inside a container with no secrets, no host access,
+and no network, or a fact GitHub computed that the author did not write.
+`inspected` exists so that a licence question can be answered from the licence
+field; it is deliberately narrow so that it cannot be answered from the README.
 """
 
 import json
 import logging
+import re
 import sqlite3
 import time
 from datetime import datetime, timezone
@@ -154,13 +165,17 @@ plain text. It must contain:
 - the verdict: is the claim supported, refuted, inconclusive, or could it not
   be tested;
 - every piece of evidence you are relying on, one per line, and for each one:
-  which side it falls on (for the claim, against it, or unclear), whether you
-  OBSERVED it by running a command or merely READ it somewhere, and which tool
-  call it came from;
+  which side it falls on (for the claim, against it, or unclear); whether you
+  OBSERVED it by running a command, INSPECTED it in the repository's metadata
+  or file listing (the licence field, the language, which files exist), or
+  merely READ it in prose (a README, a file's contents, a web page); and which
+  tool call it came from;
 - if you could not test the claim, what specifically blocked you.
 
-Do not claim you observed something you only read. That distinction is checked
-against your trace afterwards, and an entry that does not match is thrown away."""
+Do not claim you observed something you only read, and do not call a README
+sentence "inspected" - a README is the author's words. Those distinctions are
+checked against your trace afterwards, and an entry that does not match is
+lowered or thrown away."""
 
 
 # --- the shapes ----------------------------------------------------------
@@ -177,7 +192,9 @@ class Question(BaseModel):
 class Evidence(BaseModel):
     statement: str
     side: Literal["for", "against", "unknown"]
-    kind: Literal["observed", "reported"]  # observed = a sandbox command ran
+    # observed = a sandbox command ran; inspected = a GitHub-computed fact
+    # (metadata, file listing); reported = someone's words.
+    kind: Literal["observed", "inspected", "reported"]
     source: str  # tool name plus arguments it came from
 
 
@@ -241,8 +258,12 @@ class InvestigationRun(BaseModel):
     dropped_entries: int = 0
     final_text: str = ""
 
-    # Set by the critique pass, if it runs.
+    # Set by the critique pass, if it runs. `critique_status` exists because
+    # `critique is None` otherwise means both "the critic found nothing wrong"
+    # and "the call failed and nobody noticed" - and the eval reads these as
+    # data.
     critique: Optional[Any] = None
+    critique_status: Literal["not_run", "ok", "failed"] = "not_run"
     original_report: Optional[Investigation] = None
     revised: bool = False
 
@@ -250,6 +271,11 @@ class InvestigationRun(BaseModel):
     def observed_count(self) -> int:
         report = self.report
         return sum(1 for e in report.ledger if e.kind == "observed") if report else 0
+
+    @property
+    def inspected_count(self) -> int:
+        report = self.report
+        return sum(1 for e in report.ledger if e.kind == "inspected") if report else 0
 
     @property
     def reported_count(self) -> int:
@@ -484,7 +510,10 @@ def _extract_investigation(
                 "Extract the investigation into the required fields. Copy what "
                 "the text says; do not add evidence it does not mention, and do "
                 "not upgrade a verdict it did not reach. Mark an evidence entry "
-                "'observed' only where the text says a command was run.\n\n"
+                "'observed' only where the text says a command was run, and "
+                "'inspected' only where it came from repository metadata or a "
+                "file listing (licence field, language, files present). A "
+                "README sentence or a file's contents is 'reported'.\n\n"
                 "Every entry's `source` MUST name the tool call it came from, "
                 "in the form `tool_name(key argument)` - for example "
                 "`read_file(README.md)`, `sandbox_run(apm compile)`, or "
@@ -538,6 +567,51 @@ def _measured_facts(facts: Facts, box: tools.SandboxTools) -> Facts:
 # --- the integrity rules -------------------------------------------------
 
 
+# Commands that read rather than exercise. `cat README.md` inside the sandbox
+# is still reading: it produces no evidence about what the code *does*, and an
+# entry citing it must not be able to claim `observed` - the eval's
+# "needs_execution questions have an observed entry" criterion is only worth
+# anything if the word means what it says.
+#
+# This is a heuristic and it is defeated by anything creative
+# (`python -c "print(open('f').read())"`). It turns the common silent false
+# pass into a caught one; the critique pass covers the tail.
+READ_ONLY_COMMANDS = frozenset(
+    {
+        "cat", "head", "tail", "less", "more", "grep", "rg", "egrep", "fgrep",
+        "find", "ls", "ll", "dir", "wc", "stat", "file", "tree", "du", "pwd",
+        "echo", "which", "whereis", "type", "printenv", "env", "cut", "awk",
+    }
+)
+
+
+def exercises_something(command: str) -> bool:
+    """True if `command` plausibly does more than read the repository.
+
+    Every segment of a compound command has to be a read for the whole thing
+    to count as one: `cd repo && cat x` reads, `cd repo && pytest` does not.
+    """
+    if not command or not command.strip():
+        return False
+
+    for segment in re.split(r"&&|\|\||;|\|", command):
+        words = segment.strip().split()
+        if not words:
+            continue
+        head = words[0]
+        if head == "cd":  # navigation, never the evidence itself
+            continue
+        if head.rsplit("/", 1)[-1] not in READ_ONLY_COMMANDS:
+            return True
+    return False
+
+
+# Evidence kinds, strongest first. A verdict needs something first-hand:
+# either the agent ran it, or GitHub computed it. Words are not enough.
+KIND_RANK = {"observed": 2, "inspected": 1, "reported": 0}
+FIRST_HAND = frozenset({"observed", "inspected"})
+
+
 def cited_tools(source: str, tool_calls: list[ToolCall]) -> set[str]:
     """Tool names that appear in `source` *and* actually ran this run."""
     text = (source or "").lower()
@@ -563,7 +637,14 @@ def apply_integrity_rules(run: InvestigationRun) -> InvestigationRun:
     observed_calls = {
         c.tool
         for c in run.tool_calls
-        if c.tool in tools.OBSERVING_TOOLS and not c.is_error
+        if c.tool in tools.OBSERVING_TOOLS
+        and not c.is_error
+        and exercises_something(str(c.arguments.get("command", "")))
+    }
+    inspected_calls = {
+        c.tool
+        for c in run.tool_calls
+        if c.tool in tools.INSPECTING_TOOLS and not c.is_error
     }
 
     kept: list[Evidence] = []
@@ -576,9 +657,17 @@ def apply_integrity_rules(run: InvestigationRun) -> InvestigationRun:
             log.info("dropping ungrounded ledger entry: %s", entry.source[:120])
             dropped += 1
             continue
-        if entry.kind == "observed" and not (cited & observed_calls):
-            # Read, not run. The distinction is the point of the ledger.
-            entry.kind = "reported"
+        # The kind is capped by what the cited call actually was. The model's
+        # label is lowered to fit, never raised: an entry that calls a licence
+        # field "reported" stays reported.
+        if cited & observed_calls:
+            allowed = "observed"
+        elif cited & inspected_calls:
+            allowed = "inspected"
+        else:
+            allowed = "reported"
+        if KIND_RANK[entry.kind] > KIND_RANK[allowed]:
+            entry.kind = allowed
         kept.append(entry)
 
     report.ledger = kept
@@ -586,10 +675,10 @@ def apply_integrity_rules(run: InvestigationRun) -> InvestigationRun:
 
     needed = {"supported": "for", "refuted": "against"}.get(report.verdict)
     if needed is not None and not any(
-        e.kind == "observed" and e.side == needed for e in report.ledger
+        e.kind in FIRST_HAND and e.side == needed for e in report.ledger
     ):
         log.info(
-            "%s: %r has no observed %s evidence; downgrading to inconclusive",
+            "%s: %r has no first-hand %s evidence; downgrading to inconclusive",
             run.question.repo,
             report.verdict,
             needed,
@@ -614,9 +703,9 @@ def store_investigation(
         """
         INSERT INTO investigations
             (item_id, repo, question, verdict, blockers, report, final_text,
-             steps_taken, tool_calls, stop_reason, downgraded, cost_usd,
-             wall_seconds, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             critique, critique_status, revised, steps_taken, tool_calls,
+             stop_reason, downgraded, cost_usd, wall_seconds, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(item_id) WHERE item_id IS NOT NULL DO UPDATE SET
             repo = excluded.repo,
             question = excluded.question,
@@ -624,6 +713,9 @@ def store_investigation(
             blockers = excluded.blockers,
             report = excluded.report,
             final_text = excluded.final_text,
+            critique = excluded.critique,
+            critique_status = excluded.critique_status,
+            revised = excluded.revised,
             steps_taken = excluded.steps_taken,
             tool_calls = excluded.tool_calls,
             stop_reason = excluded.stop_reason,
@@ -641,6 +733,18 @@ def store_investigation(
             json.dumps(report.blockers if report else []),
             report.model_dump_json() if report else None,
             run.final_text,
+            (
+                json.dumps(
+                    {
+                        "grounded": getattr(run.critique, "grounded", None),
+                        "issues": getattr(run.critique, "issues", []),
+                    }
+                )
+                if run.critique is not None
+                else None
+            ),
+            run.critique_status,
+            int(run.revised),
             run.steps_taken,
             json.dumps([c.model_dump() for c in run.tool_calls]),
             run.stop_reason,

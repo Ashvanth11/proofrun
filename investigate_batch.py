@@ -69,7 +69,7 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--max-cost",
         type=float,
-        default=runner.SMOKE_MAX_COST_USD,
+        default=runner.DEFAULT_MAX_COST_USD,
         help="per-question cost ceiling for the loop (default: %(default)s)",
     )
     parser.add_argument("--max-steps", type=int, default=inv.DEFAULT_MAX_STEPS)

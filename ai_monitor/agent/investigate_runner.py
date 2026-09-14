@@ -33,11 +33,15 @@ log = logging.getLogger(__name__)
 DEFAULT_THRESHOLD = 0.6
 DEFAULT_LIMIT = 3
 
-# The smoke run's cap, deliberately below the library ceiling of $2.00. Three
-# unseen traces are not worth $8 of worst case: a question that genuinely needs
-# more than this should hit `cost_cap` on its first trace, where it can be read,
-# rather than quietly spending four times as much to reach the same place.
-SMOKE_MAX_COST_USD = 0.75
+# The cap every entry point defaults to. It is a safety net, not a budget:
+# measured questions in the 2026-09-13 smoke run cost $0.20-$0.35 at 6-10
+# steps, so it does not fire on well-behaved work and the money is not saved
+# by lowering it. What lowering it *does* buy is truncated runs - and a fired
+# cap scores as a failure under the eval's "stop reason is sufficient_info"
+# criterion, which makes this a correctness lever rather than a budget one.
+# Cost grows quadratically in turns (every turn resends the transcript), so the
+# headroom is for the long tail, not the median.
+DEFAULT_MAX_COST_USD = 1.50
 
 # $10 per 1,000 searches, from platform.claude.com/docs/en/about-claude/pricing
 # (checked 2026-09-13). Failed searches are not billed; this assumes none fail.
@@ -243,9 +247,11 @@ def format_trajectory(run: Any) -> str:
         lines.append("  (empty)")
     else:
         for entry in report.ledger:
-            tag = "OBSERVED" if entry.kind == "observed" else "reported"
+            tag = {"observed": "OBSERVED", "inspected": "inspected"}.get(
+                entry.kind, "reported"
+            )
             lines.append(
-                f"  [{entry.side:>7} / {tag:>8}] {clean(entry.statement, 300)}"
+                f"  [{entry.side:>7} / {tag:>9}] {clean(entry.statement, 300)}"
             )
             lines.append(f"            from: {clean(entry.source, 120)}")
 
@@ -268,7 +274,7 @@ def format_trajectory(run: Any) -> str:
         lines += [
             "",
             f"VERDICT   {report.verdict.upper()}"
-            + ("  (downgraded: no observed evidence)" if run.downgraded else ""),
+            + ("  (downgraded: no first-hand evidence)" if run.downgraded else ""),
         ]
         if report.blockers:
             lines.append(f"BLOCKED   {', '.join(report.blockers)}")
@@ -279,7 +285,8 @@ def format_trajectory(run: Any) -> str:
     lines += [
         "",
         f"{run.steps_taken} steps, stop={run.stop_reason}, "
-        f"{run.observed_count} observed / {run.reported_count} reported"
+        f"{run.observed_count} observed / {run.inspected_count} inspected / "
+        f"{run.reported_count} reported"
         + (f", {run.dropped_entries} entries dropped" if run.dropped_entries else ""),
         f"${run.usage.cost_usd:.4f}, {run.wall_seconds:.0f}s",
         "",
@@ -288,8 +295,8 @@ def format_trajectory(run: Any) -> str:
 
 
 TABLE_HEADER = (
-    "| Question | Verdict | Obs | Rep | Blockers | Setup | Cost | Wall | Steps |\n"
-    "|---|---|---:|---:|---:|---:|---:|---:|---:|"
+    "| Question | Verdict | Obs | Insp | Rep | Blockers | Setup | Cost | Wall | Steps |\n"
+    "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"
 )
 
 
@@ -304,6 +311,7 @@ def table_row(run: Any) -> str:
         f"| {clean(run.question.question, 120)} "
         f"| {verdict} "
         f"| {run.observed_count} "
+        f"| {run.inspected_count} "
         f"| {run.reported_count} "
         f"| {clean(blockers, 60)} "
         f"| {setup} "
@@ -330,9 +338,11 @@ def markdown_report(runs: list[Any], title: str = "Investigation batch") -> str:
         + ", ".join(f"{n} {v}" for v, n in sorted(verdicts.items()))
         + ".",
         "",
-        "`Obs`/`Rep` are observed and reported ledger entries: observed means a "
-        "command ran in the sandbox and printed it. `(v)` marks a verdict "
-        "downgraded for lacking observed evidence.",
+        "`Obs`/`Insp`/`Rep` are observed, inspected and reported ledger entries: "
+        "observed means a command ran in the sandbox and printed it; inspected "
+        "means a fact GitHub computed (licence field, language, file listing); "
+        "reported means someone wrote it. `(v)` marks a verdict downgraded for "
+        "lacking first-hand (observed or inspected) evidence.",
         "",
         TABLE_HEADER,
     ]

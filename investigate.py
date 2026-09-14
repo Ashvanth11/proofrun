@@ -63,7 +63,7 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--max-cost",
         type=float,
-        default=runner.SMOKE_MAX_COST_USD,
+        default=runner.DEFAULT_MAX_COST_USD,
         help="cost ceiling for the loop, in dollars (default: %(default)s). This "
         "bounds the loop, not the run: see investigate_runner.worst_case_usd",
     )

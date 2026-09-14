@@ -60,6 +60,9 @@ CREATE TABLE IF NOT EXISTS investigations (
     report TEXT,            -- Investigation json
     final_text TEXT,        -- the agent's prose conclusion, kept even when
                             -- structuring it into `report` failed
+    critique TEXT,          -- Critique json, when the grounding pass ran
+    critique_status TEXT DEFAULT 'not_run',  -- not_run | ok | failed
+    revised INTEGER DEFAULT 0,
     steps_taken INTEGER,
     tool_calls TEXT DEFAULT '[]',
     stop_reason TEXT,
@@ -101,6 +104,9 @@ CREATE TABLE IF NOT EXISTS briefs (
 # added explicitly or every older monitor.db breaks on the next insert.
 MIGRATIONS = [
     ("investigations", "final_text", "TEXT"),
+    ("investigations", "critique", "TEXT"),
+    ("investigations", "critique_status", "TEXT DEFAULT 'not_run'"),
+    ("investigations", "revised", "INTEGER DEFAULT 0"),
 ]
 
 

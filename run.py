@@ -152,7 +152,7 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--investigate-max-cost",
         type=float,
-        default=investigate_runner.SMOKE_MAX_COST_USD,
+        default=investigate_runner.DEFAULT_MAX_COST_USD,
         help="per-question cost ceiling for the investigation loop "
         "(default: %(default)s). Bounds the loop, not the whole run",
     )

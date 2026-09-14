@@ -3,14 +3,49 @@
 import argparse
 import logging
 import sys
+from pathlib import Path
 
 import anthropic
 
 from ai_monitor.config.settings import settings
-from ai_monitor.eval import golden_set, judge, run_eval
+from ai_monitor.eval import golden_set, investigations, judge, run_eval
 from ai_monitor.storage import db
 
 log = logging.getLogger("ai_monitor.eval")
+
+
+def _score_investigations(conn, questions_path: Path) -> int:
+    """Score stored investigation runs. No model is involved and nothing is
+    spent: every criterion is an assert over what is already in the database."""
+    try:
+        results, path = investigations.run(conn, questions_path=questions_path)
+    except (ValueError, FileNotFoundError) as exc:
+        log.error("%s", exc)
+        return 1
+
+    stats = investigations.summarize(results)
+    print(f"\nProofrun eval: {stats['passed']}/{stats['n']} questions pass")
+    print(
+        f"${stats['cost_usd']:.2f}, {stats['wall_seconds'] / 60:.0f} min, "
+        f"{stats['observed']} observed / {stats['inspected']} inspected / "
+        f"{stats['reported']} reported\n"
+    )
+    for result in results:
+        mark = "PASS" if result.passed else "FAIL"
+        failed = ", ".join(c.name for c in result.failures)
+        print(
+            f"  {mark}  {result.repo:<32} {str(result.verdict):<16}"
+            + (f"({failed})" if failed else "")
+        )
+    if stats["failures_by_check"]:
+        print("\nfailures by criterion:")
+        for name, count in sorted(
+            stats["failures_by_check"].items(), key=lambda kv: -kv[1]
+        ):
+            print(f"  {name}: {count}")
+    if path:
+        print(f"\nreport: {path}\n")
+    return 0
 
 
 def main(argv=None) -> int:
@@ -19,6 +54,18 @@ def main(argv=None) -> int:
         "--skip-judge",
         action="store_true",
         help="report on existing scores only; make no API calls",
+    )
+    parser.add_argument(
+        "--investigations",
+        action="store_true",
+        help="score the investigation agent against questions.yaml instead of "
+        "the analyzer golden set. Reads stored runs only; makes no API calls",
+    )
+    parser.add_argument(
+        "--questions",
+        type=Path,
+        default=investigations.QUESTIONS_PATH,
+        help="eval set to score against (with --investigations)",
     )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
@@ -29,6 +76,10 @@ def main(argv=None) -> int:
     )
 
     conn = db.connect()
+
+    if args.investigations:
+        return _score_investigations(conn, args.questions)
+
     stats = golden_set.stats(conn)
 
     if not stats["labeled"]:

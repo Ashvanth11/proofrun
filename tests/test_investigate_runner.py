@@ -186,14 +186,14 @@ def test_a_hostile_statement_is_escaped_in_the_table():
         ]
     )
     row = runner.table_row(run)
-    assert _unescaped_pipes(row) == 10  # exactly the table's own delimiters
+    assert _unescaped_pipes(row) == 11  # exactly the table's own delimiters
     assert "\n" not in row
 
 
 def test_a_hostile_question_is_escaped_in_the_table():
     run = make_run()
     run.question.question = "Does x | y |\n| evil | row |?"
-    assert _unescaped_pipes(runner.table_row(run)) == 10
+    assert _unescaped_pipes(runner.table_row(run)) == 11
 
 
 def _unescaped_pipes(row: str) -> int:
@@ -228,7 +228,7 @@ def test_the_trajectory_names_the_verdict_and_the_evidence_kinds():
     assert "VERDICT   SUPPORTED" in text
     assert "OBSERVED" in text and "reported" in text
     assert "step 2: sandbox_run" in text
-    assert "1 observed / 1 reported" in text
+    assert "1 observed / 0 inspected / 1 reported" in text
 
 
 def test_a_downgraded_verdict_says_so_in_the_trajectory():
@@ -339,8 +339,9 @@ def test_a_path_segment_is_not_mistaken_for_a_repository(text):
         cli.find_repo(text)
 
 
-def test_the_smoke_default_is_below_the_library_ceiling():
-    assert runner.SMOKE_MAX_COST_USD < inv.DEFAULT_MAX_COST_USD
+def test_the_entry_point_default_is_below_the_library_ceiling():
+    """Entry points cap tighter than the library's absolute ceiling."""
+    assert runner.DEFAULT_MAX_COST_USD < inv.DEFAULT_MAX_COST_USD
 
 
 def test_questions_yaml_loads_and_every_repo_validates(tmp_path):
