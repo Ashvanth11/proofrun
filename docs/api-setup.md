@@ -48,8 +48,9 @@ If you also want a monthly spend limit, set one — but with a prepaid balance a
 auto-reload off it is redundant. Auto-reload is the setting that would actually
 let spend run past what you intended, which is why it is the one to check.
 
-(The codebase enforces its own per-repository cost cap in the agent loop, so
-there are two independent limits: one in the application, one at the account.)
+(The codebase checks a per-repository loop cost threshold between turns. A call
+may overshoot it, and extraction, critique and search sit outside that loop
+threshold. Account settings are a separate control.)
 
 ### 4. Create an API key
 
@@ -105,9 +106,8 @@ was done on the local model at zero cost. What remains is small:
 | One weekly brief (synthesis) | Sonnet 5 | ~$0.04 |
 | Agent investigating ~5 repos | Sonnet 5 | ~$0.50 |
 
-A full weekly run with the agent enabled lands around **$1–2**. So $20 covers
-the eval work plus roughly ten full weekly runs — it is mostly headroom, not
-expected spend.
+The table is a rough planning estimate, not a current quote or guaranteed
+number of runs. Actual charges depend on the items and calls made.
 
 Pricing at time of writing: Haiku 4.5 is $1/$5 per million input/output tokens,
 Sonnet 5 is $2/$10. Re-check current pricing in the Console — it changes, and any

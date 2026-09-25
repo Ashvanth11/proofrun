@@ -12,10 +12,9 @@ text: README contents, command output, web results. It reaches a markdown table
 that ends up in a report and eventually a README, so it is escaped and
 truncated here, once, rather than at each call site.
 
-**The estimate.** A batch has to state its worst case before it spends, and the
-worst case is *not* the cost cap - the cap bounds the loop, and four calls sit
-outside it. `worst_case_usd` is where that arithmetic lives so the number shown
-to a human is the real ceiling rather than the comfortable one.
+**The estimate.** The loop cap excludes its overshoot turn, wrap-up, extraction,
+critique and search. `worst_case_usd` budgets for these with configured output
+limits, but is an estimate, not a guaranteed total-spend bound.
 """
 
 import logging
@@ -131,7 +130,7 @@ def run_investigations_on_candidates(
         inv.store_investigation(conn, run, item_id=row["id"])
         completed += 1
 
-    log.info("investigated %d repositories, cost $%.4f", completed, total.cost_usd)
+    log.info("investigated %d repositories, estimated token cost $%.4f", completed, total.cost_usd)
     return completed, total
 
 
@@ -163,7 +162,7 @@ def worst_case_usd(
     max_web_searches: int = inv.tools.DEFAULT_MAX_WEB_SEARCHES,
     model: str = inv.INVESTIGATE_MODEL,
 ) -> float:
-    """The real ceiling for `count` questions, not the comfortable one.
+    """Conservative estimate for `count` questions, not a spend guarantee.
 
     The cost cap is checked *before* each turn, which is what makes it a
     ceiling on starting work rather than a number noticed too late. The
@@ -181,8 +180,9 @@ def worst_case_usd(
     caps = caps or inv.default_caps()
     rates = PRICING.get(model)
     if not rates:
-        log.warning("no pricing for %r; worst case cannot be computed", model)
-        return 0.0
+        if model.startswith("ollama/"):
+            return 0.0  # local inference
+        raise ValueError(f"no pricing for model {model!r}; estimate is unknown")
 
     # Largest context the loop can reach: each turn adds at most one full
     # response (max_tokens) plus one truncated tool result.
@@ -191,13 +191,14 @@ def worst_case_usd(
     turn_ceiling = (max_context * rates["input"] + 4096 * rates["output"]) / 1_000_000
 
     # Extraction and critique both send a bounded prompt and a bounded reply.
-    small_call = (4000 * rates["input"] + 2048 * rates["output"]) / 1_000_000
+    extraction_call = (4000 * rates["input"] + inv.EXTRACTION_MAX_TOKENS * rates["output"]) / 1_000_000
+    critique_call = (4000 * rates["input"] + critique_mod.CRITIQUE_MAX_TOKENS * rates["output"]) / 1_000_000
 
     per_question = (
         caps.max_cost_usd
         + 2 * turn_ceiling  # the overshoot turn, and the wrap-up
-        + small_call  # extraction
-        + 2 * small_call  # critique, and one revision
+        + extraction_call
+        + 2 * critique_call  # critique, and one revision
         + max_web_searches * WEB_SEARCH_USD
     )
     return count * per_question
@@ -288,14 +289,14 @@ def format_trajectory(run: Any) -> str:
         f"{run.observed_count} observed / {run.inspected_count} inspected / "
         f"{run.reported_count} reported"
         + (f", {run.dropped_entries} entries dropped" if run.dropped_entries else ""),
-        f"${run.usage.cost_usd:.4f}, {run.wall_seconds:.0f}s",
+        f"estimated token cost ${run.usage.cost_usd:.4f}, {run.wall_seconds:.0f}s",
         "",
     ]
     return "\n".join(lines)
 
 
 TABLE_HEADER = (
-    "| Question | Verdict | Obs | Insp | Rep | Blockers | Setup | Cost | Wall | Steps |\n"
+    "| Question | Verdict | Obs | Insp | Rep | Blockers | Setup | Est. token cost | Wall | Steps |\n"
     "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"
 )
 
@@ -332,7 +333,7 @@ def markdown_report(runs: list[Any], title: str = "Investigation batch") -> str:
     lines = [
         f"# {title}",
         "",
-        f"{len(runs)} questions, ${total_cost:.2f}, {total_wall / 60:.0f} min.",
+        f"{len(runs)} questions, estimated token cost ${total_cost:.2f}, {total_wall / 60:.0f} min.",
         "",
         "Verdicts: "
         + ", ".join(f"{n} {v}" for v, n in sorted(verdicts.items()))

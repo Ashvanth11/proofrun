@@ -216,8 +216,9 @@ def test_cost_calculation():
     assert usage.cost_usd == pytest.approx(1.00 + 0.5)
 
 
-def test_cost_is_zero_for_unknown_model():
-    assert Usage(input_tokens=1000, output_tokens=10, model="mystery").cost_usd == 0.0
+def test_cost_is_unknown_for_unpriced_model():
+    with pytest.raises(ValueError, match="no pricing"):
+        Usage(input_tokens=1000, output_tokens=10, model="mystery").cost_usd
 
 
 def test_editing_the_prompt_invalidates_cached_analyses(conn, item, result):

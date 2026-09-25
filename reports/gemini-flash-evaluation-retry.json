@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash",
+  "started_at": "2026-09-25T06:25:30.735273+00:00",
+  "status": "failed",
+  "scope": "recorded-evidence reporting and fixture tool probe; not end-to-end investigation",
+  "cases": [],
+  "error": "Request or response validation failed; no retry was made.",
+  "finished_at": "2026-09-25T06:25:30.764219+00:00"
+}

@@ -162,7 +162,7 @@ def run_loop(
         # the budget is already gone.
         if usage.cost_usd >= caps.max_cost_usd:
             stop_reason = "cost_cap"
-            log.info("%s: cost cap hit at $%.4f", label, usage.cost_usd)
+            log.info("%s: estimated token cost threshold reached at $%.4f", label, usage.cost_usd)
             break
         if now() >= deadline:
             stop_reason = "time_cap"

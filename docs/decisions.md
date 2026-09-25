@@ -246,9 +246,9 @@ repo can choose what this agent executes*. Two distinct risks follow, and they
 need different controls:
 
 1. **The code is hostile.** It tries to read the host filesystem, mine, or
-   phone home. The container handles this, and `--network none` during
-   `sandbox_run` is the control that makes exfiltration *impossible* rather
-   than merely discouraged.
+   phone home. The container limits host access, and `--network none` during
+   `sandbox_run` blocks network egress for that verb. Clone and setup retain
+   network access, so setup code still has an outbound path.
 2. **The text is hostile.** A README, a command's own stdout, or a web result
    can carry instructions aimed at the agent reading them. No container helps
    here. This is why the evidence ledger exists (decision 7) and why every cap
@@ -342,8 +342,7 @@ dependencies were guessed in advance.
 ### Decision
 
 No confidence number appears anywhere in an investigation. Every claim in the
-ledger instead carries a **kind** and a **source naming the tool call that
-produced it**:
+ledger instead carries a **kind** and a **source naming a tool used in the run**:
 
 | Kind | Means | Example source |
 |---|---|---|
@@ -353,13 +352,16 @@ produced it**:
 
 Three rules then run in code, after extraction and again after any revision:
 
-1. An entry whose source names no tool call that actually happened is dropped.
+1. An entry whose source names no tool used in the run is dropped.
 2. The kind is capped by the citing tool, and may only be lowered — a
    `read_file` can never yield `observed`, and `cat README.md` inside a
    container is not execution.
 3. `supported` and `refuted` require a first-hand entry (`observed` or
    `inspected`) on the matching side. Otherwise the verdict is downgraded to
    `inconclusive`.
+
+The source match is at tool-name level across the run. It does not bind the
+entry to a specific invocation or prove semantic support from the cited output.
 
 ### Why
 

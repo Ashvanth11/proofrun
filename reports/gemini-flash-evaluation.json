@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash",
+  "started_at": "2026-09-25T05:47:24.599662+00:00",
+  "status": "failed",
+  "scope": "recorded-evidence reporting and fixture tool probe; not end-to-end investigation",
+  "cases": [],
+  "error": "Gemini returned HTTP 503; no automatic retry or paid fallback was attempted.",
+  "finished_at": "2026-09-25T05:47:25.047266+00:00"
+}

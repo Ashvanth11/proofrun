@@ -58,7 +58,7 @@ def _run_graph(conn, client, args, analysis_model, synthesis_model) -> int:
     )
 
     log.info(
-        "stored %d | analyzed %d, skipped %d, failed %d | cost $%.4f",
+        "stored %d | analyzed %d, skipped %d, failed %d | estimated token cost $%.4f",
         len(final.get("item_ids", [])),
         final["analyzed"],
         final["skipped"],
@@ -159,6 +159,11 @@ def main(argv=None) -> int:
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
+    if args.graph and (args.agent or args.investigate or args.skip_fetch):
+        parser.error("--graph cannot be combined with --agent, --investigate, or --skip-fetch")
+    if args.investigate and args.provider != "anthropic":
+        parser.error("--investigate requires --provider anthropic")
+
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(levelname)s %(name)s: %(message)s",
@@ -228,7 +233,7 @@ def main(argv=None) -> int:
             total.output_tokens += usage.output_tokens
 
     log.info(
-        "analyzed %d, skipped %d (unchanged), failed %d | analysis cost $%.4f",
+        "analyzed %d, skipped %d (unchanged), failed %d | estimated analysis token cost $%.4f",
         analyzed,
         skipped,
         failed,
@@ -247,22 +252,16 @@ def main(argv=None) -> int:
 
     investigate_usage = Usage(model=analysis_model)
     if args.investigate:
-        if args.provider != "anthropic":
-            log.warning(
-                "--investigate needs the sandbox and server-side web search; "
-                "running it against %s is not supported", args.provider
-            )
-        else:
-            _, investigate_usage = investigate_runner.run_investigations_on_candidates(
-                conn,
-                client,
-                model=analysis_model,
-                threshold=args.investigate_threshold,
-                limit=args.investigate_limit,
-                caps=investigate.default_caps(
-                    max_cost_usd=args.investigate_max_cost
-                ),
-            )
+        _, investigate_usage = investigate_runner.run_investigations_on_candidates(
+            conn,
+            client,
+            model=analysis_model,
+            threshold=args.investigate_threshold,
+            limit=args.investigate_limit,
+            caps=investigate.default_caps(
+                max_cost_usd=args.investigate_max_cost
+            ),
+        )
 
     path, synth_usage = synthesizer.run(
         conn, client=client, min_score=args.min_score, model=synthesis_model
@@ -272,7 +271,7 @@ def main(argv=None) -> int:
         return 0
 
     log.info(
-        "brief: %s | synthesis $%.4f | investigation $%.4f | run total $%.4f",
+        "brief: %s | estimated token costs: synthesis $%.4f | investigation $%.4f | run total $%.4f",
         path,
         synth_usage.cost_usd,
         investigate_usage.cost_usd,

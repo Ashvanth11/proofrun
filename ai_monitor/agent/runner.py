@@ -100,6 +100,6 @@ def run_agent_on_candidates(
         completed += 1
 
     log.info(
-        "agent: investigated %d repositories, cost $%.4f", completed, total.cost_usd
+        "agent: investigated %d repositories, estimated token cost $%.4f", completed, total.cost_usd
     )
     return completed, total

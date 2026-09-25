@@ -1,0 +1,62 @@
+{
+  "recorded_at": "2026-09-22",
+  "briefs": [
+    {
+      "id": 1,
+      "week_of": "2026-W35",
+      "item_count": 10,
+      "created_at": "2026-08-28T07:18:10.222732+00:00",
+      "markdown": "**This Week's AI/ML Developments**\n\n### Red Teaming and Skill Evolution\n\nTwo papers this week focus on improving the capabilities of agents through skill evolution:\n\n* **RedEvoAgent**: A black-box red-teaming agent that distills attack trajectories into human-readable skills, which adaptively evolve through profiling and attribution.\n* **WikiSkill**: A framework that co-evolves agent skills with a persistent knowledge base, allowing agents to progressively adapt through interaction.\n\nThese papers demonstrate the potential for agents to learn and improve their capabilities over time, making them more effective in complex tasks.\n\n### Large Language Model (LLM) Improvements\n\nSeveral papers this week propose methods for improving LLMs:\n\n* **TTPO**: A method for test-time training of large language models that uses majority-vote pseudo-labels and an asymmetric objective to improve performance.\n* **SWE-Prime**: A two-stage data selection method for large language models that filters training data at the trajectory and segment levels to improve model performance.\n* **CritICL**: An inference-time framework that improves reasoning in large language models by leveraging failure modes from weaker models as a source of guidance.\n\nThese papers offer various approaches to enhancing LLMs, including test-time training, data selection, and inference-time improvements.\n\n### AI Model Security\n\nOne paper this week evaluates the effectiveness of AI model security scanners:\n\n* **Beyond F1**: An evaluation of three AI model security scanners (ModelScan, ModelAudit, and Fickling) using a controlled benchmark on synthetic machine learning artifacts.\n\nThis paper highlights the importance of evaluating AI model security scanners and provides insights into their strengths and weaknesses.\n\n### Other Developments\n\nOther papers this week cover various topics:\n\n* **Persona-Execution Separation**: An architecture pattern for large language model agents in governed organizations to separate persona (instructions, tone) from execution (stateful work) while maintaining traceability.\n* **Stochastic Estimation of Transduced Language Models**: An alternative method for computing the probability of a target string under a transduced language model, using stochastic estimation and recursive resampling to reduce computation while maintaining accuracy.\n* **MCR-Bench**: A benchmark for multi-round code review that includes 2,269 real-world tasks with fine-grained defect information and dynamic state labels.\n* **MAELLE**: A machine learning approach to predicting chemical reactions by modeling them as discrete flow matching over electron occupation vectors."
+    }
+  ],
+  "items": [
+    {
+      "title": "RedEvoAgent: Automatic Red-Teaming Agent with Experience-Driven Skill Evolution",
+      "url": "https://arxiv.org/abs/2608.27439",
+      "source": "arxiv",
+      "relevance_score": 0.85,
+      "summary": "RedEvoAgent is a black-box red-teaming agent that automatically discovers and evolves jailbreak attacks against LLM-based agents by distilling attack trajectories into interpretable skills and iteratively refining them through tool-effectiveness profiling and validation.",
+      "analyzed_at": "2026-09-07T05:20:33.713735+00:00"
+    },
+    {
+      "title": "Persona-Execution Separation: An Architecture Pattern for Evolving LLM Agents under Execution Audit",
+      "url": "https://arxiv.org/abs/2608.27427",
+      "source": "arxiv",
+      "relevance_score": 0.75,
+      "summary": "This paper presents Persona-Execution Separation (PES), an architectural pattern for LLM agents in regulated organizations that maintains separation between evolving persona instructions and audited, traceable execution through distinct trust domains connected by a governed contract bridge.",
+      "analyzed_at": "2026-09-07T05:20:20.435336+00:00"
+    },
+    {
+      "title": "Beyond F1: Evaluating Coverage and Failure Recovery in AI Model Security Scanners",
+      "url": "https://arxiv.org/abs/2608.27424",
+      "source": "arxiv",
+      "relevance_score": 0.7,
+      "summary": "This paper evaluates three AI model security scanners (ModelScan, ModelAudit, Fickling) on a benchmark of 170 artifacts, proposing evaluation metrics that distinguish coverage, analysis completion, and definitive security decisions beyond conventional F1 scores.",
+      "analyzed_at": "2026-09-07T05:20:16.079137+00:00"
+    },
+    {
+      "title": "code-yeongyu/oh-my-openagent",
+      "url": "https://github.com/code-yeongyu/oh-my-openagent",
+      "source": "github",
+      "relevance_score": 0.65,
+      "summary": "A coding agent framework that integrates with various LLM providers (Claude, ChatGPT, Gemini) to assist with complex codebase navigation and code generation tasks.",
+      "analyzed_at": "2026-09-07T05:20:11.810646+00:00"
+    },
+    {
+      "title": "CritICL: Inference-Time Weak-to-Strong Generalization from Small Language Model Failure Modes",
+      "url": "https://arxiv.org/abs/2608.27455",
+      "source": "arxiv",
+      "relevance_score": 0.55,
+      "summary": "CritICL is an inference-time framework that improves LLM reasoning by leveraging failure modes from weaker models as critique-based in-context examples, achieving performance competitive with test-time scaling methods at lower computational cost.",
+      "analyzed_at": "2026-09-07T05:20:08.852183+00:00"
+    },
+    {
+      "title": "WikiSkill: Compiling Agent Experience into Persistent Knowledge for Skill Evolution",
+      "url": "https://arxiv.org/abs/2608.27454",
+      "source": "arxiv",
+      "relevance_score": 0.92,
+      "summary": "WikiSkill is a framework that evolves agent skills by co-developing them with a persistent knowledge base (wiki), enabling agents to progressively build reusable capabilities from accumulated experience across iterations.",
+      "analyzed_at": "2026-09-07T05:20:06.725589+00:00"
+    }
+  ]
+}

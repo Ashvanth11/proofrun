@@ -1,58 +1,89 @@
-name: Weekly brief
+name: Weekly monitoring
 
 on:
   schedule:
-    # Mondays 08:00 UTC. The brief covers the preceding week.
-    - cron: "0 8 * * 1"
+    # Mondays 08:17 UTC; avoid the busiest top-of-hour scheduling window.
+    - cron: "17 8 * * 1"
   workflow_dispatch:
     inputs:
-      max_results:
-        description: Items to fetch per source
-        default: "25"
+      bootstrap:
+        description: Start with an empty database only after reviewing missing history
+        type: boolean
+        default: false
+
+concurrency:
+  group: proofrun-weekly-monitoring
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
-  brief:
+  monitor:
+    # Activation requires both variables; the old workflow is replaced at this path.
+    if: vars.WEEKLY_MONITORING_ENABLED == 'true' && vars.MONITORING_PROVIDER == 'anthropic'
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     permissions:
-      contents: write # to commit the generated brief back
-
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
-
-      - run: pip install -r requirements.txt
-
-      # The database is the idempotency layer: restoring it means unchanged
-      # items are not re-analyzed, so a re-run costs only what is genuinely new.
-      - name: Restore item database
-        uses: actions/cache@v4
-        with:
-          path: monitor.db
-          key: monitor-db-${{ github.run_id }}
-          restore-keys: monitor-db-
-
-      - name: Run pipeline
+      - run: python -m pip install -r requirements.txt
+      - name: Restore durable monitoring state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BOOTSTRAP: ${{ inputs.bootstrap }}
+        run: |
+          if [ "$BOOTSTRAP" = "true" ]; then
+            python scripts/restore_monitor_state.py --repo "$REPOSITORY" --bootstrap
+          else
+            python scripts/restore_monitor_state.py --repo "$REPOSITORY"
+          fi
+      - name: Build execution sandbox
+        run: docker build -t ai-monitor-sandbox:latest sandbox/
+      - name: Discover and investigate one repository
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Optional. Raises the GitHub API limit from 60 to 5000 requests/hour,
-          # which matters when the agent is reading repository files.
-          GITHUB_TOKEN: ${{ secrets.GH_API_TOKEN }}
-        run: |
-          python run.py \
-            --graph \
-            --sources arxiv github hn \
-            --max-results ${{ github.event.inputs.max_results || 25 }} \
-            --agent \
-            --agent-limit 5
+          GITHUB_TOKEN: ${{ secrets.GH_API_TOKEN || github.token }}
+        run: python weekly_monitor.py
+      - name: Save state even after a failed attempt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proofrun-monitor-state
+          path: weekly-state/
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Preserve the existing public showcase
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: published-site
+          persist-credentials: false
+      - name: Export shared feed and weekly page
+        run: python export_monitoring.py --db weekly-state/monitor.db --out published-site --run-record weekly-state/last-run.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: published-site
 
-      - name: Commit brief
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f reports/*.md
-          git diff --staged --quiet || git commit -m "brief: $(date -u +%Y-W%V)"
-          git push
+  deploy:
+    needs: monitor
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy weekly results
+        id: deployment
+        uses: actions/deploy-pages@v4

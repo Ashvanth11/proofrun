@@ -388,6 +388,10 @@ def export(
     index.write_text(render_index(results, stats, generated), encoding="utf-8")
     written.append(index)
 
+    if (out_dir / "monitoring.html").exists():
+        from export_monitoring import link_from_index
+        link_from_index(index)
+
     # GitHub Pages runs Jekyll over a published branch unless this file exists,
     # and Jekyll silently drops any path beginning with an underscore. Nothing
     # `slug()` produces starts with one today, but the failure mode is a page

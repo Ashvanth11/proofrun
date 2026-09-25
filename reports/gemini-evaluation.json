@@ -1,0 +1,214 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "started_at": "2026-09-25T05:34:06.471044+00:00",
+  "status": "completed_not_approved_for_weekly_publication",
+  "scope": "recorded-evidence reporting and fixture tool probe; not end-to-end investigation",
+  "cases": [
+    {
+      "case": "executed",
+      "report": {
+        "repository_description": "Microsoft APM is an agent package manager designed to compile and generate agent-related project files from structured instructions and manifest files.",
+        "question": "Does microsoft/apm actually turn an apm.yml manifest into configured agent files with a single command?",
+        "verdict": "supported",
+        "blockers": [],
+        "ledger": [
+          {
+            "statement": "The apm compile command processes an apm.yml manifest and generates project-specific files as indicated by successful build output.",
+            "side": "for",
+            "kind": "observed",
+            "source": "sandbox_run"
+          }
+        ],
+        "facts": {
+          "setup_seconds": 0.0,
+          "setup_commands": 0,
+          "install_succeeded": false,
+          "clone_mb": 0.0,
+          "volume_mb": 0.0,
+          "needs": [],
+          "headline_capability": "",
+          "observed_output": "Compilation completed successfully!"
+        },
+        "summary": "The tool successfully generated project artifacts using the 'apm compile' command, confirming it processes manifests into configured output.",
+        "limitations": [
+          "The scope of file generation beyond standard agent boilerplate was not exhaustively tested.",
+          "Compatibility with diverse complex agent architectures remains unverified."
+        ]
+      },
+      "usage": {
+        "promptTokenCount": 1365,
+        "candidatesTokenCount": 234,
+        "totalTokenCount": 1599,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1365
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "checks": {
+        "question_preserved": true,
+        "has_limitations": true,
+        "concise_answer": true,
+        "does_not_confirm_untested_speed": true
+      },
+      "human_review": "pending: compare every claim and limitation with the supplied trace"
+    },
+    {
+      "case": "read_only",
+      "report": {
+        "repository_description": "Firecrawl is a web scraping and crawling API designed for turning websites into LLM-ready markdown.",
+        "question": "Is firecrawl/firecrawl licensed under terms that would oblige a company embedding it in a hosted product to publish their own source?",
+        "verdict": "supported",
+        "blockers": [],
+        "ledger": [
+          {
+            "statement": "The repository is licensed under AGPL-3.0.",
+            "side": "for",
+            "kind": "inspected",
+            "source": "get_repo_metadata"
+          }
+        ],
+        "facts": {
+          "setup_seconds": 0.0,
+          "setup_commands": 0,
+          "install_succeeded": false,
+          "clone_mb": 0.0,
+          "volume_mb": 0.0,
+          "needs": [],
+          "headline_capability": "",
+          "observed_output": ""
+        },
+        "summary": "The repository uses the GNU Affero General Public License v3.0, which generally requires disclosure of source code for modifications and network-hosted services. This assessment is based solely on the identified license name; specific compliance obligations for hosted products remain dependent on legal review.",
+        "limitations": [
+          "Full license text was not read to verify specific copyleft triggers or exceptions.",
+          "The scope of network interaction coverage under AGPL-3.0 for this specific architecture was not verified."
+        ]
+      },
+      "usage": {
+        "promptTokenCount": 417,
+        "candidatesTokenCount": 245,
+        "totalTokenCount": 662,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 417
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "checks": {
+        "question_preserved": true,
+        "has_limitations": true,
+        "concise_answer": true,
+        "does_not_confirm_untested_speed": true
+      },
+      "human_review": "pending: compare every claim and limitation with the supplied trace"
+    },
+    {
+      "case": "could_not_test",
+      "report": {
+        "repository_description": "Bifrost is an enterprise AI gateway written in Go that features an adaptive load balancer, clustering, and model guardrails.",
+        "question": "Is maximhq/bifrost actually fifty times faster than LiteLLM, as its description claims?",
+        "verdict": "inconclusive",
+        "blockers": [],
+        "ledger": [
+          {
+            "statement": "The repository describes itself as 50x faster than LiteLLM.",
+            "side": "for",
+            "kind": "reported",
+            "source": "get_repo_description"
+          },
+          {
+            "statement": "No independent benchmark or methodology was found to support the claimed speed difference.",
+            "side": "unknown",
+            "kind": "observed",
+            "source": "web_search"
+          }
+        ],
+        "facts": {
+          "setup_seconds": 0.0,
+          "setup_commands": 0,
+          "install_succeeded": false,
+          "clone_mb": 0.0,
+          "volume_mb": 0.0,
+          "needs": [],
+          "headline_capability": "",
+          "observed_output": ""
+        },
+        "summary": "The repository makes a performance claim regarding its speed relative to LiteLLM, but no evidence or reproduction steps were provided to verify this statement. The claim remains unverified.",
+        "limitations": [
+          "No performance benchmarks or testing logs were included in the provided evidence.",
+          "The methodology behind the 50x speed comparison is not documented in the repository metadata."
+        ]
+      },
+      "usage": {
+        "promptTokenCount": 430,
+        "candidatesTokenCount": 277,
+        "totalTokenCount": 707,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 430
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "checks": {
+        "question_preserved": true,
+        "has_limitations": true,
+        "concise_answer": true,
+        "does_not_confirm_untested_speed": true
+      },
+      "human_review": "pending: compare every claim and limitation with the supplied trace"
+    }
+  ],
+  "tool_probe": {
+    "answer": "The repository **example/demo** is a small tool designed to convert CSV files into visual charts.",
+    "returned_text": true,
+    "usage": [
+      {
+        "promptTokenCount": 69,
+        "candidatesTokenCount": 18,
+        "totalTokenCount": 87,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 69
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      {
+        "promptTokenCount": 110,
+        "candidatesTokenCount": 20,
+        "totalTokenCount": 130,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 110
+          }
+        ],
+        "serviceTier": "standard"
+      }
+    ]
+  },
+  "finished_at": "2026-09-25T05:34:14.611420+00:00",
+  "review": {
+    "reviewer": "coding assistant; not an independent human evaluation",
+    "decision": "Do not enable automatic publishing with this model based on this small evaluation.",
+    "findings": [
+      "All three responses parsed into the report schema and the fixture function-call round trip succeeded.",
+      "The Bifrost report incorrectly labeled a web search as observed evidence; the production integrity rules would lower this kind.",
+      "The Firecrawl report marked the broad hosted-product claim supported even though the supplied evidence established only the license identifier. This semantic gap is not fixed by tool-level source checks.",
+      "APM wording is concise but generic; it does not preserve the useful repeatability detail shown by the recorded test."
+    ],
+    "limitations": [
+      "Only three curated historical traces were supplied; this is not a fresh end-to-end investigation or a factual-accuracy benchmark.",
+      "No real repository tool selection, Docker execution, web search, or production critic was evaluated.",
+      "No invoice or billing tier was verified by the API response."
+    ],
+    "next_experiment": "Compare a stronger free-tier Gemini Flash model on the same evidence before building a production adapter."
+  }
+}
