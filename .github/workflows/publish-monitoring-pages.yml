@@ -1,0 +1,57 @@
+name: Publish monitoring Pages
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: proofrun-weekly-monitoring
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Restore completed monitoring state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: python scripts/restore_monitor_state.py --repo "$REPOSITORY"
+      - name: Preserve historical showcase
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: published-site
+          persist-credentials: false
+      - name: Export current state as weekly landing page
+        run: python export_monitoring.py --db weekly-state/monitor.db --out published-site --run-record weekly-state/last-run.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: published-site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy saved monitoring results
+        id: deployment
+        uses: actions/deploy-pages@v4

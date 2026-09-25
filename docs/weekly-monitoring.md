@@ -47,6 +47,11 @@ run. The local Streamlit app checks that public JSON at most once every five
 minutes while someone uses it; this does not schedule model runs or cause
 GitHub Pages to publish more often.
 
+For a site-only layout or copy change between weekly runs, manually dispatch
+`Publish monitoring Pages`. It restores the saved completed state and deploys
+the page without a model key, repository discovery, investigation, or Docker.
+It has no schedule and fails closed if the state artifact is missing.
+
 ## Activation gates
 
 The workflow runs only while BOTH repository variables remain set:
