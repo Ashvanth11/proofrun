@@ -1,9 +1,10 @@
 # Weekly monitoring and shared publishing
 
-Status, 2026-09-24: Claude selected for the weekly workflow. Local checks pass;
-publication, activation, and the first weekly run require separate remote
-verification. The user explicitly approved publishing to public `main`, adding
-the Anthropic Actions secret, and enabling the weekly schedule.
+Status, 2026-09-24 (local time): **active and deployed with Claude**. The first
+manual bootstrap run completed at 2026-09-25 06:43 UTC: ten repositories were
+discovered, one was investigated, and the public feed lists nine additional
+repositories. The next scheduled check is Monday at 08:17 UTC. See the
+[public monitoring page](https://ashvanth11.github.io/proofrun/monitoring.html).
 The earlier Gemini comparison remains documented in
 [Gemini evaluation](gemini-evaluation.md).
 
@@ -40,34 +41,40 @@ The earlier Gemini comparison remains documented in
   page/feed and a link from the landing page, preserving historical pages.
   Re-exporting the historical traces preserves the monitoring link.
 
-The generated `site/monitoring.html` currently states that no scheduled run has
-completed. It is a local preview, not evidence of an active schedule.
+The checked-in `site/monitoring.html` is a pre-run preview. The public page is
+generated from the saved Actions state on each completed run.
 
 ## Activation gates
 
-The workflow is disabled unless BOTH repository variables are set:
+The workflow runs only while BOTH repository variables remain set:
 
 - `WEEKLY_MONITORING_ENABLED=true`
 - `MONITORING_PROVIDER=anthropic`
 
-The user selected Claude explicitly. Gemini has only an evaluation harness and
-is not a fallback.
+Both variables are currently set. The `ANTHROPIC_API_KEY` Actions secret exists
+and Pages uses the GitHub Actions publishing source. The user selected Claude
+explicitly. Gemini has only an evaluation harness and is not a fallback.
 
-After provider selection and authorization to publish the reviewed changes:
+Activation completed on 2026-09-24 (local time):
 
-1. Commit the necessary code and workflow to the default branch. Preserve
-   unrelated local work.
-2. Add the chosen provider's API key as a repository Actions secret. No secrets
-   are embedded in the feed, source code, or public Pages artifact. GitHub currently
-   has no repository Actions secrets configured (names checked 2026-09-24).
-3. Switch Pages from branch publishing to **GitHub Actions**. This preserves
-   `https://ashvanth11.github.io/proofrun/`; the existing `gh-pages` branch remains
-   the source of historical assets. The prepared workflow uses `deploy-pages`.
-4. Set the activation variables after verifying the Claude key and the reviewed
-   workflow. The stored Sonnet investigation evaluation is prior evidence;
-   verify the first weekly run separately.
-5. Dispatch the first run with `bootstrap=true`, then verify its saved state,
-   feed, public page, and UI. Later scheduled runs restore that state.
+1. Published commit `7f8e73c` to `main`; remote offline CI passed.
+2. Added the Anthropic key as an Actions secret. Its value was not printed or
+   committed; only the secret name was verified.
+3. Switched Pages from legacy branch publishing to **GitHub Actions**, retaining
+   `https://ashvanth11.github.io/proofrun/` and historical `gh-pages` assets.
+4. Set `MONITORING_PROVIDER=anthropic` and `WEEKLY_MONITORING_ENABLED=true`.
+5. Dispatched one `bootstrap=true` run. [Actions run 36103968762](https://github.com/Ashvanth11/proofrun/actions/runs/36103968762)
+   passed both monitor and deploy jobs. Its state artifact contains a completed
+   `2026-W39` row, ten discoveries, and one `langfuse/langfuse` investigation.
+   The public JSON validates against the feed schema and shows one investigation
+   plus nine Not investigated entries. The result is inconclusive, with a
+   completed evidence critique and clear limitations. The saved investigation's
+   token cost estimate is $0.104846; discovery analysis and any search charges
+   are additional, so this is not a complete invoice.
+
+Later scheduled runs restore the saved state. Keep the state artifact available;
+if it expires, the workflow fails closed until history is reviewed and a manual
+bootstrap is explicitly selected.
 
 Never turn on both this runner and an independent schedule using a separate DB;
 that could investigate and bill for the same repositories twice. If a run fails,
