@@ -1,7 +1,7 @@
 # Tests
 
 ```bash
-python -m pytest tests/ -q     # 474 tests, no network, no Docker, no API calls
+python -m pytest tests/ -q     # offline; no network, Docker daemon, or API calls
 ```
 
 Every external service is stubbed, the sandbox included — the suite exercises

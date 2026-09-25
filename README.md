@@ -5,12 +5,46 @@ running it.**
 
 You ask a question about a repository. It decides whether reading settles the
 matter or whether it has to clone the code and execute it in a sandbox, then
-answers with a ledger where every claim names the tool call behind it and is
-tagged by what kind of evidence it is.
+answers with a ledger where every claim names a source tool and is tagged by
+what kind of evidence it is.
 
 ---
 
 ## Try it
+
+Open the local UI with two switchable modes. **Monitoring** surfaces saved
+investigations from the automatic discovery pipeline: what was checked, what
+was found, and what remains unknown. **Ask it yourself** accepts a GitHub
+repository URL and a question in separate fields.
+
+```bash
+streamlit run app.py
+```
+
+The monitoring tab reads discovery-linked investigation results from local
+SQLite and the public weekly feed without starting an investigation. If none exist, it shows three clearly labeled
+recorded investigations initiated by direct questions, demonstrating the same
+investigation engine. These examples work without credentials, Docker, or a
+local database. Earlier discovery summaries remain in a secondary section.
+An **Also discovered** section lists the other repositories from the latest
+completed weekly batch, with descriptions and links, labeled **Not investigated**.
+The weekly workflow uses the existing Claude API: Haiku scores up to ten
+discoveries and Sonnet investigates at most one. See
+[weekly monitoring setup](docs/weekly-monitoring.md) for activation and current
+publication status. The [Gemini evaluation](docs/gemini-evaluation.md) remains
+historical comparison evidence.
+
+Results lead with a short answer and understandable findings. Original reports,
+evidence sources, commands, review issues, and execution costs remain available
+under “Full report, sources, and execution details.” New reports also include
+explicit limitations, reviewed alongside the conclusion, without an additional
+model call. Existing stored reports remain readable.
+
+The **Investigate** button runs a new question locally and saves its result to
+SQLite. Live use needs `ANTHROPIC_API_KEY`; Docker and the sandbox image are
+needed when the agent executes repository code. The displayed spend allowance
+and token cost are estimates. A repeated submission in the same UI session
+shows the previous outcome until you explicitly allow another run.
 
 Ask about one repository:
 
@@ -30,7 +64,7 @@ SUMMARY   The repository is confirmed via both GitHub's license metadata
           quotation of the specific clause.
 
 3 steps, stop=sufficient_info, 0 observed / 1 inspected / 1 reported
-$0.1087, 24s
+estimated token cost $0.1087, 24s
 ```
 
 Or run the whole question set and score it:
@@ -43,7 +77,7 @@ python evaluate.py --investigations
 
 ```
 Proofrun eval: 10/13 questions pass
-$4.92, 24 min, 15 observed / 15 inspected / 33 reported
+estimated token cost $4.92, 24 min, 15 observed / 15 inspected / 33 reported
 ```
 
 ---
@@ -64,7 +98,7 @@ s10  sandbox_run(cat AGENTS.md; find .)    ← did the file really appear?
 s11  sandbox_run(copy only the manifest    ← does it reproduce away from
      to a third dir, recompile)               the repo that claimed it?
 
-verdict: supported · 12 steps · $0.475 · 87s
+verdict: supported · 12 steps · estimated token cost $0.475 · 87s
 ```
 
 Nobody told it to design that experiment. It wrote a manifest in an empty
@@ -86,10 +120,23 @@ database.
 python investigate.py "Does owner/name actually ...?"
 ```
 
-**Or let the monitor ask.** Proofrun sits on a pipeline that watches arXiv,
-GitHub and Hacker News, scores what it finds against your interest areas, and
-writes a weekly brief. Repositories that score well get a question derived from
-their README, and the same agent answers it.
+**Or let the monitor ask.** The sequential pipeline fetches arXiv, GitHub and
+Hacker News items, scores them against your interest areas, and writes a themed
+brief from up to 100 stored scored items across all dates. Repositories that
+score well get a question derived from their README, and the investigation
+agent answers it. The brief does not incorporate those investigation verdicts.
+`--agent` instead runs a lighter read-only repo agent. `--graph` runs the
+watchers in parallel but does not support either agent or `--skip-fetch`.
+The weekly workflow discovers up to 10 repositories and investigates at most
+one, with a shared UI/Pages feed. It uses the Claude API and requires explicit
+repository activation variables.
+
+With Anthropic, direct questions and the weekly investigation use Sonnet;
+Haiku scores the weekly discoveries and is used by the legacy monitor's
+automatic investigation path. Sonnet writes the brief. Ollama
+uses the selected local model for analysis and synthesis; automatic
+investigation requires Anthropic's web-search support and the local Docker
+sandbox.
 
 ```bash
 python run.py --investigate --investigate-threshold 0.6
@@ -99,7 +146,7 @@ python run.py --investigate --investigate-threshold 0.6
 
 ## What makes the answer trustworthy
 
-Every claim carries a kind and the tool call it came from:
+Every claim carries a kind and a source tool name:
 
 | Kind | Means |
 |---|---|
@@ -109,7 +156,7 @@ Every claim carries a kind and the tool call it came from:
 
 Three rules then run in code, after the model has answered:
 
-- A claim citing a tool call that never happened is dropped.
+- A claim citing a tool name absent from the trace is dropped.
 - A claim can never be stronger than the tool it cites. Reading a file is not
   running one.
 - A verdict of supported or refuted needs at least one first-hand claim, or it
@@ -119,6 +166,10 @@ That last rule is what makes a hostile README expensive. It can tell the model
 to report a claim as proven, and the model may comply — but its text can only
 ever be `reported`, so the verdict cannot reach `supported` without something
 the agent actually did.
+
+The ledger validates tool names and caps evidence kinds by tool. It does not
+bind an entry to the exact invocation or prove that output supports the claim.
+Review the trace and output when the distinction matters.
 
 There are no confidence scores. [Why, and what it costs](docs/evidence-ledger.md).
 
@@ -137,13 +188,14 @@ There are no confidence scores. [Why, and what it costs](docs/evidence-ledger.md
 
 ## How well it works
 
-**10 of 13** questions pass every criterion, at $4.92 and 24 minutes for the
-full set.
+**10 of 13** recorded questions pass every criterion, at about $4.92 estimated
+token cost and 24 minutes of recorded runtime for the full set. These are
+process and expectation checks, not a measure of factual accuracy.
 
 | | run 1 | run 2 | run 3 |
 |---|---|---|---|
 | passing | 6/13 | 8/13 | **10/13** |
-| cost | $4.98 | $4.31 | $4.92 |
+| estimated token cost | $4.98 | $4.31 | $4.92 |
 
 No pass has ever regressed, and no question has been edited after seeing
 results. The three that still fail are listed with their causes rather than
@@ -174,15 +226,18 @@ boundary. The repository under investigation comes from a public feed, so
 anyone who can publish one can choose what this executes.
 [Threat model and alternatives](docs/decisions.md#6-execution-happens-in-a-disposable-container-with-network-off).
 
-**The caps.** Steps (20), cost, wall clock (900s), sandbox calls (12, of which 4
-may be setup), and disk (2 GB). Each is checked in the loop *before* the spend
-it bounds, not requested in the prompt. A cap that fires is scored as a failed
-run — otherwise the score would improve as the budget shrank.
+**The caps.** Steps (20), loop token cost, wall clock (900s), sandbox calls (12,
+of which 4 may be setup), and disk (2 GB). Cost and wall clock are checked
+between model turns, so a call can overshoot. Disk is measured after a command,
+so that command can exceed the threshold before the agent stops. A cap that
+fires is scored as a failed run.
 
 **Cost control.** A free keyword pre-filter before any model call; content-hash
-idempotency so re-runs cost nothing for unchanged work; Haiku for volume and
-Sonnet for reasoning; and a batch budget checked against each question's worst
-case before it starts.
+idempotency for unchanged analysis; and a batch budget checked against a per-question spend
+estimate before each question starts. Token costs use configured rates and usage
+counts, so they are estimates. The loop cap excludes the overshoot turn,
+wrap-up, extraction, critique and web-search charges; the batch estimate includes
+allowances for these but is not a guaranteed total-spend limit.
 
 [Architecture, the pipeline, and what is and isn't an agent here](docs/architecture.md).
 
@@ -190,13 +245,15 @@ case before it starts.
 
 ## Setup
 
+Use Python 3.11 for the pinned dependencies and offline CI.
+
 ```bash
-python -m venv venv && source venv/bin/activate
+python3.11 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env          # add ANTHROPIC_API_KEY, optionally GITHUB_TOKEN
 python check_api.py           # verifies the key, generates no tokens
 docker build -t ai-monitor-sandbox:latest sandbox/    # only needed for execution
-python -m pytest tests/ -q    # 474 tests, no network, no Docker, no API
+python -m pytest tests/ -q    # offline suite; no network, Docker daemon, or API key
 ```
 
 Getting an API key, and why the Console is separate from claude.ai:

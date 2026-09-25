@@ -1,0 +1,400 @@
+[
+  {
+    "id": "executed",
+    "category": "executed",
+    "title": "Executed claim: Microsoft APM",
+    "status": "recorded",
+    "recorded_at": "2026-09-14",
+    "repo": "microsoft/apm",
+    "question": "Does microsoft/apm actually turn an apm.yml manifest into configured agent files with a single command?",
+    "verdict": "supported",
+    "summary": "The CLI was installed successfully, and running the single command `apm compile -t copilot` against a minimal apm.yml manifest plus its .apm/ primitives produced a compiled AGENTS.md file. Copying only the manifest and .apm/ directory to an unrelated new directory and re-running the same command reproduced a byte-identical AGENTS.md, directly confirming the claim for the compile step. The broader `apm install` flow involving remote git dependencies was not exercised due to network requirements, but the core claim under test was verified.",
+    "blockers": [],
+    "ledger": [
+      {
+        "statement": "One file describes every agent's context; one command reproduces it everywhere; one policy controls what an org will allow. APM fixes this. Declare your project's agentic dependencies once in apm.yml, and every developer who clones your repo gets a fully configured agent setup in seconds.",
+        "side": "unknown",
+        "kind": "reported",
+        "source": "read_file(README.md)"
+      },
+      {
+        "statement": "Installed the CLI via pip install -e . from a fresh shallow clone; installation succeeded, producing a working apm command (apm-cli 0.30.0).",
+        "side": "for",
+        "kind": "observed",
+        "source": "sandbox_run(pip install -e .)"
+      },
+      {
+        "statement": "Created a minimal apm.yml manifest plus a .apm/instructions/*.instructions.md primitive file in a fresh test directory, then ran apm compile -t copilot; the CLI generated AGENTS.md containing compiled instruction content and printed 'Compilation completed successfully!'.",
+        "side": "for",
+        "kind": "observed",
+        "source": "sandbox_run(apm compile -t copilot)"
+      },
+      {
+        "statement": "Copied only apm.yml and its referenced .apm/ directory into a separate, unrelated directory and re-ran apm compile -t copilot; diff showed the resulting AGENTS.md was byte-for-byte identical to the original.",
+        "side": "for",
+        "kind": "observed",
+        "source": "sandbox_run(apm compile -t copilot)"
+      }
+    ],
+    "tool_calls": [
+      {
+        "step": 1,
+        "tool": "get_repo_metadata",
+        "arguments": {
+          "repo": "microsoft/apm"
+        },
+        "is_error": false,
+        "result_summary": "license=MIT; language=Python; size_kb=43847"
+      },
+      {
+        "step": 1,
+        "tool": "get_repo_description",
+        "arguments": {
+          "repo": "microsoft/apm"
+        },
+        "is_error": false,
+        "result_summary": "description: Agent Package Manager"
+      },
+      {
+        "step": 2,
+        "tool": "list_files",
+        "arguments": {
+          "repo": "microsoft/apm",
+          "path": ""
+        },
+        "is_error": false,
+        "result_summary": "Recorded tool summary was truncated; full listing omitted from this portable snapshot."
+      },
+      {
+        "step": 2,
+        "tool": "read_file",
+        "arguments": {
+          "repo": "microsoft/apm",
+          "path": "README.md"
+        },
+        "is_error": false,
+        "result_summary": "Recorded tool summary was truncated; file contents omitted from this portable snapshot."
+      },
+      {
+        "step": 3,
+        "tool": "sandbox_clone",
+        "arguments": {
+          "repo": "microsoft/apm"
+        },
+        "is_error": false,
+        "result_summary": "exit=0; stderr: Cloning into '/work/repo'..."
+      },
+      {
+        "step": 4,
+        "tool": "sandbox_setup",
+        "arguments": {
+          "command": "cd /work/repo && pip install -e . 2>&1 | tail -30"
+        },
+        "is_error": false,
+        "result_summary": "Recorded tool summary was truncated; full command output is unavailable in this portable snapshot."
+      },
+      {
+        "step": 5,
+        "tool": "sandbox_run",
+        "arguments": {
+          "command": "export PATH=$PATH:/work/.local/bin mkdir -p /work/testproj && cd /work/testproj cat > apm.yml << 'EOF' name: test-project version: 1.0.0 description: Test project for apm compile i…"
+        },
+        "is_error": true,
+        "result_summary": "Recorded tool summary was truncated; full command output is unavailable in this portable snapshot."
+      },
+      {
+        "step": 6,
+        "tool": "read_file",
+        "arguments": {
+          "repo": "microsoft/apm",
+          "path": "apm.yml"
+        },
+        "is_error": false,
+        "result_summary": "Recorded tool summary was truncated; file contents omitted from this portable snapshot."
+      },
+      {
+        "step": 6,
+        "tool": "list_files",
+        "arguments": {
+          "repo": "microsoft/apm",
+          "path": ".apm"
+        },
+        "is_error": false,
+        "result_summary": "5 listed entries; first names: agents, architecture, docs-index.yml, instructions, skills"
+      },
+      {
+        "step": 7,
+        "tool": "list_files",
+        "arguments": {
+          "repo": "microsoft/apm",
+          "path": ".apm/instructions"
+        },
+        "is_error": false,
+        "result_summary": "10 listed entries; first names: architecture.instructions.md, changelog.instructions.md, cicd.instructions.md, cli.instructions.md, doc-sync.instructions.md, encoding.instructions.md, integrators.instructions.md, linting.instructions.md"
+      },
+      {
+        "step": 8,
+        "tool": "read_file",
+        "arguments": {
+          "repo": "microsoft/apm",
+          "path": ".apm/instructions/python.instructions.md"
+        },
+        "is_error": false,
+        "result_summary": "path=.apm/instructions/python.instructions.md; size=421; truncated=False; file contents omitted from this curated snapshot"
+      },
+      {
+        "step": 9,
+        "tool": "sandbox_run",
+        "arguments": {
+          "command": "export PATH=$PATH:/work/.local/bin mkdir -p /work/testproj2/.apm/instructions && cd /work/testproj2 cat > apm.yml << 'EOF' name: test-project version: 1.0.0 description: Test proje…"
+        },
+        "is_error": true,
+        "result_summary": "Recorded tool summary was truncated; full command output is unavailable in this portable snapshot."
+      },
+      {
+        "step": 10,
+        "tool": "sandbox_run",
+        "arguments": {
+          "command": "cd /work/testproj2 echo \"==== AGENTS.md ====\" cat AGENTS.md 2>/dev/null echo \"==== full tree ====\" find . -type f | grep -v '.git/'"
+        },
+        "is_error": false,
+        "result_summary": "exit=0; stdout: ==== AGENTS.md ==== # AGENTS.md <!-- Generated by APM CLI from distributed .apm/ primitives --> <!-- Build ID: 9eb238744142 --> ## Files matching `**/*.py` Always write tests for new code. Use descriptive variable names. ==== full tree ==== ./apm.yml ./AGENTS.…"
+      },
+      {
+        "step": 11,
+        "tool": "sandbox_run",
+        "arguments": {
+          "command": "export PATH=$PATH:/work/.local/bin mkdir -p /work/testproj3 && cp -r /work/testproj2/apm.yml /work/testproj2/.apm /work/testproj3/ cd /work/testproj3 apm compile -t copilot >/tmp/o…"
+        },
+        "is_error": false,
+        "result_summary": "exit=0; stdout: +- . 1 instruction from 1 source [!] Warning: applyTo for 'mystandards' matched no files - placing at project root [+] Compilation completed successfully! === diff check === IDENTICAL OUTPUT reproduced in new location"
+      }
+    ],
+    "observed_output": "Compilation completed successfully! AGENTS.md generated; diff against a copy produced in a separate directory showed no differences.",
+    "final_text": "",
+    "critique_status": "ok",
+    "critique_grounded": true,
+    "critique_issues": [
+      "The ledger entry for step 9 claims the CLI 'printed Compilation completed successfully!' during that specific apm compile run, but the step 9 output shown was truncated and did not include that phrase; that exact message was only observed in the step 11 output. The underlying success of compile (AGENTS.md generation) is still corroborated by step 10, so this is a minor misattribution rather than a fabricated result."
+    ],
+    "estimated_cost_usd": 0.474524,
+    "elapsed_seconds": 87.8,
+    "steps_taken": 12,
+    "stop_reason": "sufficient_info",
+    "downgraded": false,
+    "revised": false,
+    "limitations": "The compile command was exercised with a small synthetic manifest; the broader remote install flow was not tested. The critic flagged a minor output attribution issue. Tool output and commands are summarized for this portable example.",
+    "presentation": {
+      "title": "Can APM generate agent instructions from one configuration?",
+      "answer": "Yes, for the compile step we tested. APM generated the agent instructions, and repeating the test in a separate folder produced the same file.",
+      "findings": [
+        "Installed APM successfully in the test environment.",
+        "Generated an agent instruction file from a small sample configuration.",
+        "Repeated the command in a separate folder and got an identical file."
+      ],
+      "limits": [
+        "The test used a small sample, not a full production project.",
+        "Installing dependencies from remote repositories was not tested."
+      ]
+    },
+    "repository_description": "A tool for managing the configuration and instructions used by AI coding agents across a project."
+  },
+  {
+    "id": "read_only",
+    "category": "read_only",
+    "title": "Read-only answer: Firecrawl license",
+    "status": "recorded",
+    "recorded_at": "2026-09-14",
+    "repo": "firecrawl/firecrawl",
+    "question": "Is firecrawl/firecrawl licensed under terms that would oblige a company embedding it in a hosted product to publish their own source?",
+    "verdict": "supported",
+    "summary": "The repository is confirmed via both GitHub's license metadata and the actual LICENSE file text to be licensed under AGPL-3.0. The LICENSE file content retrieved was truncated before the specific clause requiring network server operators to provide source code to users, so that exact obligation was not directly observed in the tool output; however, the AGPL-3.0 license is unambiguously identified, and it is a standard, well-established term of that license that operators of modified versions running as network services must make source available to users. The verdict of 'supported' rests on correct identification of the license type rather than on a verified quotation of the specific clause.",
+    "blockers": [],
+    "ledger": [
+      {
+        "statement": "GitHub's license detection for firecrawl/firecrawl reports \"AGPL-3.0\" as the repository license",
+        "side": "for",
+        "kind": "inspected",
+        "source": "get_repo_metadata(firecrawl/firecrawl)"
+      },
+      {
+        "statement": "The repository's LICENSE file begins with the standard GNU Affero General Public License v3 preamble, identifying it as 'a free, copyleft license for software and other kinds of works, specifically designed to ensure cooperation with the community in the case of network server software.' The tool output was truncated before reaching the operative clauses, so the specific network-source-disclosure obligation was not directly observed in this evidence, though it is a well-known and standard term of the AGPL-3.0 license whose full text was confirmed present in the repo.",
+        "side": "for",
+        "kind": "reported",
+        "source": "read_file(LICENSE)"
+      }
+    ],
+    "tool_calls": [
+      {
+        "step": 1,
+        "tool": "get_repo_metadata",
+        "arguments": {
+          "repo": "firecrawl/firecrawl"
+        },
+        "is_error": false,
+        "result_summary": "license=AGPL-3.0; language=TypeScript; size_kb=179270"
+      },
+      {
+        "step": 1,
+        "tool": "get_repo_description",
+        "arguments": {
+          "repo": "firecrawl/firecrawl"
+        },
+        "is_error": false,
+        "result_summary": "description: The context API to search, scrape, and interact with the web at scale. 🔥"
+      },
+      {
+        "step": 2,
+        "tool": "read_file",
+        "arguments": {
+          "repo": "firecrawl/firecrawl",
+          "path": "LICENSE"
+        },
+        "is_error": false,
+        "result_summary": "Recorded tool summary was truncated; file contents omitted from this portable snapshot."
+      },
+      {
+        "step": 2,
+        "tool": "list_files",
+        "arguments": {
+          "repo": "firecrawl/firecrawl",
+          "path": "\"\""
+        },
+        "is_error": true,
+        "result_summary": "error: not found: /repos/firecrawl/firecrawl/contents/\"\""
+      }
+    ],
+    "observed_output": "",
+    "final_text": "",
+    "critique_status": "ok",
+    "critique_grounded": false,
+    "critique_issues": [
+      "The ledger entry attributes to read_file(LICENSE) the quote \"It requires the operator of a network server to provide the source code of the modified version running there to the users of that server,\" but the tool output shown is truncated and ends at '...we are referring to freedom, ...' without ever including that sentence. The quoted text was not actually present in the evidence returned, so this is a fabricated/unsupported quotation not grounded in the tool call output provided."
+    ],
+    "estimated_cost_usd": 0.108728,
+    "elapsed_seconds": 23.8,
+    "steps_taken": 3,
+    "stop_reason": "sufficient_info",
+    "downgraded": false,
+    "revised": true,
+    "limitations": "The retrieved LICENSE text was truncated before the network-service clause. The critic rejected a quotation not present in the returned excerpt; the saved verdict rests on license identification. Tool output and commands are summarized for this portable example.",
+    "presentation": {
+      "title": "What license does Firecrawl use?",
+      "answer": "Firecrawl was identified as using AGPL-3.0. This run did not establish exactly what source code a particular hosted product would need to publish.",
+      "findings": [
+        "GitHub identified the license as AGPL-3.0.",
+        "The beginning of the license file matched that identification."
+      ],
+      "limits": [
+        "The retrieved license text stopped before the clause about network services.",
+        "The saved report marked the claim supported based on the license name; the broader question about a hosted product was not fully checked."
+      ]
+    },
+    "repository_description": "A web scraping and crawling tool that turns website content into text and structured data for AI applications."
+  },
+  {
+    "id": "could_not_test",
+    "category": "could_not_test",
+    "title": "Could not test: Bifrost speed claim",
+    "status": "recorded",
+    "recorded_at": "2026-09-14",
+    "repo": "maximhq/bifrost",
+    "question": "Is maximhq/bifrost actually fifty times faster than LiteLLM, as its description claims?",
+    "verdict": "could_not_test",
+    "summary": "The investigation found no evidence to substantiate or refute the '50x faster than LiteLLM' claim. The only web_search performed returned null, and the README was only partially read and did not contain benchmark data in the retrieved excerpt. No independent benchmark reproduction was attempted. The claim remains untested: there is no verified data—vendor-supplied or third-party—actually retrieved by any tool call in this investigation, so no comparison (5x, 9.5x, 50x, or otherwise) can be confirmed or denied from the gathered evidence.",
+    "blockers": [
+      "no_testable_claim",
+      "other"
+    ],
+    "ledger": [
+      {
+        "statement": "Repo description claims '50x faster than LiteLLM' with '<100 µs overhead at 5k RPS'",
+        "side": "for",
+        "kind": "reported",
+        "source": "get_repo_description(maximhq/bifrost)"
+      },
+      {
+        "statement": "A web_search for 'Bifrost 50x faster than LiteLLM benchmark' returned no results",
+        "side": "unknown",
+        "kind": "reported",
+        "source": "web_search(Bifrost 50x faster than LiteLLM benchmark)"
+      },
+      {
+        "statement": "README.md (truncated) does not itself present benchmark methodology or numbers in the portion retrieved",
+        "side": "unknown",
+        "kind": "reported",
+        "source": "read_file(README.md)"
+      }
+    ],
+    "tool_calls": [
+      {
+        "step": 1,
+        "tool": "get_repo_metadata",
+        "arguments": {
+          "repo": "maximhq/bifrost"
+        },
+        "is_error": false,
+        "result_summary": "license=Apache-2.0; language=Go; size_kb=967590"
+      },
+      {
+        "step": 1,
+        "tool": "get_repo_description",
+        "arguments": {
+          "repo": "maximhq/bifrost"
+        },
+        "is_error": false,
+        "result_summary": "description: Fastest enterprise AI gateway (50x faster than LiteLLM) with adaptive load balancer, cluster mode, guardrails, 1000+ models support & <100 µs overhead at 5k RPS."
+      },
+      {
+        "step": 2,
+        "tool": "web_search",
+        "arguments": {
+          "query": "Bifrost 50x faster than LiteLLM benchmark"
+        },
+        "is_error": false,
+        "result_summary": "No result returned."
+      },
+      {
+        "step": 2,
+        "tool": "read_file",
+        "arguments": {
+          "repo": "maximhq/bifrost",
+          "path": "README.md"
+        },
+        "is_error": false,
+        "result_summary": "Recorded tool summary was truncated; file contents omitted from this portable snapshot."
+      }
+    ],
+    "observed_output": "",
+    "final_text": "",
+    "critique_status": "ok",
+    "critique_grounded": false,
+    "critique_issues": [
+      "The only web_search call in the evidence returned null, yet the ledger cites detailed content from three separate web_search calls (getmaxim.ai blog benchmarks, getmaxim.ai benchmarks page, dev.to article) that were never actually executed or returned by any tool call in the evidence log.",
+      "The specific benchmark numbers attributed to 'reported' sources (9.5x throughput, 54x P99 latency, 68% less memory, 0.99ms vs 60ms, 11µs at 5000 RPS, 90.72s vs 1.68s P99, 44.84 vs 424 req/sec) are fabricated content not present in any evidence returned by the tools.",
+      "The blocker 'unsupported_language' is asserted without evidence; no tool call or error indicates the sandbox cannot handle Go, and this claim is not demonstrated by any gathered evidence.",
+      "The summary presents fabricated benchmark details as if they were verified findings from web searches, when the actual web_search call returned null and no follow-up search evidence was gathered."
+    ],
+    "estimated_cost_usd": 0.163272,
+    "elapsed_seconds": 53.3,
+    "steps_taken": 3,
+    "stop_reason": "sufficient_info",
+    "downgraded": false,
+    "revised": true,
+    "limitations": "The only web search returned null. No comparative benchmark was run, so the 50x performance claim remains untested. Tool output and commands are summarized for this portable example.",
+    "presentation": {
+      "title": "Is Bifrost really 50× faster than LiteLLM?",
+      "answer": "That speed claim remains unverified. No comparative performance test was run, and the investigation did not retrieve evidence that could establish the difference.",
+      "findings": [
+        "The repository description made the 50× speed claim.",
+        "The search returned no usable benchmark evidence.",
+        "The part of the README that was read did not explain a benchmark."
+      ],
+      "limits": [
+        "Neither gateway was benchmarked against the other.",
+        "This result does not establish whether Bifrost is faster or slower."
+      ]
+    },
+    "repository_description": "An AI gateway that lets applications access different model providers through one interface."
+  }
+]

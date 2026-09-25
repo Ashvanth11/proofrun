@@ -1,7 +1,7 @@
 # The evidence ledger
 
-Every claim an investigation makes carries a **kind** and a **source naming the
-tool call that produced it**. This is what a verdict rests on, and it is the
+Every claim an investigation makes carries a **kind** and a **source naming a
+tool used in the run**. This is what a verdict rests on, and it is the
 reason there are no confidence scores anywhere in the system.
 
 | Kind | Means | Example source |
@@ -16,7 +16,7 @@ They run **in code**, in `investigate.apply_integrity_rules`, after extraction
 and again after any revision — because a revision is a fresh answer from the
 model and can reintroduce exactly what the rules just removed.
 
-1. **An entry whose source names no tool call that actually happened is
+1. **An entry whose source names no tool used in the run is
    dropped.** Free text is cheap to produce; a trace is not.
 2. **The kind is capped by the citing tool, and may only be lowered.** A
    `read_file` can never yield `observed`. `cat README.md` inside a container is
@@ -24,7 +24,12 @@ model and can reintroduce exactly what the rules just removed.
    compound command has to be a read for the whole thing to count as one.
 3. **`supported` and `refuted` require a first-hand entry on the matching
    side.** Otherwise the verdict is downgraded to `inconclusive` and the
-   downgrade is recorded on the run.
+downgrade is recorded on the run.
+
+The source check matches a tool name used somewhere in the run. It does not
+identify the exact invocation behind an entry or verify that its output
+semantically supports the statement. A reviewer should inspect the trace for
+those questions; historical ledgers retain their original format.
 
 Rule 3 is what makes prompt injection expensive. A hostile README can tell the
 model to report a claim as supported, and the model may comply — but README

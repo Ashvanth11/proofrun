@@ -10,7 +10,7 @@ Three things make the stopping condition real rather than decorative:
 
 1. The model can end the loop by answering instead of calling a tool.
 2. A step cap bounds the number of model turns.
-3. A cost cap bounds spend, enforced in code rather than requested in a prompt.
+3. A cost threshold is checked between turns in code. A call may overshoot it.
 
 Caps are enforced in code, not in the prompt, because a prompt is a request and
 a small model will happily ignore it - the loop must hold even when the model
@@ -188,7 +188,7 @@ def analyze_repo(
         usage.output_tokens += extract_usage.output_tokens
 
     log.info(
-        "%s: %d steps, stop=%s, escalated=%s, $%.4f",
+        "%s: %d steps, stop=%s, escalated=%s, estimated token cost $%.4f",
         repo,
         result.steps_taken,
         result.stop_reason,

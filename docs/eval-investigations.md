@@ -10,7 +10,7 @@ A question passes only when **all** of these hold:
 | `verdict` | the verdict is one the question allows |
 | `execution` | the sandbox did what the question says it should have |
 | `blockers` | where `blockers_any_of` is given, one of those blockers is named |
-| `citations` | every ledger entry cites a tool call that actually happened |
+| `citations` | every ledger entry names a tool used somewhere in the run |
 | `stop_reason` | the run finished rather than hitting a cap |
 | `not_downgraded` | the integrity rules did not have to lower the verdict |
 
@@ -34,7 +34,7 @@ them.
 | | run 1 | run 2 | run 3 |
 |---|---|---|---|
 | passing | 6/13 | 8/13 | **10/13** |
-| cost | $4.98 | $4.31 | $4.92 |
+| estimated token cost | $4.98 | $4.31 | $4.92 |
 | wall clock | 18 min | 18 min | 24 min |
 | evidence | — | 16 / 15 / 27 | 15 observed / 15 inspected / 33 reported |
 
@@ -122,11 +122,12 @@ python investigate_batch.py --questions questions.yaml \
 python evaluate.py --investigations
 ```
 
-The batch prunes containers and volumes left by a crashed run, prints the
-worst-case cost, and stops for confirmation. It then **refuses to start any
-question whose worst case would carry the total past `--budget`**, checked
-before the question rather than after it, and exits non-zero if it stops early
-so a budget stop is never mistaken for a clean run.
+The batch prunes containers and volumes left by a crashed run, prints a
+conservative cost estimate, and stops for confirmation. It then **refuses to
+start a question when its estimate would carry the total past `--budget`**,
+checked before the question rather than after it, and exits non-zero if it
+stops early. Actual charges may differ, so this is not a guaranteed spending
+limit. The recorded evaluation below is historical.
 
 Run 3 stopped that way at 10 of 13 and was resumed with `--start-at 11`. A
 resume is only one measurement if nothing about the agent changed in between;

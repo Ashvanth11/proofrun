@@ -64,8 +64,8 @@ def main(argv=None) -> int:
         "--max-cost",
         type=float,
         default=runner.DEFAULT_MAX_COST_USD,
-        help="cost ceiling for the loop, in dollars (default: %(default)s). This "
-        "bounds the loop, not the run: see investigate_runner.worst_case_usd",
+        help="cost threshold checked between loop turns, in dollars "
+        "(default: %(default)s). Calls may overshoot it",
     )
     parser.add_argument("--max-steps", type=int, default=inv.DEFAULT_MAX_STEPS)
     parser.add_argument(
@@ -113,9 +113,10 @@ def main(argv=None) -> int:
     print(f"\nRepository: {repo}")
     print(f"Question:   {args.question}")
     print(
-        f"Worst case: ${ceiling:.2f} "
-        f"(loop cap ${args.max_cost:.2f} plus the calls it does not cover), "
-        f"up to {args.max_seconds / 60:.0f} min and 2 GB of disk."
+        f"Estimated spend allowance: ${ceiling:.2f} "
+        f"(loop threshold ${args.max_cost:.2f} plus other calls). "
+        f"Wall-clock threshold {args.max_seconds / 60:.0f} min; "
+        "disk threshold 2 GB. Calls can overshoot thresholds."
     )
     if not args.yes and not _confirm():
         print("Nothing spent.")

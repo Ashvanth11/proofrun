@@ -305,6 +305,22 @@ def test_an_unpriced_model_reports_zero_rather_than_guessing():
     assert runner.worst_case_usd(1, model="ollama/test") == 0.0
 
 
+def test_an_unknown_paid_model_has_no_false_zero_estimate():
+    with pytest.raises(ValueError, match="no pricing"):
+        runner.worst_case_usd(1, model="unpriced")
+
+
+def test_estimate_uses_configured_extraction_and_critique_output_limits(monkeypatch):
+    rates = runner.PRICING[inv.INVESTIGATE_MODEL]
+    expected = (
+        inv.EXTRACTION_MAX_TOKENS + 2 * runner.critique_mod.CRITIQUE_MAX_TOKENS
+    ) * rates["output"] / 1_000_000
+    baseline = runner.worst_case_usd(1, max_web_searches=0)
+    monkeypatch.setattr(inv, "EXTRACTION_MAX_TOKENS", 0)
+    monkeypatch.setattr(runner.critique_mod, "CRITIQUE_MAX_TOKENS", 0)
+    assert baseline - runner.worst_case_usd(1, max_web_searches=0) == pytest.approx(expected)
+
+
 # --- the CLIs ------------------------------------------------------------
 
 

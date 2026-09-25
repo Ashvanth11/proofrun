@@ -33,8 +33,10 @@ Three rules are enforced in code after extraction, not requested in the prompt:
 Rule 3 is what makes prompt injection expensive. A hostile README can tell the
 model to report a claim as supported, and the model may comply - but README
 contents are `reported`, so the verdict still cannot reach `supported` without
-either a command that ran inside a container with no secrets, no host access,
-and no network, or a fact GitHub computed that the author did not write.
+either a command that ran inside the sandbox or a fact GitHub computed that the
+author did not write. Setup commands have network access; runtime commands do
+not. Tool-level source matching does not prove exact invocation provenance or
+that cited output semantically supports a statement.
 `inspected` exists so that a licence question can be answered from the licence
 field; it is deliberately narrow so that it cannot be answered from the README.
 """
@@ -186,6 +188,13 @@ plain text. It must contain:
   tool call it came from;
 - if you could not test the claim, what specifically blocked you.
 
+Write for a reader who has never seen this project. Start with a direct answer
+in at most two short sentences. Explain technical terms in ordinary language.
+Each evidence statement should describe one finding in a short sentence; keep
+tool names and commands in the source attribution. State what was not checked
+and how that limits the answer. Do not turn successful installation into proof
+of the project's broader claims.
+
 Do not claim you observed something you only read, and do not call a README
 sentence "inspected" - a README is the author's words. Those distinctions are
 checked against your trace afterwards, and an entry that does not match is
@@ -233,6 +242,10 @@ class Facts(BaseModel):
 
 
 class Investigation(BaseModel):
+    repository_description: str = Field(
+        default="",
+        description="One plain-language sentence describing what the repository is for, based on retrieved sources; no promotional or unverified performance claims.",
+    )
     question: str
     verdict: Literal["supported", "refuted", "inconclusive", "could_not_test"]
     blockers: list[
@@ -250,6 +263,10 @@ class Investigation(BaseModel):
     ledger: list[Evidence] = Field(default_factory=list)
     facts: Facts = Field(default_factory=Facts)
     summary: str = ""
+    limitations: list[str] = Field(
+        default_factory=list,
+        description="Short plain-language statements of what was not checked or remains uncertain, grounded in the investigation.",
+    )
 
 
 class InvestigationRun(BaseModel):
@@ -447,7 +464,7 @@ def investigate(
     run.wall_seconds = round(time.monotonic() - started, 1)
 
     log.info(
-        "%s: %d steps, stop=%s, verdict=%s%s, $%.4f",
+        "%s: %d steps, stop=%s, verdict=%s%s, estimated token cost $%.4f",
         question.repo,
         run.steps_taken,
         run.stop_reason,
@@ -545,7 +562,14 @@ def _extract_investigation(
                 "shows the project requires it.\n"
                 "- no_testable_claim: ONLY when there was no checkable claim "
                 "to begin with. A claim that could not be checked is not this.\n"
-                "- other: nothing above fits. Prefer a specific blocker."
+                "- other: nothing above fits. Prefer a specific blocker.\n\n"
+                "Include repository_description: one plain-language sentence "
+                "about what the project does, based on retrieved sources. "
+                "Write summary as a direct answer for a newcomer, in at most "
+                "two short sentences. Keep each ledger statement to one clear "
+                "finding, explaining technical terms and keeping commands in "
+                "source. Put untested scope and uncertainty in limitations. "
+                "Preserve qualifications; do not invent findings or limitations."
             ),
             messages=[
                 {

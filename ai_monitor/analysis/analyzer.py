@@ -66,8 +66,7 @@ class Usage(BaseModel):
             return 0.0  # local inference
         rates = PRICING.get(self.model)
         if not rates:
-            log.warning("no pricing for model %r; reporting $0", self.model)
-            return 0.0
+            raise ValueError(f"no pricing for model {self.model!r}; estimated cost is unknown")
         return (
             self.input_tokens * rates["input"]
             + self.output_tokens * rates["output"]

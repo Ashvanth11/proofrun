@@ -2,8 +2,8 @@
 
 Proofrun is an investigation agent sitting on top of a monitor. The monitor
 watches arXiv, GitHub and Hacker News, scores what it finds against configured
-interest areas, and writes a weekly brief. The agent answers questions about the
-repositories that surface.
+interest areas, and writes a themed brief from stored items. The agent answers
+questions about the repositories that surface.
 
 ```mermaid
 graph LR
@@ -20,7 +20,8 @@ graph LR
     IN -.-> LED[evidence ledger]
 ```
 
-1. **Watchers** fetch from three sources in parallel. Deterministic — no LLM.
+1. **Watchers** fetch from three sources sequentially by default, or in parallel
+   with `--graph`. Deterministic — no LLM.
 2. **Dedup** collapses the same development appearing in several sources.
 3. **Routing** drops items with no lexical overlap with any interest area,
    before anything is paid for.
@@ -29,7 +30,8 @@ graph LR
    itself how deep to look.
 6. **Investigation agent** takes a *question* about one repository and answers
    it with reading, web search and sandboxed execution.
-7. **Synthesis** writes a themed brief over the week's items.
+7. **Synthesis** writes a themed brief from scored items in storage. It selects
+   by score across all stored dates, up to its item limit, with no week filter.
 
 ## What is and isn't an agent here
 
@@ -47,8 +49,8 @@ calling everything an agent.
 Both agents share one loop, `ai_monitor/agent/loop.py`. What that loop owns, and
 what it deliberately does not:
 
-- **It owns stopping.** Every cap is checked there, in code, before the spend it
-  bounds.
+- **It owns stopping.** Cost and wall-clock caps are checked between turns;
+  a call can overshoot either threshold. Sandbox disk is checked after commands.
 - **It does not own tools.** Callers pass an `execute` callable. The repo agent
   hands it a module-level registry; the investigation agent hands it a closure
   over one live sandbox, because sandbox tools are per-run state.
@@ -83,7 +85,7 @@ ai_monitor/
     repo_agent.py          stage 1 agent (read-only)
     investigate.py         the investigation agent and the integrity rules
     critique.py            self-critique and revision pass
-    investigate_runner.py  gating, batch, worst-case costing
+    investigate_runner.py  gating, batch, spend estimate
   eval/
     investigations.py      the six pass criteria and the scorer
     ...                    golden set, LLM judge, agreement metrics

@@ -20,3 +20,6 @@ ROADMAP-*.md
 
 # Notes to myself about how to talk about this, not documentation.
 docs/resume-line.md
+
+# Durable scheduled-run state is an Actions artifact, never a public site asset.
+weekly-state/

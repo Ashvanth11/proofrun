@@ -200,7 +200,8 @@ Flag an issue when:
 - the verdict is stronger than the evidence supports
 - a ledger entry is marked 'observed' when no command was run to produce it
 - a ledger entry describes something no tool call returned
-- the summary asserts things the evidence does not show
+- the repository description, summary, or limitations assert things the evidence does not show
+- limitations omit an important gap and make the answer misleading
 - 'could_not_test' is claimed without a blocker the evidence demonstrates
 
 Do not flag an issue merely because the evidence is thin. 'inconclusive' and
@@ -234,10 +235,12 @@ def format_investigation(report: Any) -> str:
         for e in report.ledger
     ) or "  (empty)"
     return (
+        f"repository_description: {report.repository_description}\n"
         f"verdict: {report.verdict}\n"
         f"blockers: {report.blockers or 'none'}\n"
         f"ledger:\n{ledger}\n"
-        f"summary: {report.summary}"
+        f"summary: {report.summary}\n"
+        f"limitations: {report.limitations}"
     )
 
 

@@ -7,8 +7,8 @@ batch is unattended and a mistake is multiplied by its length:
 
 - it prunes containers and volumes left behind by a crashed run before it
   starts, so a previous failure does not eat this run's disk;
-- it states its worst case and stops for confirmation before spending
-  anything, per the cost rule in CLAUDE.md.
+- it states a conservative spend estimate and stops for confirmation before
+  spending anything.
 
 The report's cells all come from repository-controlled text, so everything is
 escaped and truncated on the way in.
@@ -71,7 +71,7 @@ def main(argv=None) -> int:
         "--max-cost",
         type=float,
         default=runner.DEFAULT_MAX_COST_USD,
-        help="per-question cost ceiling for the loop (default: %(default)s)",
+        help="per-question cost threshold checked between turns (default: %(default)s)",
     )
     parser.add_argument("--max-steps", type=int, default=inv.DEFAULT_MAX_STEPS)
     parser.add_argument("--max-seconds", type=float, default=inv.DEFAULT_MAX_SECONDS)
@@ -88,9 +88,8 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--budget",
         type=float,
-        help="hard ceiling on total spend for the whole batch, in dollars. The "
-        "batch stops before starting any question that could carry it past "
-        "this, so the figure is a guarantee rather than a hope. Whatever "
+        help="estimated batch budget in dollars. The batch stops before starting "
+        "a question when the estimate would exceed it. Actual charges may differ. Whatever "
         "finished is still stored and still reported",
     )
     parser.add_argument("--no-web-search", action="store_true")
@@ -136,22 +135,22 @@ def main(argv=None) -> int:
     for question in questions:
         print(f"  - {question.repo}: {runner.clean(question.question, 110)}")
     print(
-        f"\nWorst case: ${ceiling:.2f} "
+        f"\nEstimated spend allowance: ${ceiling:.2f} "
         f"({len(questions)} x ${ceiling / len(questions):.2f}), "
-        f"up to {len(questions) * args.max_seconds / 60:.0f} min, "
-        f"2 GB of disk per question."
+        f"wall-clock threshold {len(questions) * args.max_seconds / 60:.0f} min, "
+        f"disk threshold 2 GB per question. Calls can overshoot thresholds."
     )
     print(
-        "The per-question loop cap is "
+        "This is an estimate, not a guaranteed charge limit. The per-question loop threshold is "
         f"${args.max_cost:.2f}; the rest is the wrap-up, extraction and "
         "critique calls the cap does not cover."
     )
     per_question = ceiling / len(questions)
     if args.budget:
         print(
-            f"Budget: ${args.budget:.2f}. The batch stops before starting any "
-            f"question that could carry it past that, so it will not begin a "
-            f"question once ${args.budget - per_question:.2f} is already spent."
+            f"Estimated budget: ${args.budget:.2f}. The batch stops before a "
+            f"question when its estimate would exceed this amount; actual charges "
+            f"may differ."
         )
     if not args.yes and not _confirm():
         print("Nothing spent.")
@@ -175,14 +174,14 @@ def main(argv=None) -> int:
         if args.budget and spent + per_question > args.budget:
             halted = (
                 f"stopped after {i - 1} of {len(questions)} questions: "
-                f"${spent:.2f} spent, and the next could reach "
+                f"${spent:.2f} estimated token cost so far, and the next is estimated to reach "
                 f"${spent + per_question:.2f} against a ${args.budget:.2f} budget"
             )
             resume_at = offset + i
             log.warning("%s", halted)
             break
 
-        log.info("[%d/%d] %s ($%.2f spent so far)", i, len(questions), question.repo, spent)
+        log.info("[%d/%d] %s ($%.2f estimated token cost so far)", i, len(questions), question.repo, spent)
         try:
             run = inv.investigate(
                 question,
@@ -208,7 +207,7 @@ def main(argv=None) -> int:
             inv.store_investigation(conn, run)
 
         log.info(
-            "[%d/%d] %s: %s, $%.3f, %.0fs",
+            "[%d/%d] %s: %s, estimated token cost $%.3f, %.0fs",
             i,
             len(questions),
             question.repo,
@@ -228,7 +227,7 @@ def main(argv=None) -> int:
     args.out.write_text(runner.markdown_report(runs))
 
     total = sum(r.usage.cost_usd for r in runs)
-    print(f"\n{len(runs)} run(s), ${total:.2f} spent against a ${ceiling:.2f} ceiling.")
+    print(f"\n{len(runs)} run(s), estimated token cost ${total:.2f} against a ${ceiling:.2f} initial estimate.")
     print(f"report: {args.out}")
     if halted:
         print(f"\n*** BUDGET STOP *** {halted}")
