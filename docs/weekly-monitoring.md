@@ -4,7 +4,7 @@ Status, 2026-09-24 (local time): **active and deployed with Claude**. The first
 manual bootstrap run completed at 2026-09-25 06:43 UTC: ten repositories were
 discovered, one was investigated, and the public feed lists nine additional
 repositories. The next scheduled check is Monday at 08:17 UTC. See the
-[public monitoring page](https://ashvanth11.github.io/proofrun/monitoring.html).
+[public landing page](https://ashvanth11.github.io/proofrun/).
 The earlier Gemini comparison remains documented in
 [Gemini evaluation](gemini-evaluation.md).
 
@@ -37,12 +37,15 @@ The earlier Gemini comparison remains documented in
 - The Streamlit UI reads that public feed at most once per five minutes of page
   use, merges it with local automatic results, and falls back gracefully when
   offline. A local database is not required to read published weekly results.
-- Publication starts from the existing `gh-pages` content and adds the monitoring
-  page/feed and a link from the landing page, preserving historical pages.
-  Re-exporting the historical traces preserves the monitoring link.
+- Publication starts from the existing `gh-pages` content, moves the historical
+  index to `history.html`, and serves weekly monitoring at `/proofrun/`.
+  `monitoring.html` remains an alternate URL. Re-exporting traces updates the
+  historical index without replacing the weekly landing page.
 
-The checked-in `site/monitoring.html` is a pre-run preview. The public page is
-generated from the saved Actions state on each completed run.
+The public page is generated from the saved Actions state on each completed
+run. The local Streamlit app checks that public JSON at most once every five
+minutes while someone uses it; this does not schedule model runs or cause
+GitHub Pages to publish more often.
 
 ## Activation gates
 

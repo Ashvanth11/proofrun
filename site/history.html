@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proofrun &mdash; investigation traces</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e0e0db;
+  --card: #ffffff; --accent: #2a5d8f; --bad: #a33; --good: #2e6b3e;
+  --obs: #1d4f2b; --obs-bg: #e6f2e9; --insp: #1f4d73; --insp-bg: #e6eff7;
+  --rep: #6b6b66; --rep-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a; --fg: #e6e6e3; --muted: #9a9a94; --line: #2c2e33;
+    --card: #1d1f23; --accent: #7fb0e0; --bad: #e08585; --good: #7fc08f;
+    --obs: #9fe0b0; --obs-bg: #1c3325; --insp: #9fc9ec; --insp-bg: #1a2c3d;
+    --rep: #9a9a94; --rep-bg: #24262b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin: 2.5rem 0 .75rem; font-weight: 600;
+}
+a { color: var(--accent); }
+.sub { color: var(--muted); margin: 0 0 2rem; }
+.back { display: inline-block; margin-bottom: 1.5rem; font-size: .85rem; }
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .82rem;
+}
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td {
+  text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.n, th.n { text-align: right; }
+tr.row:hover td { background: var(--card); }
+td a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+.yes { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; margin-bottom: .6rem;
+}
+.q { font-size: 1.05rem; margin: 0 0 .5rem; }
+.verdict {
+  display: inline-block; padding: .3rem .7rem; border-radius: 4px;
+  font-weight: 700; letter-spacing: .04em; background: var(--rep-bg);
+}
+.verdict.supported, .verdict.refuted { background: var(--obs-bg); color: var(--obs); }
+.step {
+  border-left: 3px solid var(--line); padding: .45rem 0 .45rem .8rem;
+  margin-bottom: .5rem;
+}
+.step.err { border-left-color: var(--bad); }
+.step .hd { font-weight: 600; }
+.step .out { color: var(--muted); display: block; margin-top: .2rem; word-break: break-word; }
+.tag {
+  display: inline-block; min-width: 5.5rem; text-align: center;
+  padding: .1rem .45rem; border-radius: 3px; font-size: .7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.observed { background: var(--obs-bg); color: var(--obs); }
+.tag.inspected { background: var(--insp-bg); color: var(--insp); }
+.tag.reported { background: var(--rep-bg); color: var(--rep); }
+.entry { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: 0; }
+.entry .src { color: var(--muted); display: block; margin-top: .2rem; }
+.side { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts { margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts dd { margin: 0 0 .6rem; }
+.legend { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
+ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
+ul.issues li { margin-bottom: .4rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<p id="weekly-monitoring-link"><a href="index.html">&larr; Weekly monitoring</a></p>
+<h1>Proofrun &mdash; investigation traces</h1>
+<p class="sub">10 of 13 questions pass every criterion &middot; $4.92 &middot; 24 min &middot; 15 observed / 15 inspected / 33 reported<br>generated 2026-09-14</p>
+<p class="legend"><span class="tag observed">observed</span> a command ran in the sandbox and printed it &nbsp; <span class="tag inspected">inspected</span> a fact GitHub computed &nbsp; <span class="tag reported">reported</span> someone wrote it. A question passes only if every criterion holds.</p>
+<div class="scroll"><table>
+<tr><th>Question</th><th>Category</th><th>Verdict</th><th class="n">Obs</th><th class="n">Insp</th><th class="n">Rep</th><th class="n">Cmds</th><th class="n">Cost</th><th>Pass</th></tr>
+<tr class='row'><td><a href="firecrawl-firecrawl.html">Is firecrawl/firecrawl licensed under terms that would oblige a company embedding it in a hosted product to publish their own source?</a></td><td>reading</td><td>supported</td><td class="n">0</td><td class="n">1</td><td class="n">1</td><td class="n">0</td><td class="n">$0.109</td><td><span class="yes">pass</span></td></tr>
+<tr class='row'><td><a href="langfuse-langfuse.html">Is langfuse/langfuse actually open source under a recognised OSI licence, or is some of what its README advertises covered by a separate commercial li...</a></td><td>reading</td><td>inconclusive</td><td class="n">0</td><td class="n">1</td><td class="n">4</td><td class="n">0</td><td class="n">$0.203</td><td><span class="no">fail</span> not_downgraded</td></tr>
+<tr class='row'><td><a href="promptfoo-promptfoo.html">Does promptfoo/promptfoo actually ship red-teaming plugins in its source tree, or is red teaming only offered through a hosted service?</a></td><td>reading</td><td>supported</td><td class="n">0</td><td class="n">3</td><td class="n">1</td><td class="n">0</td><td class="n">$0.117</td><td><span class="yes">pass</span></td></tr>
+<tr class='row'><td><a href="deeplethe-utopia.html">Does deeplethe/utopia actually contain a trained world model, or is &quot;world model&quot; a label on something else?</a></td><td>overclaim</td><td>refuted</td><td class="n">0</td><td class="n">1</td><td class="n">2</td><td class="n">0</td><td class="n">$0.288</td><td><span class="yes">pass</span></td></tr>
+<tr class='row'><td><a href="microsoft-apm.html">Does microsoft/apm actually turn an apm.yml manifest into configured agent files with a single command?</a></td><td>execution</td><td>supported</td><td class="n">3</td><td class="n">0</td><td class="n">1</td><td class="n">4</td><td class="n">$0.475</td><td><span class="yes">pass</span></td></tr>
+<tr class='row'><td><a href="zenml-io-zenml.html">Can zenml-io/zenml be installed from source and initialise a local project with a working default stack, with no server or account?</a></td><td>execution</td><td>could_not_test</td><td class="n">3</td><td class="n">2</td><td class="n">3</td><td class="n">1</td><td class="n">$0.272</td><td><span class="no">fail</span> stop_reason</td></tr>
+<tr class='row'><td><a href="arize-ai-phoenix.html">Can Arize-ai/phoenix&#x27;s core tracing be started locally, with no Arize account or hosted service involved?</a></td><td>execution</td><td>supported</td><td class="n">3</td><td class="n">1</td><td class="n">2</td><td class="n">2</td><td class="n">$0.711</td><td><span class="yes">pass</span></td></tr>
+<tr class='row'><td><a href="makazhanalpamys-soup.html">Does MakazhanAlpamys/Soup install from source and expose a working command-line interface that can validate a training configuration without a GPU?</a></td><td>execution</td><td>supported</td><td class="n">4</td><td class="n">2</td><td class="n">2</td><td class="n">3</td><td class="n">$0.997</td><td><span class="yes">pass</span></td></tr>
+<tr class='row'><td><a href="comet-ml-opik.html">Can comet-ml/opik&#x27;s Python SDK be installed and used to record a trace locally, without a Comet account or a running server?</a></td><td>execution</td><td>supported</td><td class="n">2</td><td class="n">0</td><td class="n">2</td><td class="n">0</td><td class="n">$0.530</td><td><span class="yes">pass</span></td></tr>
+<tr class='row'><td><a href="0xplaygrounds-rig.html">Does 0xPlaygrounds/rig actually build and run a working LLM agent from its own quickstart example?</a></td><td>could_not_test</td><td>could_not_test</td><td class="n">0</td><td class="n">2</td><td class="n">3</td><td class="n">0</td><td class="n">$0.358</td><td><span class="yes">pass</span></td></tr>
+<tr class='row'><td><a href="maximhq-bifrost.html">Is maximhq/bifrost actually fifty times faster than LiteLLM, as its description claims?</a></td><td>could_not_test</td><td>could_not_test</td><td class="n">0</td><td class="n">0</td><td class="n">3</td><td class="n">0</td><td class="n">$0.163</td><td><span class="yes">pass</span></td></tr>
+<tr class='row'><td><a href="berriai-litellm.html">Does BerriAI/litellm actually translate a call for a non-OpenAI provider into the OpenAI request format, as its README claims?</a></td><td>could_not_test</td><td>inconclusive</td><td class="n">0</td><td class="n">1</td><td class="n">4</td><td class="n">0</td><td class="n">$0.354</td><td><span class="yes">pass</span></td></tr>
+<tr class='row'><td><a href="conorbronsdon-avoid-ai-writing.html">Does conorbronsdon/avoid-ai-writing ship a detector that actually runs and flags AI-writing patterns in a sample of text?</a></td><td>could_not_test</td><td>could_not_test</td><td class="n">0</td><td class="n">1</td><td class="n">5</td><td class="n">0</td><td class="n">$0.340</td><td><span class="no">fail</span> blockers</td></tr>
+</table></div>
+
+</div>
+</body>
+</html>

@@ -13,7 +13,7 @@ from ai_monitor.agent import investigate as inv
 from ai_monitor.storage import db
 from ai_monitor.storage.models import Item, Source
 from tests.test_app import fake_run
-from tests.test_export_traces import HOSTILE, Parsed
+from tests.test_export_traces import HOSTILE, Parsed, questions_file, store
 
 
 def automatic_result(conn, description=HOSTILE):
@@ -33,7 +33,7 @@ def test_shared_export_preserves_history_and_escapes_descriptions(tmp_path):
     out = tmp_path / "site"
     out.mkdir()
     (out / "index.html").write_text('<div class="wrap">Historical evaluations</div>')
-    (out / "history.html").write_text("preserved")
+    (out / "old-trace.html").write_text('<a href="index.html">&larr; all investigations</a>preserved')
     last = {"status": "completed", "finished_at": "2026-09-24T10:00:00+00:00", "investigated": 1}
     data = export.export(path, out, last)
     assert feed.validate_feed(data) == data
@@ -42,10 +42,30 @@ def test_shared_export_preserves_history_and_escapes_descriptions(tmp_path):
     parsed = Parsed()
     parsed.feed((out / "monitoring.html").read_text())
     assert "script" not in parsed.tags and "img" not in parsed.tags
-    assert (out / "history.html").read_text() == "preserved"
-    assert "Historical evaluations" in (out / "index.html").read_text()
-    export.link_from_index(out / "index.html")
-    assert (out / "index.html").read_text().count('id="weekly-monitoring-link"') == 1
+    assert (out / "old-trace.html").read_text() == '<a href="history.html">&larr; all investigations</a>preserved'
+    assert "Historical evaluations" in (out / "history.html").read_text()
+    assert (out / "history.html").read_text().count('id="weekly-monitoring-link"') == 1
+    assert 'href="index.html"' in (out / "history.html").read_text()
+    assert 'href="history.html"' in (out / "index.html").read_text()
+    assert "proofrun-weekly-landing" in (out / "index.html").read_text()
+    assert (out / "index.html").read_text() == (out / "monitoring.html").read_text()
+    export.export(path, out, last)
+    assert (out / "history.html").read_text().count('id="weekly-monitoring-link"') == 1
+
+
+def test_trace_regeneration_keeps_weekly_home_and_updates_history(tmp_path):
+    conn = db.connect(tmp_path / "traces.db")
+    store(conn)
+    out = tmp_path / "site"
+    out.mkdir()
+    (out / "index.html").write_text('<div class="wrap">Old showcase</div>')
+    export.export(tmp_path / "traces.db", out)
+    export_traces.export(conn, out, questions_file(tmp_path))
+    conn.close()
+    assert "proofrun-weekly-landing" in (out / "index.html").read_text()
+    assert "Old showcase" not in (out / "history.html").read_text()
+    assert 'href="index.html"' in (out / "history.html").read_text()
+    assert 'href="history.html"' in (out / "owner-name.html").read_text()
 
 
 def test_feed_network_failure_is_a_readable_fallback(monkeypatch):
