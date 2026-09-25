@@ -236,7 +236,7 @@ def render_index(results: list[Any], stats: dict, generated: str) -> str:
 # --- one investigation ---------------------------------------------------
 
 
-def render_investigation(result: Any, row: Any) -> str:
+def render_investigation(result: Any, row: Any, back_href: str = "index.html") -> str:
     report = _loads(row["report"] if row is not None else None, {}) or {}
     calls = _loads(row["tool_calls"] if row is not None else None, [])
     blockers = _loads(row["blockers"] if row is not None else None, [])
@@ -244,7 +244,7 @@ def render_investigation(result: Any, row: Any) -> str:
 
     verdict = report.get("verdict") or result.verdict or "none"
     parts = [
-        '<a class="back" href="index.html">&larr; all investigations</a>',
+        f'<a class="back" href="{back_href}">&larr; all investigations</a>',
         f'<h1 class="q">{safe(result.question, 400)}</h1>',
         f'<p class="sub"><span class="mono">{safe(result.repo, 120)}</span>'
         f' &middot; {safe(result.category, 40)}</p>',
@@ -378,19 +378,20 @@ def export(
     out_dir.mkdir(parents=True, exist_ok=True)
     written = []
 
+    weekly_landing = (out_dir / "monitoring.html").exists()
     for question, result in zip(questions, results):
         row = ev.latest_run(conn, question["repo"], question["question"])
         path = out_dir / f"{slug(result.repo)}.html"
-        path.write_text(render_investigation(result, row), encoding="utf-8")
+        path.write_text(render_investigation(result, row, "history.html" if weekly_landing else "index.html"), encoding="utf-8")
         written.append(path)
 
-    index = out_dir / "index.html"
+    index = out_dir / ("history.html" if weekly_landing else "index.html")
     index.write_text(render_index(results, stats, generated), encoding="utf-8")
     written.append(index)
 
-    if (out_dir / "monitoring.html").exists():
-        from export_monitoring import link_from_index
-        link_from_index(index)
+    if weekly_landing:
+        from export_monitoring import link_to_monitoring
+        link_to_monitoring(index)
 
     # GitHub Pages runs Jekyll over a published branch unless this file exists,
     # and Jekyll silently drops any path beginning with an underscore. Nothing
@@ -430,7 +431,8 @@ def main() -> int:
         conn.close()
 
     print(f"\n{len(written)} pages written to {args.out}")
-    print(f"open {args.out / 'index.html'}\n")
+    index_name = "history.html" if (args.out / "monitoring.html").exists() else "index.html"
+    print(f"open {args.out / index_name}\n")
     return 0
 
 

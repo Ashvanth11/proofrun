@@ -44,7 +44,7 @@ and 3; every run-2 pass held in run 3.
 No question has been edited after seeing results, across all three runs.
 
 Every step of every run:
-[the trace pages](../site/index.html). Scored reports:
+[the trace pages](../site/history.html). Scored reports:
 [run 2](../reports/eval-investigations-2026-09-14-run2.md),
 [run 3](../reports/eval-investigations-2026-09-14-run3.md).
 

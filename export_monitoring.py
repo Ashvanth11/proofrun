@@ -9,20 +9,36 @@ from ai_monitor.monitoring_feed import build_feed
 from ai_monitor.storage.db import DEFAULT_DB_PATH
 from export_traces import page, safe
 
-LINK = '<p id="weekly-monitoring-link"><a href="monitoring.html">Weekly monitoring: latest repository investigations &rarr;</a></p>'
+LINK = '<p id="weekly-monitoring-link"><a href="index.html">&larr; Weekly monitoring</a></p>'
+OLD_LINK = '<p id="weekly-monitoring-link"><a href="monitoring.html">Weekly monitoring: latest repository investigations &rarr;</a></p>'
+OLD_TRACE_BACK = 'href="index.html">&larr; all investigations'
+NEW_TRACE_BACK = 'href="history.html">&larr; all investigations'
 
 
-def link_from_index(path: Path) -> None:
+def link_to_monitoring(path: Path) -> None:
     if not path.exists():
         return
     text = path.read_text(encoding="utf-8")
-    if 'id="weekly-monitoring-link"' not in text:
+    if OLD_LINK in text:
+        path.write_text(text.replace(OLD_LINK, LINK, 1), encoding="utf-8")
+    elif 'id="weekly-monitoring-link"' not in text:
         text = text.replace('<div class="wrap">', '<div class="wrap">\n' + LINK, 1)
         path.write_text(text, encoding="utf-8")
 
 
-def render(feed: dict) -> str:
-    body = '<a class="back" href="index.html">&larr; Proofrun showcase and historical evaluations</a>'
+def relink_historical_traces(out: Path) -> None:
+    for path in out.glob("*.html"):
+        if path.name in {"index.html", "history.html", "monitoring.html"}:
+            continue
+        text = path.read_text(encoding="utf-8")
+        if OLD_TRACE_BACK in text:
+            path.write_text(text.replace(OLD_TRACE_BACK, NEW_TRACE_BACK, 1), encoding="utf-8")
+
+
+def render(feed: dict, *, has_history: bool = False) -> str:
+    body = '<!-- proofrun-weekly-landing -->'
+    if has_history:
+        body += '<a class="back" href="history.html">Historical showcase and investigation traces &rarr;</a>'
     body += '<h1>Proofrun weekly monitoring</h1><p>Discover AI repositories. Investigate their claims. See what the evidence supports.</p>'
     last = feed.get("last_run")
     if last:
@@ -70,9 +86,19 @@ def render(feed: dict) -> str:
 def export(db_path: Path, out: Path, last_run: dict | None = None) -> dict:
     feed = build_feed(db_path, last_run)
     out.mkdir(parents=True, exist_ok=True)
+    index = out / "index.html"
+    history = out / "history.html"
+    if not history.exists() and index.exists():
+        previous = index.read_text(encoding="utf-8")
+        if "proofrun-weekly-landing" not in previous:
+            history.write_text(previous, encoding="utf-8")
+    if history.exists():
+        link_to_monitoring(history)
+        relink_historical_traces(out)
+    landing = render(feed, has_history=history.exists())
     (out / "monitoring.json").write_text(json.dumps(feed, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    (out / "monitoring.html").write_text(render(feed), encoding="utf-8")
-    link_from_index(out / "index.html")
+    (out / "monitoring.html").write_text(landing, encoding="utf-8")
+    index.write_text(landing, encoding="utf-8")
     return feed
 
 

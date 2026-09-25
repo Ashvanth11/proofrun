@@ -12,6 +12,10 @@ what kind of evidence it is.
 
 ## Try it
 
+Browse the [weekly monitoring site](https://ashvanth11.github.io/proofrun/)
+for the latest published batch and the
+[historical investigation traces](https://ashvanth11.github.io/proofrun/history.html).
+
 Open the local UI with two switchable modes. **Monitoring** surfaces saved
 investigations from the automatic discovery pipeline: what was checked, what
 was found, and what remains unknown. **Ask it yourself** accepts a GitHub
@@ -262,29 +266,19 @@ Getting an API key, and why the Console is separate from claude.ai:
 ### Publishing the traces
 
 `site/` is a complete static site — no build step, no JavaScript, no external
-assets. It opens straight from disk:
+assets. The weekly page is its landing page; the recorded evaluation index is
+kept at `history.html`. To regenerate the historical traces locally:
 
 ```bash
-python export_traces.py && open site/index.html
+python export_traces.py && open site/history.html
 ```
 
-To publish it on GitHub Pages, push `site/` as the root of a `gh-pages`
-branch:
-
-```bash
-git subtree push --prefix site origin gh-pages
-```
-
-Then **Settings → Pages → Build and deployment → Source → Deploy from a
-branch**, set **Branch** to `gh-pages` and the folder to **`/ (root)`**, and
-**Save**.
-
-The branch exists because Pages only serves from a repository's root or its
-`/docs` folder, and `/docs` here holds the written documentation. The
-`.nojekyll` file at the root of `gh-pages` tells Pages to serve the files
-byte-for-byte instead of running Jekyll over them, which would otherwise ignore
-any path beginning with an underscore. After a new run, regenerate, commit, and
-push the subtree again.
+GitHub Pages publishes through the weekly GitHub Actions workflow. That
+workflow copies the historical files from `gh-pages`, refreshes the weekly
+landing page and feed from the saved monitoring state, then deploys the combined
+site. The `gh-pages` branch is retained as the historical asset source; it is
+no longer the Pages publishing source. See [weekly monitoring setup](docs/weekly-monitoring.md)
+for the schedule, activation variables, and state recovery procedure.
 
 ---
 

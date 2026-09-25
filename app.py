@@ -307,7 +307,7 @@ def render_monitoring(st: Any) -> None:
         st.warning(error)
     if views:
         st.markdown("### Latest monitoring investigations")
-        st.caption("Results from automatic monitoring. Published results refresh on page use at most every five minutes; each investigation keeps its original date.")
+        st.caption("Results from automatic monitoring. While this app is in use, it checks the published feed at most once every five minutes. Weekly investigations run on their separate schedule; each result keeps its original date.")
     else:
         st.markdown("### Explore investigation examples")
         st.caption("No automatic monitoring investigations have been saved here yet. These real recorded runs began with submitted questions and illustrate the findings the shared investigation engine produces.")
