@@ -118,7 +118,14 @@ SUMMARY_CHARS = 1000
 
 def summarize(result: Any, limit: int = SUMMARY_CHARS) -> str:
     text = json.dumps(result, default=str)
-    return text[:limit] + ("..." if len(text) > limit else "")
+    if len(text) <= limit:
+        return text
+    # A command's exit status and the end of stdout/stderr often contain the
+    # decisive result. Keep both ends for the saved trace and evidence critic.
+    marker = "... [middle omitted] ..."
+    head = (limit - len(marker)) * 3 // 5
+    tail = limit - len(marker) - head
+    return text[:head] + marker + text[-tail:]
 
 
 def _refusals(counts: Counter, caps: Caps, name: str) -> Optional[ToolCap]:

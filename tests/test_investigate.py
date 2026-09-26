@@ -422,6 +422,18 @@ def test_a_web_result_cannot_be_inspected():
     assert run.report.verdict == "inconclusive"
 
 
+def test_empty_web_result_cannot_support_a_ledger_entry():
+    run = _run_with_calls(
+        [inv.ToolCall(
+            step=1, tool="web_search", arguments={"query": "benchmark"},
+            is_error=False, result_summary="null", server=True,
+        )],
+        [evidence(kind="reported", source="web_search(benchmark)")],
+    )
+    assert run.report.ledger == []
+    assert run.dropped_entries == 1
+
+
 def test_a_failed_metadata_call_is_not_inspected():
     run = _run_with_calls(
         [
@@ -558,6 +570,24 @@ def test_the_rules_run_again_after_a_revision():
     assert run.revised is True
     assert run.report.verdict == "inconclusive"
     assert run.downgraded is True
+
+
+def test_grounded_label_with_issues_still_revises_investigation():
+    box, _ = sandbox_tools()
+    client = ScriptedClient(
+        ["Done."],
+        report=report(),
+        critique=critique_mod.Critique(grounded=True, issues=["Wrong source attribution."]),
+    )
+    run = run_investigation(client, box)
+
+    run, _ = critique_mod.critique_and_revise_investigation(
+        run, client, model="ollama/test"
+    )
+
+    assert run.revised is True
+    assert run.original_report is not None
+    assert run.critique.issues == ["Wrong source attribution."]
 
 
 # --- caps and cleanup ----------------------------------------------------
@@ -1330,6 +1360,15 @@ def test_the_extraction_prompt_defines_the_blocker_vocabulary():
     assert "unsupported_language:" in system
     assert "never attempted" in system
     assert "no_testable_claim: ONLY" in system
+
+
+def test_a_supplied_claim_cannot_be_labeled_no_testable_claim():
+    run = run_investigation(
+        ScriptedClient(["Done."], report=report(
+            verdict="could_not_test", blockers=["no_testable_claim", "other"]
+        ))
+    )
+    assert run.report.blockers == ["other"]
 
 
 def test_the_sandbox_tools_say_what_the_image_contains():

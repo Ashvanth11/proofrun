@@ -12,21 +12,50 @@ what kind of evidence it is.
 
 ## Try it
 
-Browse the [weekly monitoring site](https://ashvanth11.github.io/proofrun/)
-for the latest published batch and the
-[historical investigation traces](https://ashvanth11.github.io/proofrun/history.html).
-
 Open the local UI with two switchable modes. **Monitoring** surfaces saved
 investigations from the automatic discovery pipeline: what was checked, what
 was found, and what remains unknown. **Ask it yourself** accepts a GitHub
-repository URL and a question in separate fields.
+repository URL and a question in separate fields. It can also reopen past
+questions saved in local SQLite without starting another investigation.
 
 ```bash
 streamlit run app.py
 ```
 
+### Screenshot walkthrough
+
+**Monitoring:** The completed 2026-W39 batch shows an inconclusive Langfuse
+investigation with its evidence and limits. Other discovered repositories are
+listed separately as **Not investigated**.
+
+![Weekly monitoring investigation with evidence and limitations](screenshots/monitoring-investigation.png)
+
+![Also discovered repositories labeled Not investigated](screenshots/monitoring-discoveries.png)
+
+**Ask it yourself:** A direct question asks whether Engram can save a fact to
+SQLite, reopen the file, and recall it without an API key. The saved local run
+52 tested one fact and query in Docker and returned **supported**. The answer
+shows what was checked and what remains unknown; the expanded report shows the
+sandbox evidence. This direct run is local and is not in the published weekly
+feed.
+
+![Engram repository and question entered in Ask it yourself](screenshots/engram-question.png)
+
+![Engram result with observed checks and limitations](screenshots/engram-result.png)
+
+![Engram evidence ledger and sandbox trace](screenshots/engram-evidence.png)
+
+### Public weekly page
+
+The [live GitHub Pages site](https://ashvanth11.github.io/proofrun/) publishes
+the latest completed weekly batch for browsing without the local app. The
+[historical investigation traces](https://ashvanth11.github.io/proofrun/history.html)
+remain available separately. Pages is a static showcase; direct questions run
+in the local Streamlit app.
+
 The monitoring tab reads discovery-linked investigation results from local
-SQLite and the public weekly feed without starting an investigation. If none exist, it shows three clearly labeled
+SQLite and the public weekly feed without starting an investigation. If none
+exist, it shows three clearly labeled
 recorded investigations initiated by direct questions, demonstrating the same
 investigation engine. These examples work without credentials, Docker, or a
 local database. Earlier discovery summaries remain in a secondary section.

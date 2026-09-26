@@ -10,6 +10,7 @@ import hashlib
 import json
 import logging
 import os
+import sqlite3
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -288,6 +289,98 @@ def load_monitoring(path: Path = MONITORING_PATH) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_past_questions(path: Path | None = None) -> tuple[list[dict[str, Any]], str]:
+    """List saved direct questions without creating or modifying the database."""
+    path = path or db.DEFAULT_DB_PATH
+    if not path.exists():
+        return [], ""
+    try:
+        with sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, repo, question, verdict, created_at FROM investigations "
+                "WHERE item_id IS NULL ORDER BY created_at DESC, id DESC LIMIT 100"
+            ).fetchall()
+        return [dict(row) for row in rows], ""
+    except sqlite3.Error:
+        log.exception("could not list past questions")
+        return [], "Saved questions could not be loaded."
+
+
+def load_past_run(run_id: int, path: Path | None = None) -> tuple[dict[str, Any] | None, str]:
+    """Read one saved direct investigation for the past-questions viewer."""
+    path = path or db.DEFAULT_DB_PATH
+    if not path.exists():
+        return None, "Saved result is no longer available."
+    try:
+        with sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT * FROM investigations WHERE id = ? AND item_id IS NULL", (run_id,)
+            ).fetchone()
+        if row is None:
+            return None, "Saved result is no longer available."
+        report = inv.Investigation.model_validate_json(row["report"]) if row["report"] else None
+        critique = json.loads(row["critique"] or "{}")
+        return {
+            "repo": row["repo"], "question": row["question"],
+            "status": "saved", "recorded_at": (row["created_at"] or "")[:10],
+            "repository_description": report.repository_description if report else "",
+            "verdict": report.verdict if report else "no_structured_verdict",
+            "summary": report.summary if report else "The investigation finished without a structured verdict.",
+            "blockers": report.blockers if report else json.loads(row["blockers"] or "[]"),
+            "ledger": [entry.model_dump() for entry in report.ledger] if report else [],
+            "limitations": report.limitations if report else [],
+            "tool_calls": json.loads(row["tool_calls"] or "[]"),
+            "observed_output": report.facts.observed_output if report else "",
+            "final_text": row["final_text"] or "",
+            "critique_status": row["critique_status"],
+            "critique_grounded": critique.get("grounded"),
+            "critique_issues": critique.get("issues", []),
+            "estimated_cost_usd": row["cost_usd"] or 0,
+            "elapsed_seconds": row["wall_seconds"] or 0,
+            "steps_taken": row["steps_taken"] or 0,
+            "stop_reason": row["stop_reason"],
+            "downgraded": bool(row["downgraded"]), "revised": bool(row["revised"]),
+        }, ""
+    except (sqlite3.Error, ValueError, TypeError, KeyError):
+        log.exception("could not load past investigation")
+        return None, "Saved result could not be read."
+
+
+def past_question_label(row: dict[str, Any]) -> str:
+    """Distinguish repeated runs of the same question in the selector."""
+    date = (row["created_at"] or "")[:16].replace("T", " ")
+    return f"#{row['id']} · {date} UTC · {row['repo']} · {row['question']} ({row['verdict'] or 'no verdict'})"
+
+
+def render_past_questions(st: Any) -> bool:
+    questions, error = load_past_questions()
+    selected_view = None
+    with st.expander("View past questions"):
+        if error:
+            st.warning(error)
+        elif not questions:
+            st.caption("No direct investigations have been saved locally yet.")
+        else:
+            selected = st.selectbox(
+                "Saved question",
+                questions,
+                index=None,
+                placeholder="Choose a past question",
+                format_func=past_question_label,
+            )
+            st.caption("Showing up to 100 recent direct runs. Browsing a saved result does not start a new investigation.")
+            if selected is not None:
+                selected_view, view_error = load_past_run(selected["id"])
+                if view_error:
+                    st.warning(view_error)
+    if selected_view is not None:
+        st.markdown("### Saved investigation")
+        render_view(st, selected_view)
+    return selected_view is not None
+
+
 
 
 def render_monitoring(st: Any) -> None:
@@ -364,7 +457,7 @@ def render_ask(st: Any) -> None:
     if question_text.strip() and repository.strip():
         try:
             request = prepare_question(question_text, repository)
-            st.caption(f"Estimated spend allowance: ${runner.worst_case_usd(1):.2f}. Actual charges may exceed this estimate.")
+            st.caption(f"Spend allowance: ${runner.worst_case_usd(1):.2f}. Most runs cost less; this is an estimate, not a hard cap.")
         except InputError as exc:
             st.error(str(exc))
     st.caption("A new investigation uses your Anthropic API key and may run code in your local Docker sandbox.")
@@ -397,6 +490,8 @@ def render_ask(st: Any) -> None:
     else:
         st.caption("EXAMPLE RESULT · Choose another example above to explore a different investigation.")
         render_view(st, selected)
+    st.divider()
+    render_past_questions(st)
 
 
 def main() -> None:

@@ -40,6 +40,12 @@ def render(feed: dict, *, has_history: bool = False) -> str:
     if has_history:
         body += '<a class="back" href="history.html">Historical showcase and investigation traces &rarr;</a>'
     body += '<h1>Proofrun weekly monitoring</h1><p>Discover AI repositories. Investigate their claims. See what the evidence supports.</p>'
+    body += (
+        '<p><a href="https://github.com/Ashvanth11/proofrun#screenshot-walkthrough">Screenshot walkthrough</a>'
+        ' &middot; <a href="https://github.com/Ashvanth11/proofrun#setup">Local app setup</a>'
+        ' &middot; <a href="https://github.com/Ashvanth11/proofrun">Source repository</a></p>'
+        '<p class="sub">This page shows completed weekly monitoring results. Direct questions run in the local Streamlit app.</p>'
+    )
     last = feed.get("last_run")
     if last:
         body += f'<p class="sub">Last completed: {safe(last["finished_at"])} &middot; {safe(last["investigated"])} new investigation(s). Scheduled weekly; individual findings retain their original dates.</p>'
