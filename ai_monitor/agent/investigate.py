@@ -113,12 +113,19 @@ Work up this ladder, and stop climbing the moment the question is settled:
 1. get_repo_metadata - language, size, activity. Often enough to know whether
    the question is even testable.
 2. read_file - the README and whatever one file the question actually turns on.
+   If a long file is truncated before the relevant section, use find to jump
+   to a phrase from the question or start_char to continue. A truncated prefix
+   is not evidence that the feature is absent.
 3. web_search - independent evidence: issues, discussions, other people's
    reports. Use it when what the project says about itself is the thing in
-   question.
+   question. A null or empty search result provides no source evidence; do not
+   infer articles, figures, or conclusions from it.
 4. sandbox_clone, then sandbox_setup - only once you have decided the question
    cannot be answered without running the code. Cloning and installing is the
    expensive rung and most questions do not need it.
+
+   Never call sandbox_setup or sandbox_run unless sandbox_clone succeeded. If
+   the clone was refused for size or language, conclude with that limitation.
 
    Before you clone, say to yourself what command you intend to run and what
    its output would tell you. If the answer is already settled - the language
@@ -653,7 +660,11 @@ FIRST_HAND = frozenset({"observed", "inspected"})
 def cited_tools(source: str, tool_calls: list[ToolCall]) -> set[str]:
     """Tool names that appear in `source` *and* actually ran this run."""
     text = (source or "").lower()
-    return {c.tool for c in tool_calls if c.tool.lower() in text}
+    return {
+        c.tool for c in tool_calls
+        if c.tool.lower() in text
+        and not (c.tool == "web_search" and c.result_summary.strip() in {"", "null", "[]", "{}"})
+    }
 
 
 def apply_integrity_rules(run: InvestigationRun) -> InvestigationRun:
@@ -665,6 +676,11 @@ def apply_integrity_rules(run: InvestigationRun) -> InvestigationRun:
     report = run.report
     if report is None:
         return run
+
+    # An actual investigation already has a concrete claim. This blocker is
+    # reserved for the autonomous pre-investigation path that found no claim.
+    if run.question.claim.strip():
+        report.blockers = [b for b in report.blockers if b != "no_testable_claim"]
 
     # A revision is a fresh Investigation straight from the model, so it
     # arrives with the model's idea of how long its install took and how big

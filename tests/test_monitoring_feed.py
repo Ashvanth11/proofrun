@@ -42,6 +42,8 @@ def test_shared_export_preserves_history_and_escapes_descriptions(tmp_path):
     parsed = Parsed()
     parsed.feed((out / "monitoring.html").read_text())
     assert "script" not in parsed.tags and "img" not in parsed.tags
+    assert ("a", "href", "https://github.com/Ashvanth11/proofrun#screenshot-walkthrough") in parsed.remote
+    assert ("a", "href", "https://github.com/Ashvanth11/proofrun#setup") in parsed.remote
     assert (out / "old-trace.html").read_text() == '<a href="history.html">&larr; all investigations</a>preserved'
     assert "Historical evaluations" in (out / "history.html").read_text()
     assert (out / "history.html").read_text().count('id="weekly-monitoring-link"') == 1

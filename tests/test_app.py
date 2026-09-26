@@ -241,9 +241,10 @@ def test_live_path_can_call_existing_engine_with_fake_model_and_sandbox(tmp_path
     assert made == {}  # no Docker sandbox was created
 
 
-def test_streamlit_page_browses_samples_and_rejects_empty_submission():
+def test_streamlit_page_browses_samples_and_rejects_empty_submission(monkeypatch, tmp_path):
     from streamlit.testing.v1 import AppTest
 
+    monkeypatch.setattr(db, "DEFAULT_DB_PATH", tmp_path / "missing.db")
     page = AppTest.from_file(app.__file__).run(timeout=30)
     assert not page.exception
     assert page.title[0].value == "Proofrun"
@@ -264,11 +265,48 @@ def test_streamlit_page_browses_samples_and_rejects_empty_submission():
     visible = " ".join(x.value for kind in (page.text, page.caption, page.markdown) for x in kind)
     assert "relevance" not in visible.lower()
     assert "override" not in visible.lower()
-    assert any("Estimated spend allowance" in x.value for x in page.caption)
+    assert any("Spend allowance:" in x.value and "Most runs cost less" in x.value for x in page.caption)
     assert not page.exception
 
 
-def test_monitoring_snapshot_is_portable_and_browsing_does_not_run_services(monkeypatch):
+def test_past_questions_are_read_only_and_render_saved_result(tmp_path, monkeypatch):
+    from streamlit.testing.v1 import AppTest
+
+    path = tmp_path / "monitor.db"
+    conn = db.connect(path)
+    saved = inv.store_investigation(conn, fake_run(app.prepare_question("Does owner/name work?")))
+    latest = inv.store_investigation(conn, fake_run(app.prepare_question("Does owner/name work?")))
+    conn.close()
+    before = path.read_bytes()
+
+    questions, error = app.load_past_questions(path)
+    assert not error and [row["id"] for row in questions] == [latest, saved]
+    assert app.past_question_label(questions[0]) != app.past_question_label(questions[1])
+    view, error = app.load_past_run(saved, path)
+    assert not error and view["status"] == "saved"
+    assert view["question"] == "Does owner/name work?"
+    assert path.read_bytes() == before
+
+    monkeypatch.setattr(db, "DEFAULT_DB_PATH", path)
+    monkeypatch.setattr(app.anthropic, "Anthropic", lambda **kwargs: (_ for _ in ()).throw(AssertionError("paid call")))
+    page = AppTest.from_file(app.__file__).run(timeout=30)
+    assert not page.exception
+    assert [box.label for box in page.selectbox] == ["Example question", "Saved question"]
+    page.selectbox[1].set_value(questions[0]).run(timeout=30)
+    assert not page.exception
+    assert any("Saved investigation" in x.value for x in page.markdown)
+    assert any("The evidence did not settle it." in x.value for x in page.text)
+    assert path.read_bytes() == before
+
+
+def test_missing_past_questions_db_is_not_created(tmp_path):
+    path = tmp_path / "missing.db"
+    assert app.load_past_questions(path) == ([], "")
+    assert app.load_past_run(1, path)[0] is None
+    assert not path.exists()
+
+
+def test_monitoring_snapshot_is_portable_and_browsing_does_not_run_services(monkeypatch, tmp_path):
     from streamlit.testing.v1 import AppTest
 
     def unexpected(*args, **kwargs):
@@ -276,6 +314,7 @@ def test_monitoring_snapshot_is_portable_and_browsing_does_not_run_services(monk
 
     monkeypatch.setattr(db, "connect", unexpected)
     monkeypatch.setattr(app.anthropic, "Anthropic", unexpected)
+    monkeypatch.setattr(db, "DEFAULT_DB_PATH", tmp_path / "missing.db")
     snapshot = app.load_monitoring()
     assert len(snapshot["briefs"]) == 1
     assert len(snapshot["items"]) == 6

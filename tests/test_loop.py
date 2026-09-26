@@ -368,7 +368,15 @@ def test_output_is_truncated_in_the_trace():
     )
     summary = result.tool_calls[0].result_summary
     assert len(summary) < loop.SUMMARY_CHARS + 10
-    assert summary.endswith("...")
+    assert "middle omitted" in summary
+    assert summary.endswith('"}')
+
+
+def test_summary_keeps_command_result_at_the_end():
+    summary = loop.summarize({"stdout": "starting\n" + "x" * 5000 + "\nSUCCESS", "exit_code": 0})
+    assert "starting" in summary
+    assert "SUCCESS" in summary
+    assert '"exit_code": 0' in summary
 
 
 @pytest.mark.parametrize("cap", ["step_cap", "cost_cap", "time_cap"])

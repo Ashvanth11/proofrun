@@ -12,6 +12,7 @@ GITHUB_TOKEN to raise this to 5,000/hour.
 
 import base64
 import logging
+import re
 from typing import Any, Callable, Optional
 
 import httpx
@@ -104,6 +105,10 @@ def get_repo_description(repo: str) -> dict:
 
 def list_files(repo: str, path: str = "") -> dict:
     """Second rung: see what exists before deciding what is worth reading."""
+    # Some model calls have supplied the two quote characters for an empty
+    # path, producing a GitHub 404 instead of listing the repository root.
+    if path.strip() in {'""', "''"}:
+        path = ""
     data = _get(f"/repos/{repo}/contents/{path.strip('/')}")
     if isinstance(data, dict):  # a file path was passed, not a directory
         return {
@@ -123,8 +128,8 @@ def list_files(repo: str, path: str = "") -> dict:
     }
 
 
-def read_file(repo: str, path: str) -> dict:
-    """Third rung: the expensive one. Contents are truncated."""
+def read_file(repo: str, path: str, start_char: int = 0, find: Optional[str] = None) -> dict:
+    """Read a bounded section, optionally starting at a matching phrase."""
     data = _get(f"/repos/{repo}/contents/{path.strip('/')}")
     if isinstance(data, list):
         raise ToolError(f"{path} is a directory; use list_files")
@@ -137,12 +142,32 @@ def read_file(repo: str, path: str) -> dict:
     except Exception as exc:
         raise ToolError(f"failed to decode {path}: {exc}") from exc
 
-    truncated = len(text) > MAX_FILE_CHARS
+    if isinstance(start_char, bool) or not isinstance(start_char, int) or start_char < 0:
+        raise ToolError("start_char must be a non-negative integer")
+    if find is not None:
+        if not isinstance(find, str) or not find.strip():
+            raise ToolError("find must be a non-empty phrase")
+        match = re.search(re.escape(find), text[start_char:], flags=re.IGNORECASE)
+        if match is None:
+            return {
+                "path": path,
+                "size": data.get("size"),
+                "total_chars": len(text),
+                "find": find,
+                "match_found": False,
+                "content": "",
+            }
+        start_char += match.start()
+
+    end_char = min(start_char + MAX_FILE_CHARS, len(text))
     return {
         "path": path,
         "size": data.get("size"),
-        "truncated": truncated,
-        "content": text[:MAX_FILE_CHARS],
+        "total_chars": len(text),
+        "start_char": start_char,
+        "next_char": end_char if end_char < len(text) else None,
+        "truncated": end_char < len(text),
+        "content": text[start_char:end_char],
     }
 
 
@@ -202,7 +227,7 @@ TOOL_SCHEMAS = [
                 "repo": {"type": "string", "description": "owner/name"},
                 "path": {
                     "type": "string",
-                    "description": "Directory path; empty string for the root",
+                    "description": "Directory path; use an empty string for the root (without literal quote characters)",
                 },
             },
             "required": ["repo"],
@@ -212,10 +237,12 @@ TOOL_SCHEMAS = [
     {
         "name": "read_file",
         "description": (
-            "Read a file's contents (truncated to a few thousand characters). "
-            "This is the most expensive tool - use it only when a specific file "
-            "will resolve a specific question, such as reading README.md to "
-            "understand what a project does."
+            "Read up to 6000 characters of one file. Long files start at the "
+            "beginning by default; use find to jump to a relevant phrase "
+            "anywhere in the file, or start_char/next_char to continue reading. "
+            "A truncated opening excerpt does not establish that later sections "
+            "lack the feature in question. Use only when a specific file may "
+            "resolve the question."
         ),
         "input_schema": {
             "type": "object",
@@ -224,6 +251,15 @@ TOOL_SCHEMAS = [
                 "path": {
                     "type": "string",
                     "description": "File path, e.g. README.md or pyproject.toml",
+                },
+                "start_char": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Character offset to start from; use next_char from a previous read to continue",
+                },
+                "find": {
+                    "type": "string",
+                    "description": "Optional case-insensitive phrase to find from start_char; read begins at the match",
                 },
             },
             "required": ["repo", "path"],
@@ -318,6 +354,7 @@ SANDBOX_TOOL_SCHEMAS = [
         "description": (
             "Run one shell command in the container WITH network access, for "
             "installation only: 'cd repo && pip install -e .' and the like. "
+            "Requires a successful sandbox_clone first; do not call after a clone refusal. "
             + IMAGE_CONTENTS +
             "Network is a setup-phase privilege and these calls are strictly "
             "limited - do the install in as few commands as you can. Anything "
@@ -341,6 +378,7 @@ SANDBOX_TOOL_SCHEMAS = [
         "name": "sandbox_run",
         "description": (
             "Run one shell command in the container with NO network at all. "
+            "Requires a successful sandbox_clone first; do not call after a clone refusal. "
             + IMAGE_CONTENTS +
             "This is where the capability the question names gets exercised: "
             "one command, one input, once. Anything it prints is first-hand "

@@ -40,9 +40,9 @@ is not an accuracy benchmark, a fresh end-to-end investigation, a test of Docker
 execution planning, or a test of live search. No Gemini production adapter has
 been selected or wired into the UI or weekly workflow.
 
-The next useful experiment is the same comparison with a stronger free-tier
-Gemini Flash model, followed by a small end-to-end investigation if report quality
-is adequate. Google Search grounding is not available on the 3.1 Flash-Lite Free
+A stronger Flash comparison was attempted below but produced no completed cases.
+An end-to-end investigation would be a separate evaluation after report quality
+is reviewed. Google Search grounding is not available on the 3.1 Flash-Lite Free
 Tier, so full investigator parity also needs a deliberate search strategy.
 
 Sources checked 2026-09-24:
@@ -61,9 +61,8 @@ quota exhaustion. It does not establish the account's access to this model.
 
 The earlier Flash-Lite artifact is preserved. The new attempt is saved in
 [reports/gemini-flash-evaluation.json](../reports/gemini-flash-evaluation.json).
-`evaluate_gemini.py` now accepts an explicit `--model` argument. Its four offline
-tests pass. Weekly activation remains on hold. The next step is a later retry of
-the stronger model when available, with no provider or billing-tier change.
+`evaluate_gemini.py` accepts an explicit `--model` argument. Its four offline
+tests pass. The stronger-model result remains inconclusive.
 
 ## Follow-up retry boundary — 2026-09-24 (local time)
 
@@ -82,4 +81,13 @@ payload. There was no workaround, further retry, paid fallback, or repository
 execution. The evaluation remains inconclusive. A new live attempt requires
 explicit approval for that exact five-request comparison and a spend limit or
 confirmed Free Tier project. Report correctness and real investigator behavior
-still need separate validation before any production provider is chosen.
+still need separate validation before Gemini could be considered for production.
+
+## Current provider decision — 2026-09-25
+
+Claude was separately selected and activated for weekly monitoring. Its first
+run and public results were verified; see [weekly monitoring](weekly-monitoring.md).
+The approximately $5/week planning allowance belongs to that Claude schedule
+and does not authorize another Gemini evaluation. The Gemini script is not in
+the scheduled workflow and has no automatic paid fallback. No further live
+Gemini call was made during this handoff review.

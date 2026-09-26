@@ -95,6 +95,16 @@ def test_ungrounded_assessment_triggers_one_revision():
     assert len(client.calls) == 2  # critique then revise
 
 
+def test_grounded_label_does_not_hide_specific_critique_issues():
+    run = make_run()
+    client = CritiqueClient(grounded=True, issues=["Source attribution is wrong."])
+
+    result, _ = critique_mod.critique_and_revise(run, client, model="ollama/test")
+
+    assert result.revised is True
+    assert len(client.calls) == 2
+
+
 def test_revision_happens_at_most_once():
     """A critic and a reviser could otherwise disagree indefinitely."""
     run = make_run()

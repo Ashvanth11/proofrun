@@ -165,7 +165,7 @@ def critique_and_revise(
         return run, total
 
     run.critique = verdict
-    if verdict.grounded or not verdict.issues:
+    if not verdict.issues:
         return run, total
 
     log.info("%s: critique found %d issue(s), revising", run.repo, len(verdict.issues))
@@ -310,7 +310,7 @@ def critique_and_revise_investigation(
 
     run.critique_status = "ok"
     run.critique = verdict
-    if verdict.grounded or not verdict.issues:
+    if not verdict.issues:
         return run, total
 
     log.info(
