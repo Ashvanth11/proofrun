@@ -1,7 +1,7 @@
 # Proofrun
 
-**Proofrun answers "does this repository actually do what its README says?" — by
-running it.**
+**Proofrun answers "does this repository actually do what its README says?" —
+by checking the code and running focused tests when needed.**
 
 You ask a question about a repository. It decides whether reading settles the
 matter or whether it has to clone the code and execute it in a sandbox, then
@@ -17,10 +17,6 @@ investigations from the automatic discovery pipeline: what was checked, what
 was found, and what remains unknown. **Ask it yourself** accepts a GitHub
 repository URL and a question in separate fields. It can also reopen past
 questions saved in local SQLite without starting another investigation.
-
-```bash
-streamlit run app.py
-```
 
 ### Screenshot walkthrough
 
@@ -52,6 +48,22 @@ the latest completed weekly batch for browsing without the local app. The
 [historical investigation traces](https://ashvanth11.github.io/proofrun/history.html)
 remain available separately. Pages is a static showcase; direct questions run
 in the local Streamlit app.
+
+### Run the local app
+
+Use Python 3.11. Browsing the recorded examples and published weekly results
+does not require an API key or Docker.
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
+```
+
+Open **Monitoring** for the weekly results or **Ask it yourself** to view a
+saved question. A new investigation is a separate paid action; see
+[live-run setup](#setup) before pressing **Investigate**.
 
 The monitoring tab reads discovery-linked investigation results from local
 SQLite and the public weekly feed without starting an investigation. If none
@@ -140,7 +152,7 @@ manifest* somewhere unrelated and compiled again — testing whether "one file
 reproduces it everywhere" survives leaving the repository that said it.
 
 [Full trace, ledger and critique](https://ashvanth11.github.io/proofrun/microsoft-apm.html) ·
-[every run, every step](https://ashvanth11.github.io/proofrun/)
+[historical runs and traces](https://ashvanth11.github.io/proofrun/history.html)
 
 ---
 
@@ -278,14 +290,16 @@ allowances for these but is not a guaranteed total-spend limit.
 
 ## Setup
 
-Use Python 3.11 for the pinned dependencies and offline CI.
+The local app setup above is enough to browse saved results. For a new direct
+investigation, add an Anthropic API key to `.env`. Start Docker Desktop and
+build the sandbox image when the question needs repository execution. Check
+Docker before starting an execution-based run.
 
 ```bash
-python3.11 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
 cp .env.example .env          # add ANTHROPIC_API_KEY, optionally GITHUB_TOKEN
 python check_api.py           # verifies the key, generates no tokens
-docker build -t ai-monitor-sandbox:latest sandbox/    # only needed for execution
+docker info                   # confirm the engine is running
+docker build -t ai-monitor-sandbox:latest sandbox/  # one-time execution image
 python -m pytest tests/ -q    # offline suite; no network, Docker daemon, or API key
 ```
 
@@ -322,3 +336,4 @@ for the schedule, activation variables, and state recovery procedure.
 | [testing.md](docs/testing.md) | What the suite caught, and what it pins |
 | [eval-findings.md](docs/eval-findings.md) | Stage 1: the models agree with each other, not with the human |
 | [api-setup.md](docs/api-setup.md) | Keys, the Console, and billing |
+| [release-notes.md](docs/release-notes.md) | Portfolio release summary and limits |
