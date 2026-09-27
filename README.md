@@ -234,9 +234,7 @@ There are no confidence scores. [Why, and what it costs](docs/evidence-ledger.md
 ## How well it works
 
 **10 of 13** recorded questions pass every criterion, at about $4.92 estimated
-token cost and 24 minutes of recorded runtime for the full set. These are
-process and expectation checks, not a measure of factual accuracy.
-
+token cost and 24 minutes of recorded runtime for the full set.
 | | run 1 | run 2 | run 3 |
 |---|---|---|---|
 | passing | 6/13 | 8/13 | **10/13** |
