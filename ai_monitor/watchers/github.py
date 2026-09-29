@@ -12,6 +12,7 @@ from ai_monitor.storage.models import Item, Source
 log = logging.getLogger(__name__)
 
 API_URL = "https://api.github.com/search/repositories"
+REPO_API_URL = "https://api.github.com/repos"
 
 # Topics that map onto the configured interest areas. GitHub's topic index is
 # more reliable than full-text search for finding relevant repos.
@@ -46,9 +47,8 @@ def parse_repo(repo: dict) -> Item:
     description = repo.get("description") or ""
     topics = repo.get("topics") or []
 
-    # Search results carry no README, so the analyzable text is the description
-    # plus topics. Fetching READMEs is deliberately left to the Phase 5 agent,
-    # which decides per-repo whether the deeper read is worth it.
+    # Search results carry no README, so discovery analyzes description and
+    # topics. The weekly runner fetches the selected repo's README separately.
     content = description
     if topics:
         content = f"{description}\n\nTopics: {', '.join(topics)}".strip()
@@ -111,6 +111,23 @@ def _search(query: str, per_page: int, timeout: float) -> list[dict]:
         )
     response.raise_for_status()
     return response.json().get("items", [])
+
+
+def fetch_readme(repo: str, timeout: float = 30.0) -> str:
+    """Fetch the selected repository's actual README for question selection."""
+    try:
+        response = httpx.get(
+            f"{REPO_API_URL}/{repo}/readme",
+            headers={**_headers(), "Accept": "application/vnd.github.raw+json"},
+            timeout=timeout,
+            follow_redirects=True,
+        )
+    except httpx.HTTPError as exc:
+        raise GitHubError(f"Could not fetch README for {repo}: {exc}") from exc
+    if response.status_code == 404:
+        return ""
+    response.raise_for_status()
+    return response.text
 
 
 def fetch(

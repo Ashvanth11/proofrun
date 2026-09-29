@@ -127,7 +127,7 @@ def test_an_item_with_no_testable_claim_is_recorded_not_skipped(tmp_path):
             from types import SimpleNamespace
 
             return SimpleNamespace(
-                parsed_output=inv.DerivedQuestion(has_testable_claim=False),
+                parsed_output=inv.DerivedQuestion(has_testable_claim=False, claim_quality=0.0),
                 usage=SimpleNamespace(input_tokens=100, output_tokens=10),
             )
 
@@ -144,6 +144,139 @@ def test_an_item_with_no_testable_claim_is_recorded_not_skipped(tmp_path):
     assert "no_testable_claim" in row["blockers"]
     # and it is not offered again next run
     assert runner.candidates(conn) == []
+    conn.close()
+
+
+def test_weekly_question_uses_readme_when_search_description_is_vague(tmp_path, monkeypatch):
+    conn = db.connect(tmp_path / "t.db")
+    item_id = seed(conn, "owner/name", 0.9, content="AI Observability & Evaluation")
+    prompts = []
+
+    class Client:
+        def __init__(self):
+            self.messages = self
+
+        def parse(self, **kwargs):
+            from types import SimpleNamespace
+
+            prompts.append(kwargs["messages"][0]["content"])
+            return SimpleNamespace(
+                parsed_output=inv.DerivedQuestion(
+                    has_testable_claim=True,
+                    claim="Trace LLM calls",
+                    question="Does owner/name trace LLM calls?",
+                    claim_quality=0.9,
+                ),
+                usage=SimpleNamespace(input_tokens=100, output_tokens=10),
+            )
+
+    monkeypatch.setattr(inv, "investigate", lambda *args, **kwargs: make_run())
+    readmes = []
+
+    def load_readme(repo):
+        readmes.append(repo)
+        return "# Project\nTrace LLM calls and inspect their spans."
+
+    count, _ = runner.run_investigations_on_candidates(
+        conn, Client(), model="ollama/test", with_critique=False,
+        readme_loader=load_readme,
+    )
+
+    assert count == 1
+    assert readmes == ["owner/name"]
+    assert "README excerpt:\n# Project" in prompts[0]
+    assert "AI Observability & Evaluation" not in prompts[0]
+    assert conn.execute("SELECT stop_reason FROM investigations WHERE item_id=?", (item_id,)).fetchone()[0] == "sufficient_info"
+    conn.close()
+
+
+def test_question_derivation_error_is_not_saved_as_no_claim(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    item_id = seed(conn, "owner/name", 0.9)
+
+    class Broken:
+        def __init__(self):
+            self.messages = self
+
+        def parse(self, **kwargs):
+            raise ValueError("invalid model response")
+
+    with pytest.raises(RuntimeError, match="Could not derive a question"):
+        runner.run_investigations_on_candidates(
+            conn, Broken(), model="ollama/test", readme_loader=lambda repo: "A claim."
+        )
+    assert conn.execute("SELECT COUNT(*) FROM investigations WHERE item_id=?", (item_id,)).fetchone()[0] == 0
+    conn.close()
+
+
+def test_weekly_selection_prefers_best_claim_in_current_batch(tmp_path, monkeypatch):
+    conn = db.connect(tmp_path / "t.db")
+    top = seed(conn, "owner/top", 0.9)
+    best = seed(conn, "owner/best", 0.8)
+    seed(conn, "owner/older", 0.95)
+    investigated = []
+
+    class Client:
+        def __init__(self):
+            self.messages = self
+
+        def parse(self, **kwargs):
+            from types import SimpleNamespace
+
+            prompt = kwargs["messages"][0]["content"]
+            repo = prompt.split("Repository: ", 1)[1].split("\n", 1)[0]
+            quality = {"owner/top": 0.3, "owner/best": 0.95}[repo]
+            return SimpleNamespace(
+                parsed_output=inv.DerivedQuestion(
+                    has_testable_claim=True, claim="A capability",
+                    question=f"Does {repo} provide the capability?",
+                    claim_quality=quality,
+                ),
+                usage=SimpleNamespace(input_tokens=100, output_tokens=10),
+            )
+
+    def fake_investigate(question, *args, **kwargs):
+        investigated.append(question.repo)
+        run = make_run()
+        run.question = question
+        run.report.question = question.question
+        return run
+
+    monkeypatch.setattr(inv, "investigate", fake_investigate)
+    count, _ = runner.run_investigations_on_candidates(
+        conn, Client(), model="ollama/test", with_critique=False,
+        readme_loader=lambda repo: f"# {repo}\nA capability.",
+        select_best_claim=True, eligible_item_ids=[top, best], limit=1,
+    )
+
+    assert count == 1
+    assert investigated == ["owner/best"]
+    assert conn.execute("SELECT item_id FROM investigations").fetchone()[0] == best
+    conn.close()
+
+
+def test_weekly_selection_with_no_claim_publishes_no_investigation(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    item_id = seed(conn, "owner/vague", 0.9)
+
+    class NoClaim:
+        def __init__(self):
+            self.messages = self
+
+        def parse(self, **kwargs):
+            from types import SimpleNamespace
+
+            return SimpleNamespace(
+                parsed_output=inv.DerivedQuestion(has_testable_claim=False, claim_quality=0.0),
+                usage=SimpleNamespace(input_tokens=100, output_tokens=10),
+            )
+
+    count, _ = runner.run_investigations_on_candidates(
+        conn, NoClaim(), model="ollama/test", select_best_claim=True,
+        eligible_item_ids=[item_id], readme_loader=lambda repo: "A list of links.",
+    )
+    assert count == 0
+    assert conn.execute("SELECT COUNT(*) FROM investigations").fetchone()[0] == 0
     conn.close()
 
 

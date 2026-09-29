@@ -11,11 +11,15 @@ The earlier Gemini comparison remains documented in
 ## What is ready
 
 - One weekly check, Mondays at 08:17 UTC, in `weekly-brief.yml`.
-- The runner uses the existing Anthropic pipeline: discover at most 10 recently
-  active GitHub repositories, analyze them with Haiku, and investigate at most
-  one eligible repository with Sonnet. It preserves the existing evidence
-  review and sandbox.
-- The agreed planning allowance is about $5/week. The investigation loop stops
+- The runner discovers at most 10 recently active GitHub repositories and
+  analyzes relevance with Haiku. For eligible repositories in that week's batch,
+  it fetches the actual README and uses Sonnet to derive and rate a testable
+  claim. It investigates the strongest claim once with Sonnet, preserving the
+  existing evidence review and sandbox. If none has a testable claim, the week
+  finishes with zero investigations and no fabricated no-claim report.
+- The agreed planning allowance is about $5/week. Claim screening can make up
+  to ten short Sonnet calls in addition to discovery and one investigation.
+  The investigation loop stops
   starting turns after its $1.50 threshold; overshoot, extraction, review, search,
   and discovery analysis are additional. This is not a guaranteed billing cap.
 - Completed weeks are idempotent. Failed/incomplete weeks require inspection

@@ -43,8 +43,10 @@ def run_week(conn, client, *, now=None, fetch=github.fetch, analyze=analyzer.ana
     try:
         # A single source and bounded fresh batch keep bootstrapping predictable.
         items = fetch(max_results=10, days=7)
+        weekly_item_ids = []
         for item in items[:10]:
             item_id = db.upsert_item(conn, item)
+            weekly_item_ids.append(item_id)
             description = (item.raw.get("description") or item.content.split("\n\nTopics:")[0]).strip()
             conn.execute("INSERT OR IGNORE INTO weekly_discoveries (week,item_id,repo,description) VALUES (?,?,?,?)",
                          (week, item_id, item.source_id, description[:600]))
@@ -52,7 +54,9 @@ def run_week(conn, client, *, now=None, fetch=github.fetch, analyze=analyzer.ana
             analyze(conn, item_id, item, client=client, model=analyzer.ANALYZER_MODEL)
         before = conn.execute("SELECT count(*) FROM investigations WHERE item_id IS NOT NULL").fetchone()[0]
         investigate_candidates(conn, client, model=investigate.INVESTIGATE_MODEL, threshold=0.6,
-                               limit=1, caps=investigate.default_caps(max_cost_usd=1.50))
+                               limit=1, caps=investigate.default_caps(max_cost_usd=1.50),
+                               readme_loader=github.fetch_readme, select_best_claim=True,
+                               eligible_item_ids=weekly_item_ids)
         after = conn.execute("SELECT count(*) FROM investigations WHERE item_id IS NOT NULL").fetchone()[0]
         finished = datetime.now(timezone.utc).isoformat()
         conn.execute("UPDATE weekly_runs SET status='completed',finished_at=?,discovered=?,investigated=? WHERE week=?",

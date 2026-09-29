@@ -950,9 +950,15 @@ def test_facts_about_setup_are_measured_not_asserted():
 # --- deriving a question -------------------------------------------------
 
 
+def test_question_excerpt_reaches_claim_after_large_badge():
+    readme = '<img src="data:image/png;base64,' + 'A' * 5000 + '">\nPhoenix traces LLM calls.'
+    assert "Phoenix traces LLM calls" in inv._question_excerpt(readme)
+    assert "data:image" not in inv._question_excerpt(readme)
+
+
 def test_derive_question_returns_none_when_the_readme_claims_nothing():
     client = ScriptedClient(
-        [], derived=inv.DerivedQuestion(has_testable_claim=False)
+        [], derived=inv.DerivedQuestion(has_testable_claim=False, claim_quality=0.0)
     )
     item = Item(
         source=Source.GITHUB,
@@ -974,6 +980,7 @@ def test_derive_question_builds_a_question_from_a_real_claim():
             has_testable_claim=True,
             claim="resumes after a kill",
             question="Does owner/name resume a workflow after the process is killed?",
+            claim_quality=0.9,
         ),
     )
     item = Item(
@@ -990,7 +997,7 @@ def test_derive_question_builds_a_question_from_a_real_claim():
 
 
 def test_derive_question_skips_an_empty_readme_without_spending():
-    client = ScriptedClient([], derived=inv.DerivedQuestion(has_testable_claim=True))
+    client = ScriptedClient([], derived=inv.DerivedQuestion(has_testable_claim=True, claim_quality=0.5))
     item = Item(
         source=Source.GITHUB, source_id="owner/name", title="t", url="http://x", content=""
     )
@@ -1002,7 +1009,7 @@ def test_derive_question_skips_an_empty_readme_without_spending():
 
 
 def test_derive_question_refuses_a_source_id_that_is_not_a_repository():
-    client = ScriptedClient([], derived=inv.DerivedQuestion(has_testable_claim=True))
+    client = ScriptedClient([], derived=inv.DerivedQuestion(has_testable_claim=True, claim_quality=0.5))
     item = Item(
         source=Source.GITHUB,
         source_id="../../etc/passwd",

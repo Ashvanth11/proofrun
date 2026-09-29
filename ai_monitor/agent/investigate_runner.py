@@ -20,7 +20,7 @@ limits, but is an estimate, not a guaranteed total-spend bound.
 import logging
 import re
 import sqlite3
-from typing import Any, Optional
+from typing import Any, Callable, Optional, Sequence
 
 from ai_monitor.agent import critique as critique_mod
 from ai_monitor.agent import investigate as inv
@@ -55,6 +55,7 @@ def candidates(
     threshold: float = DEFAULT_THRESHOLD,
     limit: int = DEFAULT_LIMIT,
     force: bool = False,
+    eligible_item_ids: Optional[Sequence[int]] = None,
 ) -> list[sqlite3.Row]:
     """GitHub items worth an investigation.
 
@@ -73,11 +74,17 @@ def candidates(
           AND i.canonical_id IS NULL
           AND a.relevance_score >= ?
     """
+    params: list[Any] = [threshold]
+    if eligible_item_ids is not None:
+        if not eligible_item_ids:
+            return []
+        query += f" AND i.id IN ({','.join('?' for _ in eligible_item_ids)})"
+        params.extend(eligible_item_ids)
     if not force:
         query += " AND v.id IS NULL"
     query += " ORDER BY a.relevance_score DESC LIMIT ?"
 
-    return conn.execute(query, (threshold, limit)).fetchall()
+    return conn.execute(query, (*params, limit)).fetchall()
 
 
 def run_investigations_on_candidates(
@@ -89,28 +96,60 @@ def run_investigations_on_candidates(
     caps: Optional[Caps] = None,
     force: bool = False,
     with_critique: bool = True,
+    readme_loader: Optional[Callable[[str], str]] = None,
+    select_best_claim: bool = False,
+    eligible_item_ids: Optional[Sequence[int]] = None,
+    screen_limit: int = 10,
 ) -> tuple[int, Usage]:
     """Autonomous mode: derive a question per item, then answer it.
 
-    Returns (count investigated, total usage). Items whose README asserts
-    nothing testable are stored as `could_not_test`/`no_testable_claim` rather
-    than skipped silently - "four of nine READMEs claim nothing checkable" is a
-    finding, and storing it also stops the next run re-deriving the same
-    nothing.
+    Returns (count investigated, total usage). The weekly selection path screens
+    up to ten current discoveries, chooses the highest quality testable claim,
+    and records only the one investigation. Other autonomous callers keep their
+    existing no-claim records.
     """
-    rows = candidates(conn, threshold=threshold, limit=limit, force=force)
+    rows = candidates(
+        conn, threshold=threshold,
+        limit=screen_limit if select_best_claim else limit,
+        force=force, eligible_item_ids=eligible_item_ids,
+    )
     if not rows:
         log.info("no repositories above threshold %.2f for investigation", threshold)
         return 0, Usage(model=model)
 
-    log.info("investigating up to %d repositories", len(rows))
+    log.info("screening %d repositories" if select_best_claim else
+             "investigating up to %d repositories", len(rows))
     total = Usage(model=model)
     completed = 0
 
+    if select_best_claim:
+        if readme_loader is None:
+            raise ValueError("claim selection requires a README loader")
+        screened = []
+        for row in rows:
+            readme = readme_loader(row["source_id"])
+            question, usage = inv.derive_question(row, client, model=model, readme=readme)
+            total.input_tokens += usage.input_tokens
+            total.output_tokens += usage.output_tokens
+            if question is not None:
+                screened.append((question.claim_quality, row["relevance_score"], row, question))
+        if not screened:
+            log.info("no testable claims in this week's eligible repositories")
+            return 0, total
+        _, _, row, question = max(screened, key=lambda result: (result[0], result[1]))
+        rows = [row]
+        selected_questions = {row["id"]: question}
+    else:
+        selected_questions = {}
+
     for row in rows:
-        question, usage = inv.derive_question(row, client, model=model)
-        total.input_tokens += usage.input_tokens
-        total.output_tokens += usage.output_tokens
+        if select_best_claim:
+            question = selected_questions[row["id"]]
+        else:
+            readme = readme_loader(row["source_id"]) if readme_loader else None
+            question, usage = inv.derive_question(row, client, model=model, readme=readme)
+            total.input_tokens += usage.input_tokens
+            total.output_tokens += usage.output_tokens
 
         if question is None:
             _store_no_claim(conn, row, model)
@@ -146,7 +185,7 @@ def _store_no_claim(conn: sqlite3.Connection, row: sqlite3.Row, model: str) -> N
             question="(no testable claim)",
             verdict="could_not_test",
             blockers=["no_testable_claim"],
-            summary="The README asserts nothing that could be checked.",
+            summary="No testable claim was identified in the supplied repository text.",
         ),
     )
     inv.store_investigation(conn, run, item_id=row["id"])
