@@ -69,9 +69,67 @@ def run_week(conn, client, *, now=None, fetch=github.fetch, analyze=analyzer.ana
         raise
 
 
+def rerun_saved_week(
+    conn, client, *, now=None,
+    investigate_candidates=investigate_runner.run_investigations_on_candidates,
+) -> dict:
+    """Manually replace this week's no-claim result using its saved discoveries."""
+    now = now or datetime.now(timezone.utc)
+    week = now.strftime("%G-W%V")
+    previous = conn.execute("SELECT * FROM weekly_runs WHERE week=?", (week,)).fetchone()
+    if previous is None or previous["status"] != "completed":
+        raise RuntimeError("A completed current week is required for a manual rerun")
+    discoveries = conn.execute(
+        "SELECT item_id FROM weekly_discoveries WHERE week=? ORDER BY item_id", (week,)
+    ).fetchall()
+    item_ids = [row["item_id"] for row in discoveries]
+    if not 1 <= len(item_ids) <= 10:
+        raise RuntimeError("The saved weekly batch is missing or exceeds the discovery limit")
+    prior = conn.execute(
+        "SELECT v.id, v.stop_reason FROM investigations v "
+        "JOIN weekly_discoveries d ON d.item_id=v.item_id WHERE d.week=?", (week,)
+    ).fetchall()
+    if len(prior) != 1 or prior[0]["stop_reason"] != "no_testable_claim":
+        raise RuntimeError("Manual rerun is limited to one saved no-claim result")
+
+    conn.execute(
+        "UPDATE weekly_runs SET status='running',started_at=?,finished_at=NULL WHERE week=?",
+        (now.isoformat(), week),
+    )
+    conn.commit()
+    try:
+        count, _ = investigate_candidates(
+            conn, client, model=investigate.INVESTIGATE_MODEL, threshold=0.6,
+            limit=1, caps=investigate.default_caps(max_cost_usd=1.50),
+            readme_loader=github.fetch_readme, select_best_claim=True,
+            eligible_item_ids=item_ids, force=True,
+        )
+        # The old placeholder remains available in the previous Actions artifact.
+        # Remove it from the current state if a different repo was selected.
+        conn.execute(
+            "DELETE FROM investigations WHERE id=? AND stop_reason='no_testable_claim'",
+            (prior[0]["id"],),
+        )
+        conn.execute(
+            "UPDATE weekly_runs SET status='completed',finished_at=?,investigated=? WHERE week=?",
+            (datetime.now(timezone.utc).isoformat(), count, week),
+        )
+        conn.commit()
+        return dict(conn.execute("SELECT * FROM weekly_runs WHERE week=?", (week,)).fetchone())
+    except Exception:
+        conn.execute(
+            "UPDATE weekly_runs SET status='failed',finished_at=? WHERE week=?",
+            (datetime.now(timezone.utc).isoformat(), week),
+        )
+        conn.commit()
+        raise
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--db", type=Path, default=Path("weekly-state/monitor.db"))
+    parser.add_argument("--rerun-saved-week", action="store_true",
+                        help="Manually replace this week's saved no-claim result")
     args = parser.parse_args(argv)
     load_dotenv()
     key = os.environ.get("ANTHROPIC_API_KEY")
@@ -80,7 +138,8 @@ def main(argv=None) -> int:
     args.db.parent.mkdir(parents=True, exist_ok=True)
     conn = db.connect(args.db)
     try:
-        record = run_week(conn, anthropic.Anthropic(api_key=key))
+        client = anthropic.Anthropic(api_key=key)
+        record = (rerun_saved_week if args.rerun_saved_week else run_week)(conn, client)
     finally:
         conn.close()
     args.db.with_name("last-run.json").write_text(json.dumps(record, indent=2) + "\n")

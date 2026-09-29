@@ -10,6 +10,7 @@ import export_traces
 import weekly_monitor
 from ai_monitor import monitoring_feed as feed
 from ai_monitor.agent import investigate as inv
+from ai_monitor.agent import investigate_runner
 from ai_monitor.storage import db
 from ai_monitor.storage.models import Item, Source
 from tests.test_app import fake_run
@@ -102,6 +103,56 @@ def test_repeated_week_does_not_make_more_paid_calls(tmp_path):
     assert first["status"] == "completed" and first["investigated"] == 1
     assert weekly_monitor.run_week(conn, object(), **args) == first
     assert calls == ["fetch", "analyze", "investigate"]
+    conn.close()
+
+
+def test_manual_rerun_uses_saved_batch_and_replaces_no_claim(tmp_path):
+    conn = db.connect(tmp_path / "monitor.db")
+    now = datetime(2026, 9, 29, tzinfo=timezone.utc)
+    items = [
+        Item(source=Source.GITHUB, source_id=repo, title=repo, url=f"https://github.com/{repo}", content="A description")
+        for repo in ("owner/vague", "owner/best")
+    ]
+    fetched = []
+
+    def fetch(**kwargs):
+        fetched.append(True)
+        return items
+
+    def analyze(conn, item_id, item, **kwargs):
+        conn.execute(
+            "INSERT INTO analyses (item_id,relevance_score) VALUES (?,?)",
+            (item_id, 0.9 if item.source_id == "owner/vague" else 0.8),
+        )
+        conn.commit()
+
+    def first_attempt(conn, client, **kwargs):
+        row = conn.execute("SELECT * FROM items WHERE source_id='owner/vague'").fetchone()
+        investigate_runner._store_no_claim(conn, row, inv.INVESTIGATE_MODEL)
+
+    first = weekly_monitor.run_week(
+        conn, object(), now=now, fetch=fetch, analyze=analyze,
+        investigate_candidates=first_attempt,
+    )
+    assert first["investigated"] == 1
+
+    def second_attempt(conn, client, **kwargs):
+        assert kwargs["select_best_claim"] is True
+        assert kwargs["force"] is True
+        assert len(kwargs["eligible_item_ids"]) == 2
+        item_id = conn.execute("SELECT id FROM items WHERE source_id='owner/best'").fetchone()[0]
+        inv.store_investigation(
+            conn, fake_run(app.prepare_question("Does owner/best work?")), item_id=item_id,
+        )
+        return 1, None
+
+    second = weekly_monitor.rerun_saved_week(
+        conn, object(), now=now, investigate_candidates=second_attempt,
+    )
+    assert second["status"] == "completed" and second["investigated"] == 1
+    assert fetched == [True]
+    assert [r[0] for r in conn.execute("SELECT repo FROM investigations")] == ["owner/best"]
+    assert conn.execute("SELECT COUNT(*) FROM weekly_discoveries WHERE week=?", (second["week"],)).fetchone()[0] == 2
     conn.close()
 
 

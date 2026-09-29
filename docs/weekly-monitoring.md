@@ -88,6 +88,16 @@ Later scheduled runs restore the saved state. Keep the state artifact available;
 if it expires, the workflow fails closed until history is reviewed and a manual
 bootstrap is explicitly selected.
 
+For a completed current week whose only saved investigation is a
+`no_testable_claim` placeholder, manually dispatch **Weekly monitoring** with
+`rerun_current_week=true`. This reuses that week's saved discoveries and
+relevance analyses, screens their actual READMEs, and performs at most one new
+investigation. The workflow backs up the prior DB and run record in its state
+artifact before making paid calls. It replaces the placeholder in the current
+feed only after the new selection finishes. Ordinary dispatches remain
+idempotent; the rerun option is unavailable for a substantive investigation or
+an earlier week.
+
 Never turn on both this runner and an independent schedule using a separate DB;
 that could investigate and bill for the same repositories twice. If a run fails,
 inspect the saved DB and Actions logs before changing the failed week record.

@@ -10,6 +10,10 @@ on:
         description: Start with an empty database only after reviewing missing history
         type: boolean
         default: false
+      rerun_current_week:
+        description: Replace this week's saved no-claim result using its original ten discoveries
+        type: boolean
+        default: false
 
 concurrency:
   group: proofrun-weekly-monitoring
@@ -41,11 +45,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           BOOTSTRAP: ${{ inputs.bootstrap }}
+          RERUN_CURRENT_WEEK: ${{ inputs.rerun_current_week }}
         run: |
+          if [ "$BOOTSTRAP" = "true" ] && [ "$RERUN_CURRENT_WEEK" = "true" ]; then
+            echo "Bootstrap and rerun cannot both be selected."
+            exit 1
+          fi
           if [ "$BOOTSTRAP" = "true" ]; then
             python scripts/restore_monitor_state.py --repo "$REPOSITORY" --bootstrap
           else
             python scripts/restore_monitor_state.py --repo "$REPOSITORY"
+          fi
+          if [ "$RERUN_CURRENT_WEEK" = "true" ]; then
+            cp weekly-state/monitor.db weekly-state/monitor-pre-rerun.db
+            cp weekly-state/last-run.json weekly-state/last-run-pre-rerun.json
           fi
       - name: Build execution sandbox
         run: docker build -t ai-monitor-sandbox:latest sandbox/
@@ -53,7 +66,13 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GH_API_TOKEN || github.token }}
-        run: python weekly_monitor.py
+          RERUN_CURRENT_WEEK: ${{ inputs.rerun_current_week }}
+        run: |
+          if [ "$RERUN_CURRENT_WEEK" = "true" ]; then
+            python weekly_monitor.py --rerun-saved-week
+          else
+            python weekly_monitor.py
+          fi
       - name: Save state even after a failed attempt
         if: always()
         uses: actions/upload-artifact@v4
