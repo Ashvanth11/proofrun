@@ -17,14 +17,17 @@ critique and search. `worst_case_usd` budgets for these with configured output
 limits, but is an estimate, not a guaranteed total-spend bound.
 """
 
+import json
 import logging
 import re
 import sqlite3
+from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Sequence
 
 from ai_monitor.agent import critique as critique_mod
 from ai_monitor.agent import investigate as inv
 from ai_monitor.agent.loop import Caps
+from ai_monitor.agent.sandbox import MAX_REPO_KB, RUNNABLE_LANGUAGES
 from ai_monitor.analysis.analyzer import PRICING, Usage
 
 log = logging.getLogger(__name__)
@@ -66,7 +69,7 @@ def candidates(
     """
     query = """
         SELECT i.id, i.source, i.source_id, i.title, i.url, i.content,
-               a.relevance_score
+               i.raw_json, a.relevance_score
         FROM items i
         JOIN analyses a ON a.item_id = i.id
         LEFT JOIN investigations v ON v.item_id = i.id
@@ -127,16 +130,31 @@ def run_investigations_on_candidates(
             raise ValueError("claim selection requires a README loader")
         screened = []
         for row in rows:
+            metadata = json.loads(row["raw_json"] or "{}")
+            # Weekly runs target executable capabilities, rather than a
+            # documentation-only answer about an unsupported platform.
+            reason = weekly_candidate_blocker(metadata)
+            if reason:
+                _record_screening(conn, row, "rejected", reason, metadata)
+                continue
             readme = readme_loader(row["source_id"])
-            question, usage = inv.derive_question(row, client, model=model, readme=readme)
+            details = {}
+            question, usage = inv.derive_question(
+                row, client, model=model, readme=readme, require_offline_test=True,
+                screening_details=details,
+            )
             total.input_tokens += usage.input_tokens
             total.output_tokens += usage.output_tokens
             if question is not None:
                 screened.append((question.claim_quality, row["relevance_score"], row, question))
+                _record_screening(conn, row, "eligible", "offline_test_proposed", details)
+            else:
+                _record_screening(conn, row, "rejected", "no_feasible_offline_claim", details)
         if not screened:
-            log.info("no testable claims in this week's eligible repositories")
+            log.info("no feasible offline capability claims in this week's eligible repositories")
             return 0, total
         _, _, row, question = max(screened, key=lambda result: (result[0], result[1]))
+        _record_screening(conn, row, "selected", "highest_quality_feasible_claim", question.model_dump())
         rows = [row]
         selected_questions = {row["id"]: question}
     else:
@@ -171,6 +189,26 @@ def run_investigations_on_candidates(
 
     log.info("investigated %d repositories, estimated token cost $%.4f", completed, total.cost_usd)
     return completed, total
+
+
+def weekly_candidate_blocker(metadata: dict[str, Any]) -> Optional[str]:
+    """Deterministic weekly eligibility gate, also used by offline backtests."""
+    language = metadata.get("language")
+    size = metadata.get("size_kb")
+    if language is not None and language not in RUNNABLE_LANGUAGES:
+        return "unsupported_language"
+    if size is not None and size > MAX_REPO_KB:
+        return "needs_large_download"
+    return None
+
+
+def _record_screening(conn, row, outcome, reason, details):
+    conn.execute(
+        "INSERT INTO claim_screenings (item_id,screened_at,outcome,reason,details_json) VALUES (?,?,?,?,?)",
+        (row["id"], datetime.now(timezone.utc).isoformat(), outcome, reason, json.dumps(details)),
+    )
+    conn.commit()
+    log.info("%s: claim screening %s (%s)", row["source_id"], outcome, reason)
 
 
 def _store_no_claim(conn: sqlite3.Connection, row: sqlite3.Row, model: str) -> None:

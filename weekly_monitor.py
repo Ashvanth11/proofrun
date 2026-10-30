@@ -42,7 +42,7 @@ def run_week(conn, client, *, now=None, fetch=github.fetch, analyze=analyzer.ana
     conn.commit()
     try:
         # A single source and bounded fresh batch keep bootstrapping predictable.
-        items = fetch(max_results=10, days=7)
+        items = fetch(max_results=10, days=7, language="Python")
         weekly_item_ids = []
         for item in items[:10]:
             item_id = db.upsert_item(conn, item)

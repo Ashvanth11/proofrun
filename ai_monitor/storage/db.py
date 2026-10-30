@@ -96,6 +96,15 @@ CREATE TABLE IF NOT EXISTS briefs (
     item_count INTEGER,
     created_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS claim_screenings (
+    id INTEGER PRIMARY KEY,
+    item_id INTEGER NOT NULL REFERENCES items(id),
+    screened_at TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    details_json TEXT NOT NULL DEFAULT '{}'
+);
 """
 
 

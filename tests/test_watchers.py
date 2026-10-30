@@ -133,6 +133,20 @@ def test_query_uses_one_topic():
     assert "pushed:>2026-08-14" in q
 
 
+def test_weekly_language_filter_reaches_search_and_retains_size_metadata(monkeypatch):
+    queries = []
+
+    def search(query, per_page, timeout):
+        queries.append(query)
+        return [{**REPO, "language": "Python", "size": 250}]
+
+    monkeypatch.setattr(github, "_search", search)
+    items = github.fetch(topics=["llm"], language="Python", max_results=10)
+    assert "language:Python" in queries[0]
+    assert items[0].raw["size_kb"] == 250
+    assert "language:" not in github.build_query("llm", 100, datetime(2026, 8, 14))
+
+
 def test_fetch_dedupes_across_topics(monkeypatch):
     """A repo carrying several of our topics must appear once."""
     other = {**REPO, "full_name": "promptfoo/promptfoo", "stargazers_count": 24633}

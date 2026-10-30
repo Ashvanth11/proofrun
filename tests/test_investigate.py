@@ -1283,6 +1283,18 @@ def test_the_prompt_ties_a_named_blocker_to_could_not_test():
     assert "`could_not_test`, not" in inv.SYSTEM_PROMPT
 
 
+@pytest.mark.parametrize("initial", ["supported", "inconclusive"])
+def test_named_blockers_normalize_unresolved_verdicts_after_integrity_rules(initial):
+    run = inv.InvestigationRun(
+        question=QUESTION, steps_taken=1, stop_reason="sufficient_info",
+        usage=inv.Usage(model="ollama/test"),
+        report=report(verdict=initial, blockers=["unsupported_language"]),
+    )
+    inv.apply_integrity_rules(run)
+    assert run.report.verdict == "could_not_test"
+    assert run.report.blockers == ["unsupported_language"]
+
+
 def test_the_migration_adds_the_column_to_an_older_database(tmp_path):
     """CREATE TABLE IF NOT EXISTS does nothing to a table that already exists."""
     import sqlite3

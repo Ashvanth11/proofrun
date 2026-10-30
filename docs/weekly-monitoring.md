@@ -51,6 +51,48 @@ run. The local Streamlit app checks that public JSON at most once every five
 minutes while someone uses it; this does not schedule model runs or cause
 GitHub Pages to publish more often.
 
+### Capability verification following the October 29 audit
+
+Scheduled runs use these rules from the default branch:
+
+- Weekly discovery searches Python repositories to match the execution sandbox.
+  Other discovery callers retain their existing language coverage.
+  Weekly selection rejects known non-Python repositories and repositories above
+  the sandbox clone-size limit before paid claim screening. Eligible claims
+  must include a proposed falsifiable offline capability test and declare no
+  unavailable resources (credentials, runtime network, GPU, external services,
+  other toolchains, or large downloads). The model's feasibility assessment is
+  a screening step, not proof that the experiment will succeed. Unknown metadata
+  still follows the sandbox's existing policy and is checked during investigation.
+- Screening outcomes, rejection reasons, proposed plans, and model-declared
+  resource needs are saved in `claim_screenings` in the state database. A week
+  may complete with zero investigations if no feasible claim is found. The
+  existing discovery feed still lists the uninvestigated repositories.
+- Tool traces retain the complete local result as returned by the tool, plus
+  the invocation ID. Compact summaries remain for display. Grounding review
+  uses the retained full result; it does not truncate it again. Older summaries
+  and opaque server-search content are labeled incomplete or unavailable.
+  Structured server metadata is preserved, but encrypted content is not treated
+  as a readable passage. This does not decrypt or independently fetch sources.
+- Unresolved reports with named blockers use `could_not_test`. The critique
+  still assesses the initial report and may revise it once; it does not certify
+  the revised report's grounding with a second model pass.
+
+The investigation and screening call limits remain unchanged. Fuller evidence
+can increase review input-token costs; existing estimates are not billing caps.
+
+For an offline partial backtest against downloaded historical state artifacts:
+
+```bash
+python scripts/backtest_weekly.py /path/to/week1/monitor.db /path/to/week2/monitor.db
+```
+
+Use one snapshot per completed week. This replays the actual deterministic gates
+with that week's saved analyses and earlier-investigation exclusions. It opens
+sources read-only and works on in-memory copies. It does not call models or
+recreate alternate discovery results, missing README inputs, or missing full
+tool evidence; its output deliberately leaves a new conclusive-result rate unknown.
+
 For a site-only layout or copy change between weekly runs, manually dispatch
 `Publish monitoring Pages`. It restores the saved completed state and deploys
 the page without a model key, repository discovery, investigation, or Docker.

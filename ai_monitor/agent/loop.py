@@ -96,6 +96,10 @@ class ToolCall(BaseModel):
     is_error: bool
     result_summary: str
     server: bool = False
+    invocation_id: str = ""
+    # None means an older saved trace contains only a display summary.
+    result_text: Optional[str] = None
+    evidence_status: str = "legacy_summary"
 
 
 class LoopResult(BaseModel):
@@ -107,12 +111,7 @@ class LoopResult(BaseModel):
     messages: list[dict] = Field(default_factory=list)
 
 
-# The stored summary is the *critic's* entire view of what a tool returned:
-# `critique.format_investigation_evidence` renders exactly this. At 300
-# characters a repository's licence field fell off the end behind its topics
-# list, and the critic flagged the agent for asserting facts the critic simply
-# could not see - then forced a revision that deleted them. Wide enough to hold
-# a metadata record, still far short of a file read.
+# Compact display only. Grounding review uses result_text, not this summary.
 SUMMARY_CHARS = 1000
 
 
@@ -246,6 +245,9 @@ def run_loop(
                     arguments=block.input,
                     is_error=is_error,
                     result_summary=summarize(result),
+                    invocation_id=block.id,
+                    result_text=json.dumps(result, default=str),
+                    evidence_status="complete",
                 )
             )
             results.append(
@@ -309,6 +311,8 @@ def _record_server_calls(content: list, step: int) -> list[ToolCall]:
             continue
         result = results.get(block.id)
         body = getattr(result, "content", None)
+        readable, unavailable = _readable_server_result(body)
+        unavailable |= body is None
         calls.append(
             ToolCall(
                 step=step,
@@ -316,9 +320,39 @@ def _record_server_calls(content: list, step: int) -> list[ToolCall]:
                 arguments=dict(block.input or {}),
                 # A server-tool failure is an object with an error_code; a
                 # success is a list of results.
-                is_error=isinstance(body, dict) and "error_code" in body,
-                result_summary=summarize(body),
+                is_error=(isinstance(readable, dict) and "error_code" in readable),
+                result_summary=summarize(readable),
                 server=True,
+                invocation_id=block.id,
+                result_text=json.dumps(readable, default=str),
+                evidence_status="unavailable" if unavailable else "complete",
             )
         )
     return calls
+
+
+def _readable_server_result(value: Any) -> tuple[Any, bool]:
+    """Keep structured source metadata without mistaking ciphertext for a passage.
+
+    Search providers can expose only opaque content to the client. We cannot
+    decrypt that content, and a title/URL alone cannot corroborate a quote.
+    """
+    if hasattr(value, "model_dump"):
+        value = value.model_dump(mode="json")
+    elif hasattr(value, "__dict__"):
+        value = vars(value)
+    if isinstance(value, dict):
+        out = {}
+        unavailable = False
+        for key, child in value.items():
+            if key.startswith("encrypted_"):
+                unavailable = True
+                out[key] = "[opaque content unavailable to grounding review]"
+            else:
+                out[key], missing = _readable_server_result(child)
+                unavailable |= missing
+        return out, unavailable
+    if isinstance(value, (list, tuple)):
+        children = [_readable_server_result(child) for child in value]
+        return [child for child, _ in children], any(missing for _, missing in children)
+    return value, False

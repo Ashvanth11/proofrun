@@ -65,6 +65,7 @@ def parse_repo(repo: dict) -> Item:
             "description": description,
             "topics": topics,
             "language": repo.get("language"),
+            "size_kb": repo.get("size"),
             "stars": repo.get("stargazers_count"),
             "forks": repo.get("forks_count"),
             "pushed_at": repo.get("pushed_at"),
@@ -73,17 +74,18 @@ def parse_repo(repo: dict) -> Item:
     )
 
 
-def build_query(topic: str, min_stars: int, pushed_since: datetime) -> str:
+def build_query(topic: str, min_stars: int, pushed_since: datetime, language: Optional[str] = None) -> str:
     """Query for one topic.
 
     One topic per query is not a stylistic choice: GitHub ANDs repeated
     topic: qualifiers, so a multi-topic query returns only repos carrying
     every topic - in practice, almost nothing.
     """
-    return (
+    query = (
         f"topic:{topic} stars:>={min_stars} "
         f"pushed:>{pushed_since.date().isoformat()}"
     )
+    return query + (f" language:{language}" if language else "")
 
 
 def _search(query: str, per_page: int, timeout: float) -> list[dict]:
@@ -136,6 +138,7 @@ def fetch(
     days: int = 7,
     max_results: int = 25,
     timeout: float = 30.0,
+    language: Optional[str] = None,
 ) -> list[Item]:
     """Fetch recently-pushed, well-starred repos across the given topics.
 
@@ -153,7 +156,7 @@ def fetch(
     seen: dict[str, Item] = {}
     for topic in topics:
         try:
-            repos = _search(build_query(topic, min_stars, since), per_topic, timeout)
+            repos = _search(build_query(topic, min_stars, since, language), per_topic, timeout)
         except GitHubError as exc:
             if "rate limit" in str(exc):
                 raise

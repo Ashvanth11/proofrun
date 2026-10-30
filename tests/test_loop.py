@@ -361,7 +361,7 @@ def test_parallel_tool_calls_are_answered_in_one_user_message():
 
 
 def test_output_is_truncated_in_the_trace():
-    """Bounded, but wide enough that the critic can see a metadata record."""
+    """Only the display summary is truncated; retained evidence is complete."""
     result = drive(
         ScriptedClient([[("t", {})], "Done."]),
         executor=lambda n, a: ({"content": "x" * 10_000}, False),
@@ -370,6 +370,8 @@ def test_output_is_truncated_in_the_trace():
     assert len(summary) < loop.SUMMARY_CHARS + 10
     assert "middle omitted" in summary
     assert summary.endswith('"}')
+    assert "x" * 10_000 in result.tool_calls[0].result_text
+    assert result.tool_calls[0].evidence_status == "complete"
 
 
 def test_summary_keeps_command_result_at_the_end():
@@ -403,3 +405,61 @@ def test_every_cap_is_enforced_in_code_not_the_prompt(cap):
 
 def test_summarize_handles_values_json_cannot():
     assert "object" in loop.summarize({"x": object()})
+
+
+def test_critic_gets_the_decisive_middle_of_a_file_after_trace_roundtrip():
+    from ai_monitor.agent.critique import format_investigation_evidence
+
+    decisive = "DEFAULT_RETRY_COUNT = 7"
+    result = drive(
+        ScriptedClient([[("read_file", {"path": "settings.py"})], "Done."]),
+        executor=lambda n, a: ({"content": "x" * 2000 + decisive + "y" * 2000}, False),
+    )
+    call = loop.ToolCall.model_validate_json(result.tool_calls[0].model_dump_json())
+    assert decisive not in call.result_summary
+    evidence = format_investigation_evidence(SimpleNamespace(tool_calls=[call]))
+    assert decisive in evidence
+    assert call.invocation_id == "c1_0"
+    assert "evidence: complete" in evidence
+
+
+def test_sdk_search_results_keep_metadata_and_mark_ciphertext_unavailable():
+    from anthropic.types import WebSearchResultBlock
+    from ai_monitor.agent.critique import format_investigation_evidence
+
+    search = WebSearchResultBlock(
+        type="web_search_result", title="A source", url="https://example.com/source",
+        encrypted_content="opaque-secret-payload", page_age=None,
+    )
+    result = drive(ScriptedClient([[
+        _ServerToolUse("search-1", "web_search", {"query": "q"}),
+        _ServerToolResult("search-1", [search]),
+        _TextBlock("Done."),
+    ]]))
+    call = result.tool_calls[0]
+    assert call.evidence_status == "unavailable"
+    assert call.invocation_id == "search-1"
+    assert "https://example.com/source" in call.result_text
+    assert "opaque-secret-payload" not in call.result_text
+    assert "opaque-secret-payload" not in call.result_summary
+    assert "evidence: unavailable" in format_investigation_evidence(result)
+
+
+def test_old_saved_evidence_is_explicitly_identified_as_incomplete():
+    from ai_monitor.agent.critique import format_investigation_evidence
+
+    call = loop.ToolCall(step=1, tool="read_file", arguments={},
+                         is_error=False, result_summary="old excerpt")
+    evidence = format_investigation_evidence(SimpleNamespace(tool_calls=[call]))
+    assert "legacy_summary" in evidence
+    assert "old excerpt" in evidence
+
+
+def test_readable_server_passages_are_preserved_with_optional_null_metadata():
+    result = drive(ScriptedClient([[
+        _ServerToolUse("search-1", "web_search", {"query": "q"}),
+        _ServerToolResult("search-1", [{"url": "https://example.com", "text": "A readable passage", "page_age": None}]),
+        _TextBlock("Done."),
+    ]]))
+    assert result.tool_calls[0].evidence_status == "complete"
+    assert "A readable passage" in result.tool_calls[0].result_text

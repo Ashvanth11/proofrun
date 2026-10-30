@@ -38,7 +38,7 @@ def make_run(verdict="supported", downgraded=False, ledger=(), calls=(), cost=0.
     )
 
 
-def seed(conn, repo, score, content="# readme", investigated=False):
+def seed(conn, repo, score, content="# readme", investigated=False, metadata=None):
     item_id = db.upsert_item(
         conn,
         Item(
@@ -47,6 +47,7 @@ def seed(conn, repo, score, content="# readme", investigated=False):
             title=repo,
             url=f"https://github.com/{repo}",
             content=content,
+            raw=metadata or {},
         ),
     )
     conn.execute(
@@ -231,6 +232,8 @@ def test_weekly_selection_prefers_best_claim_in_current_batch(tmp_path, monkeypa
                     has_testable_claim=True, claim="A capability",
                     question=f"Does {repo} provide the capability?",
                     claim_quality=quality,
+                    offline_testable=True,
+                    test_command="python -c 'print(example.transform([1, 2]))' (expect [2, 4])",
                 ),
                 usage=SimpleNamespace(input_tokens=100, output_tokens=10),
             )
@@ -277,6 +280,103 @@ def test_weekly_selection_with_no_claim_publishes_no_investigation(tmp_path):
     )
     assert count == 0
     assert conn.execute("SELECT COUNT(*) FROM investigations").fetchone()[0] == 0
+    conn.close()
+
+
+def test_weekly_selection_skips_unrunnable_and_external_claims(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    import json
+
+    conn = db.connect(tmp_path / "t.db")
+    seed(conn, "owner/node", 0.99, metadata={"language": "TypeScript"})
+    seed(conn, "owner/huge", 0.98, metadata={"language": "Python", "size_kb": 1_500_000})
+    seed(conn, "owner/online", 0.97, metadata={"language": "Python"})
+    seed(conn, "owner/offline", 0.7, metadata={"language": "Python", "size_kb": 100})
+    screened, investigated = [], []
+
+    class Client:
+        def __init__(self):
+            self.messages = self
+
+        def parse(self, **kwargs):
+            repo = kwargs["messages"][0]["content"].split("Repository: ", 1)[1].split("\n", 1)[0]
+            screened.append(repo)
+            return SimpleNamespace(
+                parsed_output=inv.DerivedQuestion(
+                    has_testable_claim=True, claim="Transform an array",
+                    question=f"Does {repo} transform an array?",
+                    claim_quality=1.0 if repo.endswith("online") else 0.7,
+                    offline_testable=True, test_command="python demo.py (expect doubled array)",
+                    required_resources=["api_key"] if repo.endswith("online") else [],
+                ), usage=SimpleNamespace(input_tokens=100, output_tokens=10),
+            )
+
+    def investigate(question, *args, **kwargs):
+        investigated.append(question)
+        run = make_run()
+        run.question = question
+        return run
+
+    monkeypatch.setattr(inv, "investigate", investigate)
+    count, _ = runner.run_investigations_on_candidates(
+        conn, Client(), model="ollama/test", select_best_claim=True,
+        with_critique=False, readme_loader=lambda repo: "Doubles arrays.", limit=1,
+    )
+    assert count == 1
+    assert screened == ["owner/online", "owner/offline"]
+    assert [q.repo for q in investigated] == ["owner/offline"]
+    assert investigated[0].test_command
+    decisions = conn.execute(
+        "SELECT i.source_id,s.outcome,s.reason,s.details_json FROM claim_screenings s JOIN items i ON i.id=s.item_id ORDER BY s.id"
+    ).fetchall()
+    assert [(r[0], r[2]) for r in decisions[:3]] == [
+        ("owner/node", "unsupported_language"),
+        ("owner/huge", "needs_large_download"),
+        ("owner/online", "no_feasible_offline_claim"),
+    ]
+    assert decisions[-1][1] == "selected"
+    assert json.loads(decisions[-1][3])["test_command"]
+    conn.close()
+
+
+@pytest.mark.parametrize("offline,command,resources", [
+    (False, "python demo.py", []),
+    (True, "", []),
+    (True, "python demo.py", ["runtime_network"]),
+])
+def test_weekly_selection_does_not_investigate_without_a_feasible_plan(
+    tmp_path, monkeypatch, offline, command, resources,
+):
+    from types import SimpleNamespace
+
+    conn = db.connect(tmp_path / "t.db")
+    seed(conn, "owner/project", 0.9, metadata={"language": "Python"})
+
+    class Client:
+        def __init__(self):
+            self.messages = self
+
+        def parse(self, **kwargs):
+            return SimpleNamespace(
+                parsed_output=inv.DerivedQuestion(
+                    has_testable_claim=True, claim="A real claim", question="Does it work?",
+                    claim_quality=0.99, offline_testable=offline,
+                    test_command=command, required_resources=resources,
+                ), usage=SimpleNamespace(input_tokens=100, output_tokens=10),
+            )
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("An infeasible claim must not start an investigation")
+
+    monkeypatch.setattr(inv, "investigate", forbidden)
+    count, usage = runner.run_investigations_on_candidates(
+        conn, Client(), model="ollama/test", select_best_claim=True,
+        readme_loader=lambda repo: "A claim.",
+    )
+    assert count == 0
+    assert usage.input_tokens == 100
+    assert conn.execute("SELECT count(*) FROM investigations").fetchone()[0] == 0
+    assert conn.execute("SELECT reason FROM claim_screenings").fetchone()[0] == "no_feasible_offline_claim"
     conn.close()
 
 
