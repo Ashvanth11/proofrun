@@ -41,13 +41,18 @@ feed.
 
 ![Engram evidence ledger and sandbox trace](screenshots/engram-evidence.png)
 
-### Public weekly page
+### Public showcase and run archive
 
-The [live GitHub Pages site](https://ashvanth11.github.io/proofrun/) publishes
-the latest completed weekly batch for browsing without the local app. The
-[historical investigation traces](https://ashvanth11.github.io/proofrun/history.html)
-remain available separately. Pages is a static showcase; direct questions run
-in the local Streamlit app.
+The static site leads with selected conclusive findings, reviewed against their
+recorded evidence. Dated case studies show actual test outputs and limitations;
+reruns link to preserved original investigations. This curated selection is not
+an estimate of the agent's overall success rate.
+
+The [run archive](https://ashvanth11.github.io/proofrun/monitoring.html) retains
+automatic monitoring results, including inconclusive and blocked outcomes.
+[Historical benchmark traces](https://ashvanth11.github.io/proofrun/history.html)
+remain available separately. Direct questions run in the local Streamlit app.
+The [live site](https://ashvanth11.github.io/proofrun/) updates on publication.
 
 ### Run the local app
 
@@ -307,16 +312,18 @@ Getting an API key, and why the Console is separate from claude.ai:
 ### Publishing the traces
 
 `site/` is a complete static site — no build step, no JavaScript, no external
-assets. The weekly page is its landing page; the recorded evaluation index is
-kept at `history.html`. To regenerate the historical traces locally:
+assets. Its homepage is a curated portfolio generated from the reviewed records
+in `showcase/`. The full monitoring archive is `monitoring.html`, and the recorded
+evaluation index is `history.html`. See [curation rules](showcase/README.md).
+To regenerate the historical traces locally:
 
 ```bash
 python export_traces.py && open site/history.html
 ```
 
 GitHub Pages publishes through the weekly GitHub Actions workflow. That
-workflow copies the historical files from `gh-pages`, refreshes the weekly
-landing page and feed from the saved monitoring state, then deploys the combined
+workflow copies the historical files from `gh-pages`, regenerates the curated
+homepage and run archive, refreshes the feed from saved monitoring state, then deploys the combined
 site. The `gh-pages` branch is retained as the historical asset source; it is
 no longer the Pages publishing source. See [weekly monitoring setup](docs/weekly-monitoring.md)
 for the schedule, activation variables, and state recovery procedure.

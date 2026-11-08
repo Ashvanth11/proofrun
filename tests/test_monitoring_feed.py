@@ -49,9 +49,11 @@ def test_shared_export_preserves_history_and_escapes_descriptions(tmp_path):
     assert "Historical evaluations" in (out / "history.html").read_text()
     assert (out / "history.html").read_text().count('id="weekly-monitoring-link"') == 1
     assert 'href="index.html"' in (out / "history.html").read_text()
-    assert 'href="history.html"' in (out / "index.html").read_text()
+    assert 'href="monitoring.html"' in (out / "index.html").read_text()
+    assert 'href="history.html"' in (out / "monitoring.html").read_text()
     assert "proofrun-weekly-landing" in (out / "index.html").read_text()
-    assert (out / "index.html").read_text() == (out / "monitoring.html").read_text()
+    assert "proofrun-curated-showcase" in (out / "index.html").read_text()
+    assert (out / "index.html").read_text() != (out / "monitoring.html").read_text()
     export.export(path, out, last)
     assert (out / "history.html").read_text().count('id="weekly-monitoring-link"') == 1
 
@@ -244,3 +246,49 @@ def test_ui_displays_published_discoveries_offline(monkeypatch):
     assert any(x.value == "Not investigated" for x in page.caption)
     assert any(x.value == "Turns CSV files into charts." for x in page.text)
     assert any(x.label == "View repository ↗" for x in page.get("link_button"))
+
+
+def test_revised_legacy_result_does_not_claim_final_grounding(tmp_path):
+    path = tmp_path / 'legacy.db'
+    conn = db.connect(path)
+    automatic_result(conn)
+    conn.execute("update investigations set revised=1, critique_status='ok', critique=?", (json.dumps({'grounded': True, 'issues': []}),))
+    conn.commit()
+    conn.close()
+    views, error = feed.load_local_runs(path)
+    assert not error
+    assert views[0]['final_review']['status'] == 'not_run'
+    text = export.render({'investigations': views})
+    assert 'Final evidence review is unavailable' in text
+    assert 'Final automated grounding check passed' not in text
+
+
+def test_failed_latest_attempt_is_visible_separately_from_completed_week(tmp_path):
+    path = tmp_path / 'attempt.db'
+    conn = db.connect(path)
+    automatic_result(conn)
+    conn.execute('create table weekly_runs (week text, status text, started_at text)')
+    conn.execute("insert into weekly_runs values ('2026-W45','failed','2026-11-02')")
+    conn.commit()
+    conn.close()
+    last = {'status': 'completed', 'finished_at': '2026-10-26T15:16:52+00:00', 'investigated': 1}
+    data = feed.build_feed(path, last)
+    html = export.render(data)
+    assert '2026-W45' in html and 'failed' in html
+    assert 'Last completed: 2026-10-26' in html
+
+
+def test_run_archive_retains_results_beyond_the_recent_feed_window(tmp_path):
+    path = tmp_path / 'history.db'
+    conn = db.connect(path)
+    for index in range(7):
+        repo = f'owner/project{index}'
+        item_id = db.upsert_item(conn, Item(source=Source.GITHUB, source_id=repo,
+            title=repo, url=f'https://github.com/{repo}'))
+        inv.store_investigation(conn, fake_run(app.prepare_question(f'Does {repo} work?')), item_id=item_id)
+    conn.close()
+    data = export.export(path, tmp_path / 'site')
+    assert len(data['investigations']) == 6
+    assert len(feed.load_local_runs(path, limit=None)[0]) == 7
+    assert 'owner/project0' in (tmp_path / 'site/monitoring.html').read_text()
+    assert 'owner/project0' not in (tmp_path / 'site/index.html').read_text()

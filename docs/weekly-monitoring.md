@@ -1,5 +1,9 @@
 # Weekly monitoring and shared publishing
 
+The November 7 refresh generates an evidence-backed homepage and a separate
+run archive. The dated activation record below describes the original
+September launch.
+
 Status, 2026-09-24 (local time): **active and deployed with Claude**. The first
 manual bootstrap run completed at 2026-09-25 06:43 UTC: ten repositories were
 discovered, one was investigated, and the public feed lists nine additional
@@ -42,9 +46,11 @@ The earlier Gemini comparison remains documented in
   use, merges it with local automatic results, and falls back gracefully when
   offline. A local database is not required to read published weekly results.
 - Publication starts from the existing `gh-pages` content, moves the historical
-  index to `history.html`, and serves weekly monitoring at `/proofrun/`.
-  `monitoring.html` remains an alternate URL. Re-exporting traces updates the
-  historical index without replacing the weekly landing page.
+  index to `history.html`, and generates the selected showcase at `/proofrun/`
+  from the explicitly reviewed records in `showcase/`. `monitoring.html` retains
+  every stored automatic investigation, including inconclusive and blocked
+  results; the JSON feed and app retain their recent-result window. Re-exporting
+  traces updates the historical index without replacing the curated homepage.
 
 The public page is generated from the saved Actions state on each completed
 run. The local Streamlit app checks that public JSON at most once every five
@@ -68,18 +74,57 @@ Scheduled runs use these rules from the default branch:
   resource needs are saved in `claim_screenings` in the state database. A week
   may complete with zero investigations if no feasible claim is found. The
   existing discovery feed still lists the uninvestigated repositories.
+  Missing or malformed structured model output is recorded as a screening
+  error, including available stop reason and token usage, rather than a negative
+  claim decision. Unknown usage is explicitly marked unavailable. The
+  remaining candidates are screened without retrying the failed call. If no
+  eligible candidate remains and any screening failed, the week fails visibly
+  instead of claiming that no feasible claims exist.
+  Screening allows 4,096 output tokens so thinking and structured JSON have
+  room to complete; this is not a guarantee against truncation.
 - Tool traces retain the complete local result as returned by the tool, plus
   the invocation ID. Compact summaries remain for display. Grounding review
   uses the retained full result; it does not truncate it again. Older summaries
   and opaque server-search content are labeled incomplete or unavailable.
   Structured server metadata is preserved, but encrypted content is not treated
   as a readable passage. This does not decrypt or independently fetch sources.
-- Unresolved reports with named blockers use `could_not_test`. The critique
-  still assesses the initial report and may revise it once; it does not certify
-  the revised report's grounding with a second model pass.
+- Unresolved reports with named blockers use `could_not_test`. The critic
+  assesses the initial report and may revise it once. A revised report receives
+  one final review after deterministic integrity checks. Draft and final review
+  outcomes are stored separately. An unresolved or failed final review lowers
+  a revised supported/refuted verdict to inconclusive. No repeated revision
+  loop runs. Legacy revised reports retain an explicit missing-final-review state.
+  The critic also returns per-claim checks with invocation references. A failed
+  claim check or invalid complete-evidence reference prevents a positive overall
+  grounding label. Prompt examples distinguish primary-language metadata from
+  whole-repository claims and typed construction from type coercion. These are
+  review controls, not proof of semantic correctness.
 
-The investigation and screening call limits remain unchanged. Fuller evidence
-can increase review input-token costs; existing estimates are not billing caps.
+The investigation and screening call limits remain unchanged. Revision adds at
+most one final-review call; allowance estimates include it. Fuller evidence can
+increase review input-token costs; these estimates are not billing caps. The
+Scheduled runs use their checked-out default-branch revision.
+
+### Isolated validation and historical reruns
+
+`scripts/review_reruns.py` prints a read-only plan by default; it makes no model,
+network, or Docker calls without `--execute`. Review the exact plan and obtain
+the agreed live-run allowance before executing. Use a fresh output directory:
+
+```bash
+python scripts/review_reruns.py --source monitor.db --run-ids 39 50 52
+python scripts/review_reruns.py --source /path/to/saved/monitor.db --week 2026-W45
+```
+
+Historical IDs select the exact stored questions. Weekly mode reuses that
+week's saved discovery batch and relevance scores, then screens current READMEs
+and automatically selects at most one claim. This tests automatic selection,
+not fresh discovery. Neither mode changes the original database or publishes.
+Execution records the source hash, original rows, code diff, completed responses,
+usage, errors, and new results in a separate database. SDK retries and web search
+are disabled. Preserve each dated output and manually review substantive scope
+before separately publishing any result. Live repository drift remains a
+confounder; this is not a controlled measure of an improved success rate.
 
 For an offline partial backtest against downloaded historical state artifacts:
 

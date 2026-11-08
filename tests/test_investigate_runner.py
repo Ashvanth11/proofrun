@@ -202,7 +202,7 @@ def test_question_derivation_error_is_not_saved_as_no_claim(tmp_path):
         def parse(self, **kwargs):
             raise ValueError("invalid model response")
 
-    with pytest.raises(RuntimeError, match="Could not derive a question"):
+    with pytest.raises(inv.ScreeningError, match="No structured screening response"):
         runner.run_investigations_on_candidates(
             conn, Broken(), model="ollama/test", readme_loader=lambda repo: "A claim."
         )
@@ -546,7 +546,7 @@ def test_an_unknown_paid_model_has_no_false_zero_estimate():
 def test_estimate_uses_configured_extraction_and_critique_output_limits(monkeypatch):
     rates = runner.PRICING[inv.INVESTIGATE_MODEL]
     expected = (
-        inv.EXTRACTION_MAX_TOKENS + 2 * runner.critique_mod.CRITIQUE_MAX_TOKENS
+        inv.EXTRACTION_MAX_TOKENS + 3 * runner.critique_mod.CRITIQUE_MAX_TOKENS
     ) * rates["output"] / 1_000_000
     baseline = runner.worst_case_usd(1, max_web_searches=0)
     monkeypatch.setattr(inv, "EXTRACTION_MAX_TOKENS", 0)
@@ -727,3 +727,83 @@ def test_no_budget_means_the_whole_set_runs(tmp_path, monkeypatch):
          "--no-store", "--yes"]
     ) == 0
     assert len(started) == 3
+
+
+@pytest.mark.parametrize('valid_candidate', [False, True])
+def test_missing_screening_response_is_recorded_without_retry(tmp_path, monkeypatch, valid_candidate):
+    from types import SimpleNamespace
+    conn = db.connect(tmp_path / 'screening.db')
+    seed(conn, 'a/broken', 0.95)
+    if valid_candidate:
+        seed(conn, 'a/valid', 0.9)
+    calls = []
+
+    class Client:
+        @property
+        def messages(self):
+            return self
+
+        def parse(self, **kwargs):
+            calls.append(kwargs)
+            return SimpleNamespace(
+                parsed_output=None if len(calls) == 1 else inv.DerivedQuestion(
+                    has_testable_claim=True, claim='c', question='Does a/valid work?',
+                    claim_quality=0.9, offline_testable=True, test_command='python demo.py',
+                ),
+                stop_reason='max_tokens',
+                usage=SimpleNamespace(input_tokens=100, output_tokens=25),
+            )
+
+    monkeypatch.setattr(inv, 'investigate', lambda *a, **kw: make_run())
+    def run():
+        return runner.run_investigations_on_candidates(
+            conn, Client(), model='ollama/test', select_best_claim=True,
+            readme_loader=lambda repo: 'A concrete README claim', with_critique=False,
+        )
+    if valid_candidate:
+        count, usage = run()
+        assert count == 1
+        assert usage.input_tokens == 200
+        assert usage.output_tokens == 50
+    else:
+        with pytest.raises(RuntimeError, match='screening was incomplete'):
+            run()
+        assert conn.execute('select count(*) from investigations').fetchone()[0] == 0
+    assert len(calls) == (2 if valid_candidate else 1)
+    error = conn.execute("select * from claim_screenings where outcome='error'").fetchone()
+    import json
+    assert error['reason'] == 'missing_structured_output'
+    assert json.loads(error['details_json'])['output_tokens'] == 25
+    conn.close()
+
+
+def test_invalid_screening_json_is_an_error_and_does_not_abort_other_candidates(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    conn = db.connect(tmp_path / 'invalid.db')
+    seed(conn, 'a/invalid', .95)
+    seed(conn, 'a/valid', .9)
+    calls = []
+    class Client:
+        @property
+        def messages(self):
+            return self
+        def parse(self, **kwargs):
+            calls.append(kwargs)
+            if len(calls) == 1:
+                raise ValueError('JSON ended before the final string was complete')
+            return SimpleNamespace(
+                parsed_output=inv.DerivedQuestion(has_testable_claim=True, claim='c',
+                    question='Does a/valid work?', claim_quality=.8, offline_testable=True, test_command='python demo.py'),
+                usage=SimpleNamespace(input_tokens=100, output_tokens=10),
+            )
+    monkeypatch.setattr(inv, 'investigate', lambda *a, **kw: make_run())
+    count, usage = runner.run_investigations_on_candidates(conn, Client(), model='ollama/test',
+        select_best_claim=True, readme_loader=lambda repo: 'A real claim', with_critique=False)
+    assert count == 1 and len(calls) == 2
+    row = conn.execute("select * from claim_screenings where outcome='error'").fetchone()
+    assert row['reason'] == 'invalid_structured_output'
+    import json
+    detail = json.loads(row['details_json'])
+    assert detail['usage_available'] is False and detail['input_tokens'] is None
+    assert conn.execute('select count(*) from investigations').fetchone()[0] == 1
+    conn.close()

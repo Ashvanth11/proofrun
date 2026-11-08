@@ -103,6 +103,7 @@ def run_investigations_on_candidates(
     select_best_claim: bool = False,
     eligible_item_ids: Optional[Sequence[int]] = None,
     screen_limit: int = 10,
+    allow_web_search: bool = True,
 ) -> tuple[int, Usage]:
     """Autonomous mode: derive a question per item, then answer it.
 
@@ -129,6 +130,7 @@ def run_investigations_on_candidates(
         if readme_loader is None:
             raise ValueError("claim selection requires a README loader")
         screened = []
+        screening_errors = 0
         for row in rows:
             metadata = json.loads(row["raw_json"] or "{}")
             # Weekly runs target executable capabilities, rather than a
@@ -139,10 +141,22 @@ def run_investigations_on_candidates(
                 continue
             readme = readme_loader(row["source_id"])
             details = {}
-            question, usage = inv.derive_question(
-                row, client, model=model, readme=readme, require_offline_test=True,
-                screening_details=details,
-            )
+            try:
+                question, usage = inv.derive_question(
+                    row, client, model=model, readme=readme, require_offline_test=True,
+                    screening_details=details,
+                )
+            except inv.ScreeningError as exc:
+                total.input_tokens += exc.usage.input_tokens
+                total.output_tokens += exc.usage.output_tokens
+                screening_errors += 1
+                _record_screening(conn, row, "error", exc.reason, {
+                    "stop_reason": exc.stop_reason,
+                    "usage_available": exc.usage_available,
+                    "input_tokens": exc.usage.input_tokens if exc.usage_available else None,
+                    "output_tokens": exc.usage.output_tokens if exc.usage_available else None,
+                })
+                continue
             total.input_tokens += usage.input_tokens
             total.output_tokens += usage.output_tokens
             if question is not None:
@@ -151,6 +165,9 @@ def run_investigations_on_candidates(
             else:
                 _record_screening(conn, row, "rejected", "no_feasible_offline_claim", details)
         if not screened:
+            if screening_errors:
+                raise RuntimeError("Claim screening was incomplete; no eligible claim was selected. "
+                                   "Review claim_screenings before retrying. No investigation ran.")
             log.info("no feasible offline capability claims in this week's eligible repositories")
             return 0, total
         _, _, row, question = max(screened, key=lambda result: (result[0], result[1]))
@@ -173,7 +190,7 @@ def run_investigations_on_candidates(
             _store_no_claim(conn, row, model)
             continue
 
-        run = inv.investigate(question, client, model=model, caps=caps)
+        run = inv.investigate(question, client, model=model, caps=caps, allow_web_search=allow_web_search)
         total.input_tokens += run.usage.input_tokens
         total.output_tokens += run.usage.output_tokens
 
@@ -183,6 +200,8 @@ def run_investigations_on_candidates(
             )
             total.input_tokens += critique_usage.input_tokens
             total.output_tokens += critique_usage.output_tokens
+            run.usage.input_tokens += critique_usage.input_tokens
+            run.usage.output_tokens += critique_usage.output_tokens
 
         inv.store_investigation(conn, run, item_id=row["id"])
         completed += 1
@@ -248,7 +267,7 @@ def worst_case_usd(
       1. the turn that crosses the cap - its price is unknown until it returns
       2. the wrap-up call, which runs after a cap fires to salvage the work
       3. extraction into the Investigation schema
-      4. the critique, and one revision if it fires
+      4. the critique, one revision, and a final review if revision fires
 
     Each is bounded by `max_tokens` and the largest context the step cap
     permits, so the overrun is bounded - but it is not zero, and a batch that
@@ -275,7 +294,7 @@ def worst_case_usd(
         caps.max_cost_usd
         + 2 * turn_ceiling  # the overshoot turn, and the wrap-up
         + extraction_call
-        + 2 * critique_call  # critique, and one revision
+        + 3 * critique_call  # critique, one revision, and final review
         + max_web_searches * WEB_SEARCH_USD
     )
     return count * per_question

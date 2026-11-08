@@ -1,0 +1,203 @@
+{
+  "repo": "microsoft/markitdown",
+  "question": "Can MarkItDown convert a locally created Word document with a heading and table into Markdown that preserves both structures, without an LLM API?",
+  "verdict": "supported",
+  "created_at": "2026-11-07T20:50:33.625811+00:00",
+  "revised": 0,
+  "downgraded": 0,
+  "steps_taken": 5,
+  "stop_reason": "sufficient_info",
+  "cost_usd": 0.108518,
+  "critique_status": "ok",
+  "report": {
+    "repository_description": "MarkItDown is a Python package that converts documents, including Word .docx files, into Markdown.",
+    "question": "Can MarkItDown convert a locally created Word document with a heading and table into Markdown that preserves both structures, without an LLM API?",
+    "verdict": "supported",
+    "blockers": [],
+    "ledger": [
+      {
+        "statement": "MarkItDown (Python package, MIT licensed) installed cleanly with its docx extra via plain pip install, with no API key or LLM client configured.",
+        "side": "for",
+        "kind": "observed",
+        "source": "sandbox_setup(pip install markitdown[docx])"
+      },
+      {
+        "statement": "A fresh .docx file was created locally with python-docx, containing a level-1 heading ('My Test Heading') and a 2x2 table with text cells.",
+        "side": "for",
+        "kind": "observed",
+        "source": "sandbox_run(create docx)"
+      },
+      {
+        "statement": "Running MarkItDown().convert() on that file, using only the default converter with no LLM client instantiated, produced Markdown output '# My Test Heading' followed by a proper Markdown pipe-table containing the cell contents.",
+        "side": "for",
+        "kind": "observed",
+        "source": "sandbox_run(convert docx)"
+      }
+    ],
+    "facts": {
+      "setup_seconds": 18.6,
+      "setup_commands": 1,
+      "install_succeeded": true,
+      "clone_mb": 31.5,
+      "volume_mb": 187.6,
+      "needs": [],
+      "headline_capability": "Converts a locally created .docx file with a heading and table into Markdown, preserving both structures, without any LLM API configured.",
+      "observed_output": "# My Test Heading\n\n| ... | ... |\n| --- | --- |\n| ... | ... |"
+    },
+    "summary": "Yes: a minimal local test showed MarkItDown converting a .docx file with a heading and a table into Markdown that kept the heading as '#' and the table as a proper Markdown pipe-table, with no LLM API involved. The test used only one simple document, so more complex Word files were not verified.",
+    "limitations": [
+      "Did not test more complex Word documents (nested tables, merged cells, multiple heading levels, images, or styles).",
+      "Did not check behavior on very large or malformed .docx files.",
+      "Only one minimal test case (heading + table, no LLM) was used."
+    ]
+  },
+  "tool_calls": [
+    {
+      "step": 1,
+      "tool": "get_repo_metadata",
+      "arguments": {
+        "repo": "microsoft/markitdown"
+      },
+      "is_error": false,
+      "result_summary": "{\"full_name\": \"microsoft/markitdown\", \"license\": \"MIT\", \"language\": \"Python\", \"size_kb\": 6015, \"archived\": false, \"created_at\": \"2024-11-13T19:56:40Z\", \"pushed_at\": \"2026-11-07T00:14:01Z\", \"homepage\": \"\", \"stars\": 194314, \"forks\": 14624, \"open_issues\": 814}",
+      "server": false,
+      "invocation_id": "toolu_014Q3pBz3c4E15Wy2HihGfy6",
+      "result_text": "{\"full_name\": \"microsoft/markitdown\", \"license\": \"MIT\", \"language\": \"Python\", \"size_kb\": 6015, \"archived\": false, \"created_at\": \"2024-11-13T19:56:40Z\", \"pushed_at\": \"2026-11-07T00:14:01Z\", \"homepage\": \"\", \"stars\": 194314, \"forks\": 14624, \"open_issues\": 814}",
+      "evidence_status": "complete"
+    },
+    {
+      "step": 2,
+      "tool": "sandbox_clone",
+      "arguments": {
+        "repo": "microsoft/markitdown"
+      },
+      "is_error": false,
+      "result_summary": "{\"command\": \"git clone --depth 1 https://github.com/microsoft/markitdown.git /work/repo\", \"stdout\": \"\", \"stderr\": \"Cloning into '/work/repo'...\\n\", \"exit_code\": 0, \"elapsed_s\": 1.995787374995416, \"truncated\": false, \"timed_out\": false}",
+      "server": false,
+      "invocation_id": "toolu_01PU8hyLNGdJeg1Zv25qcBNs",
+      "result_text": "{\"command\": \"git clone --depth 1 https://github.com/microsoft/markitdown.git /work/repo\", \"stdout\": \"\", \"stderr\": \"Cloning into '/work/repo'...\\n\", \"exit_code\": 0, \"elapsed_s\": 1.995787374995416, \"truncated\": false, \"timed_out\": false}",
+      "evidence_status": "complete"
+    },
+    {
+      "step": 3,
+      "tool": "sandbox_setup",
+      "arguments": {
+        "command": "cd /work/repo && pip install -e packages/markitdown[docx] python-docx 2>&1 | tail -30"
+      },
+      "is_error": false,
+      "result_summary": "{\"command\": \"cd /work/repo && pip install -e packages/markitdown[docx] python-docx 2>&1 | tail -30\", \"stdout\": \"Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)\\nDownloading numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (15.7 MB)\\n   \\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501 15.7/15.7 MB 7.9 MB/s eta 0:00:00\\nDownloading protobuf-7.36.2-cp310-abi3-manyl... [middle omitted] ... defusedxml-0.7.1 flatbuffers-25.12.19 idna-3.20 lxml-6.1.3 magika-1.0.3 mammoth-1.13.0 markdownify-1.2.3 markitdown-0.1.9 numpy-2.5.4 onnxruntime-1.31.1 packaging-26.3 protobuf-7.36.2 python-docx-1.2.0 requests-2.34.2 six-1.17.0 soupsieve-4.0.1 typing_extensions-4.16.0 urllib3-2.8.0\\n\", \"stderr\": \"\", \"exit_code\": 0, \"elapsed_s\": 16.597486583996215, \"truncated\": false, \"timed_out\": false}",
+      "server": false,
+      "invocation_id": "toolu_017W5RkRr8uJkTrceKw4LSAd",
+      "result_text": "{\"command\": \"cd /work/repo && pip install -e packages/markitdown[docx] python-docx 2>&1 | tail -30\", \"stdout\": \"Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)\\nDownloading numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (15.7 MB)\\n   \\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501 15.7/15.7 MB 7.9 MB/s eta 0:00:00\\nDownloading protobuf-7.36.2-cp310-abi3-manylinux2014_aarch64.whl (344 kB)\\nDownloading flatbuffers-25.12.19-py2.py3-none-any.whl (26 kB)\\nDownloading packaging-26.3-py3-none-any.whl (129 kB)\\nBuilding wheels for collected packages: markitdown\\n  Building editable for markitdown (pyproject.toml): started\\n  Building editable for markitdown (pyproject.toml): finished with status 'done'\\n  Created wheel for markitdown: filename=markitdown-0.1.9-py3-none-any.whl size=2748 sha256=006648aa8f01fc1c5df002f390bce79fb190e578187fe10f0c842110a0a5d6dc\\n  Stored in directory: /tmp/pip-ephem-wheel-cache-uchkek7h/wheels/db/64/1b/2edda094a8c29ce183cb5e419bfd313afb5e0603ea15378888\\nSuccessfully built markitdown\\nInstalling collected packages: flatbuffers, urllib3, typing_extensions, soupsieve, six, protobuf, packaging, numpy, lxml, idna, defusedxml, cobble, click, charset-normalizer, certifi, requests, python-docx, onnxruntime, mammoth, beautifulsoup4, markdownify, magika, markitdown\\n  WARNING: The scripts f2py and numpy-config are installed in '/work/.local/bin' which is not on PATH.\\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\\n  WARNING: The script idna is installed in '/work/.local/bin' which is not on PATH.\\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\\n  WARNING: The script normalizer is installed in '/work/.local/bin' which is not on PATH.\\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\\n  WARNING: The script onnxruntime_test is installed in '/work/.local/bin' which is not on PATH.\\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\\n  WARNING: The script mammoth is installed in '/work/.local/bin' which is not on PATH.\\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\\n  WARNING: The script markdownify is installed in '/work/.local/bin' which is not on PATH.\\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\\n  WARNING: The scripts magika and magika-python-client are installed in '/work/.local/bin' which is not on PATH.\\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\\n  WARNING: The script markitdown is installed in '/work/.local/bin' which is not on PATH.\\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\\nSuccessfully installed beautifulsoup4-4.15.0 certifi-2026.10.23 charset-normalizer-3.5.2 click-8.5.1 cobble-0.1.4 defusedxml-0.7.1 flatbuffers-25.12.19 idna-3.20 lxml-6.1.3 magika-1.0.3 mammoth-1.13.0 markdownify-1.2.3 markitdown-0.1.9 numpy-2.5.4 onnxruntime-1.31.1 packaging-26.3 protobuf-7.36.2 python-docx-1.2.0 requests-2.34.2 six-1.17.0 soupsieve-4.0.1 typing_extensions-4.16.0 urllib3-2.8.0\\n\", \"stderr\": \"\", \"exit_code\": 0, \"elapsed_s\": 16.597486583996215, \"truncated\": false, \"timed_out\": false}",
+      "evidence_status": "complete"
+    },
+    {
+      "step": 4,
+      "tool": "sandbox_run",
+      "arguments": {
+        "command": "cd /work/repo && python3 -c \"\nimport docx\ndoc = docx.Document()\ndoc.add_heading('My Test Heading', level=1)\ntable = doc.add_table(rows=2, cols=2)\ntable.cell(0,0).text = 'Name'\ntable.cell(0,1).text = 'Value'\ntable.cell(1,0).text = 'Alpha'\ntable.cell(1,1).text = '42'\ndoc.save('/work/test.docx')\n\"\npython3 -c \"\nfrom markitdown import MarkItDown\nmd = MarkItDown()\nresult = md.convert('/work/test.docx')\nprint(result.text_content)\n\"\n"
+      },
+      "is_error": false,
+      "result_summary": "{\"command\": \"cd /work/repo && python3 -c \\\"\\nimport docx\\ndoc = docx.Document()\\ndoc.add_heading('My Test Heading', level=1)\\ntable = doc.add_table(rows=2, cols=2)\\ntable.cell(0,0).text = 'Name'\\ntable.cell(0,1).text = 'Value'\\ntable.cell(1,0).text = 'Alpha'\\ntable.cell(1,1).text = '42'\\ndoc.save('/work/test.docx')\\n\\\"\\npython3 -c \\\"\\nfrom markitdown import MarkItDown\\nmd = MarkItDown()\\nresult = md.convert('/work/test.docx')\\nprint(result.text_content)\\n\\\"\\n\", \"stdout\": \"# My Test Heading\\n\\n|  |  |\\n| --- | --- |\\n| Name | Value |\\n| Alpha | 42 |\\n\", \"stderr\": \"\", \"exit_code\": 0, \"elapsed_s\": 1.2118254999950295, \"truncated\": false, \"timed_out\": false}",
+      "server": false,
+      "invocation_id": "toolu_01JD278D2sx3dv5MmBneQn6G",
+      "result_text": "{\"command\": \"cd /work/repo && python3 -c \\\"\\nimport docx\\ndoc = docx.Document()\\ndoc.add_heading('My Test Heading', level=1)\\ntable = doc.add_table(rows=2, cols=2)\\ntable.cell(0,0).text = 'Name'\\ntable.cell(0,1).text = 'Value'\\ntable.cell(1,0).text = 'Alpha'\\ntable.cell(1,1).text = '42'\\ndoc.save('/work/test.docx')\\n\\\"\\npython3 -c \\\"\\nfrom markitdown import MarkItDown\\nmd = MarkItDown()\\nresult = md.convert('/work/test.docx')\\nprint(result.text_content)\\n\\\"\\n\", \"stdout\": \"# My Test Heading\\n\\n|  |  |\\n| --- | --- |\\n| Name | Value |\\n| Alpha | 42 |\\n\", \"stderr\": \"\", \"exit_code\": 0, \"elapsed_s\": 1.2118254999950295, \"truncated\": false, \"timed_out\": false}",
+      "evidence_status": "complete"
+    }
+  ],
+  "critique": {
+    "grounded": true,
+    "issues": [],
+    "claim_checks": [
+      {
+        "statement": "MarkItDown (Python package, MIT licensed) installed cleanly with its docx extra via plain pip install, with no API key or LLM client configured.",
+        "supported": true,
+        "evidence_refs": [
+          "toolu_017W5RkRr8uJkTrceKw4LSAd"
+        ],
+        "reason": "pip install command exited 0 and installed markitdown plus python-docx/mammoth dependencies; no API key or LLM client was passed or configured anywhere in the commands."
+      },
+      {
+        "statement": "A fresh .docx file was created locally with python-docx, containing a level-1 heading ('My Test Heading') and a 2x2 table with text cells.",
+        "supported": true,
+        "evidence_refs": [
+          "toolu_01JD278D2sx3dv5MmBneQn6G"
+        ],
+        "reason": "The sandbox_run script explicitly creates a docx via python-docx with add_heading(level=1) and a 2x2 table populated with the stated cell values, and the command exited 0 with no errors."
+      },
+      {
+        "statement": "Running MarkItDown().convert() on that file, using only the default converter with no LLM client instantiated, produced Markdown output '# My Test Heading' followed by a proper Markdown pipe-table containing the cell contents.",
+        "supported": true,
+        "evidence_refs": [
+          "toolu_01JD278D2sx3dv5MmBneQn6G"
+        ],
+        "reason": "stdout shows exactly '# My Test Heading' followed by a pipe-delimited table containing Name, Value, Alpha, 42; MarkItDown() was instantiated with no model/client arguments, consistent with no LLM use."
+      },
+      {
+        "statement": "MarkItDown is a Python package that converts documents, including Word .docx files, into Markdown.",
+        "supported": true,
+        "evidence_refs": [
+          "toolu_014Q3pBz3c4E15Wy2HihGfy6",
+          "toolu_01JD278D2sx3dv5MmBneQn6G"
+        ],
+        "reason": "Repo metadata confirms Python as primary language; the docx-to-markdown conversion was directly demonstrated, supporting the narrow claim (not a claim about all file types or pure-Python internals)."
+      },
+      {
+        "statement": "Yes: a minimal local test showed MarkItDown converting a .docx file with a heading and a table into Markdown that kept the heading as '#' and the table as a proper Markdown pipe-table, with no LLM API involved.",
+        "supported": true,
+        "evidence_refs": [
+          "toolu_01JD278D2sx3dv5MmBneQn6G"
+        ],
+        "reason": "Matches the observed stdout exactly; conclusion is appropriately scoped as a single minimal test and does not overstate generality, and limitations section correctly flags untested complexity."
+      }
+    ],
+    "final_review": {
+      "status": "ok",
+      "grounded": true,
+      "issues": [],
+      "claim_checks": [
+        {
+          "statement": "MarkItDown (Python package, MIT licensed) installed cleanly with its docx extra via plain pip install, with no API key or LLM client configured.",
+          "supported": true,
+          "evidence_refs": [
+            "toolu_017W5RkRr8uJkTrceKw4LSAd"
+          ],
+          "reason": "pip install command exited 0 and installed markitdown plus python-docx/mammoth dependencies; no API key or LLM client was passed or configured anywhere in the commands."
+        },
+        {
+          "statement": "A fresh .docx file was created locally with python-docx, containing a level-1 heading ('My Test Heading') and a 2x2 table with text cells.",
+          "supported": true,
+          "evidence_refs": [
+            "toolu_01JD278D2sx3dv5MmBneQn6G"
+          ],
+          "reason": "The sandbox_run script explicitly creates a docx via python-docx with add_heading(level=1) and a 2x2 table populated with the stated cell values, and the command exited 0 with no errors."
+        },
+        {
+          "statement": "Running MarkItDown().convert() on that file, using only the default converter with no LLM client instantiated, produced Markdown output '# My Test Heading' followed by a proper Markdown pipe-table containing the cell contents.",
+          "supported": true,
+          "evidence_refs": [
+            "toolu_01JD278D2sx3dv5MmBneQn6G"
+          ],
+          "reason": "stdout shows exactly '# My Test Heading' followed by a pipe-delimited table containing Name, Value, Alpha, 42; MarkItDown() was instantiated with no model/client arguments, consistent with no LLM use."
+        },
+        {
+          "statement": "MarkItDown is a Python package that converts documents, including Word .docx files, into Markdown.",
+          "supported": true,
+          "evidence_refs": [
+            "toolu_014Q3pBz3c4E15Wy2HihGfy6",
+            "toolu_01JD278D2sx3dv5MmBneQn6G"
+          ],
+          "reason": "Repo metadata confirms Python as primary language; the docx-to-markdown conversion was directly demonstrated, supporting the narrow claim (not a claim about all file types or pure-Python internals)."
+        },
+        {
+          "statement": "Yes: a minimal local test showed MarkItDown converting a .docx file with a heading and a table into Markdown that kept the heading as '#' and the table as a proper Markdown pipe-table, with no LLM API involved.",
+          "supported": true,
+          "evidence_refs": [
+            "toolu_01JD278D2sx3dv5MmBneQn6G"
+          ],
+          "reason": "Matches the observed stdout exactly; conclusion is appropriately scoped as a single minimal test and does not overstate generality, and limitations section correctly flags untested complexity."
+        }
+      ]
+    }
+  }
+}

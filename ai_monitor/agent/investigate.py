@@ -74,6 +74,8 @@ README_EXCERPT_CHARS = 4000
 
 # Room for a full ledger. See _extract_investigation.
 EXTRACTION_MAX_TOKENS = 8192
+# A live screening consumed 1022/1024 tokens in thinking before returning JSON.
+DERIVE_MAX_TOKENS = 4096
 
 
 def default_caps(
@@ -312,6 +314,8 @@ class InvestigationRun(BaseModel):
     # data.
     critique: Optional[Any] = None
     critique_status: Literal["not_run", "ok", "failed"] = "not_run"
+    final_critique: Optional[Any] = None
+    final_critique_status: Literal["not_run", "ok", "failed"] = "not_run"
     original_report: Optional[Investigation] = None
     revised: bool = False
 
@@ -400,6 +404,18 @@ def _question_excerpt(text: str) -> str:
     return text[:README_EXCERPT_CHARS]
 
 
+class ScreeningError(RuntimeError):
+    """A completed model call did not produce a usable screening decision."""
+
+    def __init__(self, repo: str, usage: Usage, stop_reason: str, *,
+                 reason: str = "missing_structured_output", usage_available: bool = True):
+        super().__init__(f"No structured screening response for {repo} ({stop_reason})")
+        self.usage = usage
+        self.stop_reason = stop_reason
+        self.reason = reason
+        self.usage_available = usage_available
+
+
 def derive_question(
     item: Any,
     client: Any,
@@ -428,7 +444,7 @@ def derive_question(
     try:
         response = client.messages.parse(
             model=model,
-            max_tokens=1024,
+            max_tokens=DERIVE_MAX_TOKENS,
             system=DERIVE_PROMPT + (OFFLINE_SELECTION_PROMPT if require_offline_test else ""),
             messages=[
                 {
@@ -438,8 +454,14 @@ def derive_question(
             ],
             output_format=DerivedQuestion,
         )
-    except (anthropic.APIError, OllamaError, ValueError) as exc:
+    except (anthropic.APIError, OllamaError) as exc:
         raise RuntimeError(f"Could not derive a question for {repo}") from exc
+    except ValueError as exc:
+        recorded = getattr(exc, "response_usage", None)
+        usage = Usage(model=model, input_tokens=(recorded or {}).get("input_tokens", 0),
+                      output_tokens=(recorded or {}).get("output_tokens", 0))
+        raise ScreeningError(repo, usage, getattr(exc, "stop_reason", "unknown"),
+                             reason="invalid_structured_output", usage_available=recorded is not None) from exc
 
     usage = Usage(
         input_tokens=response.usage.input_tokens,
@@ -447,6 +469,10 @@ def derive_question(
         model=model,
     )
     derived = response.parsed_output
+    if derived is None:
+        # A refusal or truncated response is not a negative claim decision.
+        # Retain usage, do not retry a paid call, and let the caller record it.
+        raise ScreeningError(repo, usage, getattr(response, "stop_reason", "unknown"))
     if screening_details is not None:
         screening_details.update(derived.model_dump())
     if not derived.has_testable_claim or not derived.question.strip():
@@ -664,7 +690,11 @@ def _extract_investigation(
         return None, Usage(model=model)
 
     report = response.parsed_output
-    report.question = question.question
+    if report is not None:
+        report.question = question.question
+    else:
+        log.warning("no structured investigation for %s (stop_reason=%s)",
+                    question.repo, getattr(response, "stop_reason", "unknown"))
     return report, Usage(
         input_tokens=response.usage.input_tokens,
         output_tokens=response.usage.output_tokens,
@@ -868,9 +898,16 @@ def store_investigation(
                     {
                         "grounded": getattr(run.critique, "grounded", None),
                         "issues": getattr(run.critique, "issues", []),
+                        "claim_checks": [c.model_dump() for c in getattr(run.critique, "claim_checks", [])],
+                        "final_review": {
+                            "status": run.final_critique_status,
+                            "grounded": getattr(run.final_critique, "grounded", None),
+                            "issues": getattr(run.final_critique, "issues", []),
+                            "claim_checks": [c.model_dump() for c in getattr(run.final_critique, "claim_checks", [])],
+                        },
                     }
                 )
-                if run.critique is not None
+                if run.critique is not None or run.final_critique_status != "not_run"
                 else None
             ),
             run.critique_status,

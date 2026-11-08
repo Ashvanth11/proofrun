@@ -15,7 +15,7 @@ from typing import Any
 log = logging.getLogger(__name__)
 PUBLIC_FEED_URL = "https://ashvanth11.github.io/proofrun/monitoring.json"
 
-def load_local_runs(path: Path = db.DEFAULT_DB_PATH) -> tuple[list[dict[str, Any]], str]:
+def load_local_runs(path: Path = db.DEFAULT_DB_PATH, *, limit: int | None = 6) -> tuple[list[dict[str, Any]], str]:
     """Read only actual discovery-linked investigations; never initialize a DB."""
     if not path.exists():
         return [], ""
@@ -23,15 +23,22 @@ def load_local_runs(path: Path = db.DEFAULT_DB_PATH) -> tuple[list[dict[str, Any
     try:
         conn = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
         conn.row_factory = sqlite3.Row
-        rows = conn.execute("""
+        query = """
             SELECT v.*, i.title AS discovery_title, i.content AS discovery_description
             FROM investigations v JOIN items i ON i.id = v.item_id
-            ORDER BY v.created_at DESC, v.id DESC LIMIT 6
-        """).fetchall()
+            ORDER BY v.created_at DESC, v.id DESC
+        """
+        rows = conn.execute(query + (" LIMIT ?" if limit is not None else ""),
+                            (limit,) if limit is not None else ()).fetchall()
         views = []
         for row in rows:
             report = inv.Investigation.model_validate_json(row["report"]) if row["report"] else None
             critique = json.loads(row["critique"] or "{}")
+            final_review = critique.get("final_review") or {
+                "status": "not_run" if row["revised"] else row["critique_status"],
+                "grounded": None if row["revised"] else critique.get("grounded"),
+                "issues": [] if row["revised"] else critique.get("issues", []),
+            }
             views.append({
                 "repo": row["repo"], "question": row["question"],
                 "status": "monitoring", "recorded_at": (row["created_at"] or "")[:10],
@@ -48,6 +55,7 @@ def load_local_runs(path: Path = db.DEFAULT_DB_PATH) -> tuple[list[dict[str, Any
                 "critique_status": row["critique_status"],
                 "critique_grounded": critique.get("grounded"),
                 "critique_issues": critique.get("issues", []),
+                "final_review": final_review,
                 "estimated_cost_usd": row["cost_usd"] or 0,
                 "elapsed_seconds": row["wall_seconds"] or 0,
                 "steps_taken": row["steps_taken"] or 0,
@@ -173,10 +181,18 @@ def build_feed(path: Path, last_run: dict | None) -> dict:
     views, error = load_local_runs(path)
     if error:
         raise ValueError(error)
+    latest_attempt = None
+    if path.exists():
+        with sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+            conn.row_factory = sqlite3.Row
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE name='weekly_runs'").fetchone():
+                row = conn.execute("SELECT * FROM weekly_runs ORDER BY started_at DESC LIMIT 1").fetchone()
+                latest_attempt = dict(row) if row else None
     return {
         "schema_version": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "last_run": last_run,
+        "latest_attempt": latest_attempt,
         "investigations": views,
         **load_weekly_discoveries(path, last_run.get("week") if last_run else None),
     }

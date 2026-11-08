@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "findings": [
+    {
+      "slug": "markitdown-docx-2026-11-07",
+      "repo": "microsoft/markitdown",
+      "date": "2026-11-07",
+      "title": "A Word document in. Structured Markdown out.",
+      "summary": "A freshly generated Word document became Markdown with its heading and table cell contents intact. The complete conversion ran locally in the network-disabled sandbox, with no LLM client configured.",
+      "method": "Historical rerun · Docker execution",
+      "checks": [
+        "A level-1 Word heading became “# My Test Heading”.",
+        "All four table values survived in Markdown table rows: Name, Value, Alpha, and 42."
+      ],
+      "limitations": [
+        "One simple DOCX file was tested. Nested or merged tables, images, styles, and malformed documents were not tested.",
+        "The output adds an empty Markdown header row. This establishes preservation of the table content, not identical formatting or header semantics.",
+        "The source checkout was installed in editable mode with its DOCX dependencies. No explicit repository commit hash was captured."
+      ],
+      "review_note": "The presentation is based on the actual command output. The original inconclusive investigation is preserved below; it is not overwritten by this rerun. The selected finding makes no licensing claim.",
+      "estimated_cost_usd": 0.108518,
+      "source": "markitdown-2026-11-07.json",
+      "previous_source": "markitdown-original.json",
+      "manually_reviewed": true
+    },
+    {
+      "slug": "pydantic-ai-validation-2026-11-07",
+      "repo": "pydantic/pydantic-ai",
+      "date": "2026-11-07",
+      "title": "Typed output, tested beyond the happy path.",
+      "summary": "Pydantic AI returned a declared City model for valid test output. Deliberately invalid output triggered the library’s output-retry error. Both checks ran against the actual library using its local TestModel backend.",
+      "method": "Automatic selection from a saved batch · Docker execution",
+      "checks": [
+        "Valid test output returned an actual City model instance.",
+        "An integer in a string field triggered UnexpectedModelBehavior after the output retry limit."
+      ],
+      "limitations": [
+        "Only the synchronous local TestModel backend was exercised. Real LLM providers, async execution, and streaming were not tested.",
+        "The negative test prints its exception rather than asserting its exact type. Its recorded stdout supplies the observed result.",
+        "No separate type-coercion case or full repository language audit was performed. No explicit source commit hash was captured."
+      ],
+      "review_note": "The original automated report uses stronger wording about pure Python and coercion. This reviewed presentation narrows the conclusion to the two observed validation behaviors; the original remains unedited in the evidence below.",
+      "estimated_cost_usd": 0.36383,
+      "source": "pydantic-ai-2026-11-07.json",
+      "manually_reviewed": true
+    }
+  ]
+}

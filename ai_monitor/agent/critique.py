@@ -56,6 +56,13 @@ cannot establish a quotation or corroborate the source's contents.
 SYSTEM_PROMPT += EVIDENCE_AVAILABILITY
 
 
+class ClaimCheck(BaseModel):
+    statement: str
+    supported: bool
+    evidence_refs: list[str] = Field(default_factory=list)
+    reason: str
+
+
 class Critique(BaseModel):
     grounded: bool = Field(
         description="True if the conclusion follows from the evidence"
@@ -63,6 +70,7 @@ class Critique(BaseModel):
     issues: list[str] = Field(
         default_factory=list, description="Specific unsupported claims, if any"
     )
+    claim_checks: list[ClaimCheck] = Field(default_factory=list)
 
 
 def format_evidence(run: AgentRun) -> str:
@@ -216,6 +224,19 @@ Flag an issue when:
 - a new object in the same process is described as a simulated process boundary,
   crash, or restart; an in-memory pause/resume test cannot demonstrate recovery
   after process termination, even if limitations elsewhere acknowledge this
+- a primary-language metadata field is expanded into 'pure Python', 'entirely
+  Python', or a claim about all repository components without a source audit
+- returning a typed object from already schema-conforming data is called type
+  coercion without a test that actually converts an input value's type
+
+Audit every material assertion in the summary and ledger in claim_checks.
+Quote its statement, mark whether the evidence supports its exact scope, cite
+the successful invocation IDs in evidence_refs, and explain the narrow basis.
+Preserve the distinction between a library's local fake-model test and a real
+provider integration. A limitation elsewhere does not repair an overclaim.
+For a negative test, inspect its actual stdout/error and input: a command that
+merely exits successfully does not establish the expected rejection behavior.
+Unsupported checks must also appear in issues and grounded must be false.
 
 Do not flag an issue merely because the evidence is thin. 'inconclusive' and
 'could_not_test' drawn from limited evidence are correct behaviour, not
@@ -255,6 +276,7 @@ def format_investigation(report: Any) -> str:
         f"blockers: {report.blockers or 'none'}\n"
         f"ledger:\n{ledger}\n"
         f"summary: {report.summary}\n"
+        f"facts: {report.facts.model_dump_json()}\n"
         f"limitations: {report.limitations}"
     )
 
@@ -266,6 +288,23 @@ def _investigation_prompt(run: Any) -> str:
         f"EVIDENCE GATHERED\n{format_investigation_evidence(run)}\n\n"
         f"CONCLUSION DRAWN\n{format_investigation(run.report)}"
     )
+
+
+def validate_claim_checks(verdict: Critique, run: Any) -> Critique:
+    """A positive aggregate label cannot override failed per-claim checks."""
+    successful = {c.invocation_id for c in run.tool_calls
+                  if c.invocation_id and not c.is_error and c.evidence_status == "complete"}
+    for check in verdict.claim_checks:
+        issue = None
+        if not check.supported:
+            issue = f'{check.statement}: {check.reason}'
+        elif not check.evidence_refs or not set(check.evidence_refs) <= successful:
+            issue = f'{check.statement}: the review lacks valid complete-evidence invocation references.'
+        if issue and issue not in verdict.issues:
+            verdict.issues.append(issue)
+    if verdict.issues:
+        verdict.grounded = False
+    return verdict
 
 
 def _parse(
@@ -300,9 +339,8 @@ def critique_and_revise_investigation(
 ) -> tuple[Any, Usage]:
     """Critique an investigation and revise it once if it is not grounded.
 
-    Exactly one revision pass, for the same reason as the assessment path: a
-    critic and a reviser can disagree forever, and the second opinion is where
-    nearly all the value is.
+    At most one revision and one final review. Preserve the draft review
+    separately; never mistake it for a review of the revised report.
     """
     from ai_monitor.agent.investigate import Investigation, apply_integrity_rules
 
@@ -321,22 +359,28 @@ def critique_and_revise_investigation(
         # passed. The run still publishes a verdict either way, so the
         # difference has to be recorded rather than inferred from a None.
         run.critique_status = "failed"
+        run.final_critique_status = "failed"
         return run, total
 
+    verdict = validate_claim_checks(verdict, run)
     run.critique_status = "ok"
     run.critique = verdict
-    if not verdict.issues:
+    run.final_critique = verdict
+    run.final_critique_status = "ok"
+    if verdict.grounded and not verdict.issues:
         return run, total
+
+    issues = verdict.issues or ["The conclusion does not follow from the gathered evidence."]
 
     log.info(
         "%s: critique found %d issue(s), revising",
         run.question.repo,
-        len(verdict.issues),
+        len(issues),
     )
     prompt = (
         f"{_investigation_prompt(run)}\n\n"
         "ISSUES FOUND\n"
-        + "\n".join(f"- {i}" for i in verdict.issues)
+        + "\n".join(f"- {i}" for i in issues)
         + f"\n\n{REVISION_PROMPT}"
     )
     revised, usage = _parse(
@@ -353,5 +397,19 @@ def critique_and_revise_investigation(
         # revision is another piece of model output and gets checked the same
         # way, or the critique pass becomes a route around them.
         apply_integrity_rules(run)
+        final, usage = _parse(
+            client, model, INVESTIGATION_SYSTEM_PROMPT, _investigation_prompt(run), Critique
+        )
+        total.input_tokens += usage.input_tokens
+        total.output_tokens += usage.output_tokens
+        run.final_critique = validate_claim_checks(final, run) if final is not None else None
+        run.final_critique_status = "ok" if final is not None else "failed"
+
+    # An unresolved or failed final review cannot validate a firm conclusion.
+    final = run.final_critique
+    if (final is None or not final.grounded or final.issues) and run.report.verdict in {"supported", "refuted"}:
+        run.report.verdict = "inconclusive"
+        run.downgraded = True
+        run.report.limitations.append("The final automated evidence review did not validate a firm conclusion.")
 
     return run, total

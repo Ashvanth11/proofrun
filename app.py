@@ -194,6 +194,11 @@ def live_view(outcome: LiveOutcome) -> dict[str, Any]:
         "critique_status": run.critique_status,
         "critique_grounded": getattr(critique, "grounded", None),
         "critique_issues": getattr(critique, "issues", []),
+        "final_review": {
+            "status": run.final_critique_status,
+            "grounded": getattr(run.final_critique, "grounded", None),
+            "issues": getattr(run.final_critique, "issues", []),
+        },
         "estimated_cost_usd": run.usage.cost_usd,
         "elapsed_seconds": outcome.elapsed_seconds,
         "steps_taken": run.steps_taken,
@@ -235,6 +240,11 @@ def render_technical_details(st: Any, view: dict[str, Any]) -> None:
         st.text(f"Status: {view['critique_status']} · grounded: {view['critique_grounded']} · revised: {view['revised']}")
         for issue in view["critique_issues"]:
             st.text(issue)
+        final = view.get("final_review")
+        if final:
+            st.text(f"Final review: {final['status']} · grounded: {final['grounded']}")
+            for issue in final["issues"]:
+                st.text(issue)
         if view.get("final_text"):
             st.code(view["final_text"], language=None)
         st.caption("Source checks match evidence to tools used. They do not prove every statement is correct.")
@@ -282,6 +292,10 @@ def render_view(st: Any, view: dict[str, Any]) -> None:
         st.caption("The evidence review flagged qualifications. They are preserved in the full report below.")
     if view.get("critique_status") == "failed":
         st.warning("The automated evidence review did not complete. Treat this conclusion as provisional.")
+    elif view.get("final_review") and (
+        view["final_review"]["status"] != "ok" or not view["final_review"]["grounded"] or view["final_review"]["issues"]
+    ):
+        st.warning("The final evidence review did not validate this conclusion. Treat it as provisional.")
     render_technical_details(st, view)
 
 
@@ -337,6 +351,11 @@ def load_past_run(run_id: int, path: Path | None = None) -> tuple[dict[str, Any]
             "critique_status": row["critique_status"],
             "critique_grounded": critique.get("grounded"),
             "critique_issues": critique.get("issues", []),
+            "final_review": critique.get("final_review") or {
+                "status": "not_run" if row["revised"] else row["critique_status"],
+                "grounded": None if row["revised"] else critique.get("grounded"),
+                "issues": [] if row["revised"] else critique.get("issues", []),
+            },
             "estimated_cost_usd": row["cost_usd"] or 0,
             "elapsed_seconds": row["wall_seconds"] or 0,
             "steps_taken": row["steps_taken"] or 0,

@@ -159,6 +159,43 @@ dl.facts dd { margin: 0 0 .6rem; }
 .err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
 ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
 ul.issues li { margin-bottom: .4rem; }
+.masthead { display: flex; justify-content: space-between; gap: 1rem; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 1rem; }
+.masthead strong { font-size: 1.1rem; letter-spacing: -.03em; }
+.masthead nav { display: flex; flex-wrap: wrap; gap: 1rem; font-size: .85rem; }
+.hero { padding: 3.5rem 0 2rem; max-width: 45rem; }
+.hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.12; letter-spacing: -.045em; }
+.hero p { max-width: 38rem; color: var(--muted); font-size: 1.05rem; }
+.eyebrow { color: var(--accent); text-transform: uppercase; font-size: .72rem; letter-spacing: .12em; font-weight: 700; margin: 0 0 .9rem; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); border-block: 1px solid var(--line); padding: 1.1rem 0; gap: 1rem; margin-bottom: 1rem; }
+.stats strong { display: block; font-size: 1.6rem; line-height: 1.2; }
+.stats span, .meta { font-size: .8rem; color: var(--muted); }
+.notice { border-left: 3px solid var(--accent); padding: .6rem 1rem; background: var(--rep-bg); }
+.result { padding: 1.5rem; margin-bottom: 1rem; }
+.result h3 { margin-top: 0; font-size: 1.15rem; }
+.result h4 { margin: 1rem 0 .4rem; font-size: .85rem; }
+.result ul { padding-left: 1.2rem; margin-top: .3rem; }
+.result-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; flex-wrap: wrap; }
+.result-head a { overflow-wrap: anywhere; }
+.badge { display: inline-block; padding: .2rem .55rem; border-radius: 4px; background: var(--rep-bg); font-size: .75rem; font-weight: 650; }
+.badge.supported, .badge.refuted { color: var(--obs); background: var(--obs-bg); }
+.finding-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.75rem; }
+.discovery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.discovery-grid .card { margin: 0; }
+summary { cursor: pointer; padding: .6rem 0; font-weight: 600; }
+summary:hover, a:hover { color: var(--accent); }
+details > summary + * { margin-top: 1rem; }
+a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--rep-bg); padding: .75rem; border-radius: 4px; }
+p, li, code { overflow-wrap: anywhere; }
+.footer { border-top: 1px solid var(--line); padding-top: 1.25rem; margin-top: 3rem; font-size: .8rem; color: var(--muted); }
+@media (max-width: 600px) {
+  body { padding: 1rem .9rem 2rem; }
+  .masthead { align-items: flex-start; flex-direction: column; }
+  .hero { padding-top: 2.25rem; }
+  .finding-columns, .discovery-grid { grid-template-columns: 1fr; gap: .5rem; }
+  .result { padding: 1rem; }
+  .stats span { font-size: .72rem; }
+}
 """
 
 
@@ -357,6 +394,13 @@ def render_investigation(result: Any, row: Any, back_href: str = "index.html") -
             "<h2>Grounding critique</h2>",
             f'<div class="card"><p class="sub" style="margin:0">{head}</p>{listing}</div>',
         ]
+        final = critique.get("final_review")
+        if final:
+            items = "".join(f'<li>{safe(issue)}</li>' for issue in final.get("issues", []))
+            parts += ["<h2>Final report review</h2>",
+                      f'<div class="card"><p>Status: {safe(final["status"])} · grounded: {safe(final["grounded"])}</p><ul>{items}</ul></div>']
+        elif revised:
+            parts += ['<p class="notice">The draft was reviewed; the revised report has no recorded final review.</p>']
 
     return page(safe(result.repo, 80) + " &mdash; Proofrun", "\n".join(parts))
 

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proofrun — A Word document in. Structured Markdown out.</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e0e0db;
+  --card: #ffffff; --accent: #2a5d8f; --bad: #a33; --good: #2e6b3e;
+  --obs: #1d4f2b; --obs-bg: #e6f2e9; --insp: #1f4d73; --insp-bg: #e6eff7;
+  --rep: #6b6b66; --rep-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a; --fg: #e6e6e3; --muted: #9a9a94; --line: #2c2e33;
+    --card: #1d1f23; --accent: #7fb0e0; --bad: #e08585; --good: #7fc08f;
+    --obs: #9fe0b0; --obs-bg: #1c3325; --insp: #9fc9ec; --insp-bg: #1a2c3d;
+    --rep: #9a9a94; --rep-bg: #24262b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin: 2.5rem 0 .75rem; font-weight: 600;
+}
+a { color: var(--accent); }
+.sub { color: var(--muted); margin: 0 0 2rem; }
+.back { display: inline-block; margin-bottom: 1.5rem; font-size: .85rem; }
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .82rem;
+}
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td {
+  text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.n, th.n { text-align: right; }
+tr.row:hover td { background: var(--card); }
+td a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+.yes { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; margin-bottom: .6rem;
+}
+.q { font-size: 1.05rem; margin: 0 0 .5rem; }
+.verdict {
+  display: inline-block; padding: .3rem .7rem; border-radius: 4px;
+  font-weight: 700; letter-spacing: .04em; background: var(--rep-bg);
+}
+.verdict.supported, .verdict.refuted { background: var(--obs-bg); color: var(--obs); }
+.step {
+  border-left: 3px solid var(--line); padding: .45rem 0 .45rem .8rem;
+  margin-bottom: .5rem;
+}
+.step.err { border-left-color: var(--bad); }
+.step .hd { font-weight: 600; }
+.step .out { color: var(--muted); display: block; margin-top: .2rem; word-break: break-word; }
+.tag {
+  display: inline-block; min-width: 5.5rem; text-align: center;
+  padding: .1rem .45rem; border-radius: 3px; font-size: .7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.observed { background: var(--obs-bg); color: var(--obs); }
+.tag.inspected { background: var(--insp-bg); color: var(--insp); }
+.tag.reported { background: var(--rep-bg); color: var(--rep); }
+.entry { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: 0; }
+.entry .src { color: var(--muted); display: block; margin-top: .2rem; }
+.side { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts { margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts dd { margin: 0 0 .6rem; }
+.legend { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
+ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
+ul.issues li { margin-bottom: .4rem; }
+.masthead { display: flex; justify-content: space-between; gap: 1rem; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 1rem; }
+.masthead strong { font-size: 1.1rem; letter-spacing: -.03em; }
+.masthead nav { display: flex; flex-wrap: wrap; gap: 1rem; font-size: .85rem; }
+.hero { padding: 3.5rem 0 2rem; max-width: 45rem; }
+.hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.12; letter-spacing: -.045em; }
+.hero p { max-width: 38rem; color: var(--muted); font-size: 1.05rem; }
+.eyebrow { color: var(--accent); text-transform: uppercase; font-size: .72rem; letter-spacing: .12em; font-weight: 700; margin: 0 0 .9rem; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); border-block: 1px solid var(--line); padding: 1.1rem 0; gap: 1rem; margin-bottom: 1rem; }
+.stats strong { display: block; font-size: 1.6rem; line-height: 1.2; }
+.stats span, .meta { font-size: .8rem; color: var(--muted); }
+.notice { border-left: 3px solid var(--accent); padding: .6rem 1rem; background: var(--rep-bg); }
+.result { padding: 1.5rem; margin-bottom: 1rem; }
+.result h3 { margin-top: 0; font-size: 1.15rem; }
+.result h4 { margin: 1rem 0 .4rem; font-size: .85rem; }
+.result ul { padding-left: 1.2rem; margin-top: .3rem; }
+.result-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; flex-wrap: wrap; }
+.result-head a { overflow-wrap: anywhere; }
+.badge { display: inline-block; padding: .2rem .55rem; border-radius: 4px; background: var(--rep-bg); font-size: .75rem; font-weight: 650; }
+.badge.supported, .badge.refuted { color: var(--obs); background: var(--obs-bg); }
+.finding-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.75rem; }
+.discovery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.discovery-grid .card { margin: 0; }
+summary { cursor: pointer; padding: .6rem 0; font-weight: 600; }
+summary:hover, a:hover { color: var(--accent); }
+details > summary + * { margin-top: 1rem; }
+a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--rep-bg); padding: .75rem; border-radius: 4px; }
+p, li, code { overflow-wrap: anywhere; }
+.footer { border-top: 1px solid var(--line); padding-top: 1.25rem; margin-top: 3rem; font-size: .8rem; color: var(--muted); }
+@media (max-width: 600px) {
+  body { padding: 1rem .9rem 2rem; }
+  .masthead { align-items: flex-start; flex-direction: column; }
+  .hero { padding-top: 2.25rem; }
+  .finding-columns, .discovery-grid { grid-template-columns: 1fr; gap: .5rem; }
+  .result { padding: 1rem; }
+  .stats span { font-size: .72rem; }
+}
+
+.portfolio { --bg: #f8faf8; --fg: #172d30; --muted: #536765; --line: #d7e2dc; --card: #fff; --rep-bg: #edf3ed; --accent: #126c60; background: #f8faf8; color: #172d30; padding-top: 0; }
+.portfolio .wrap { max-width: 72rem; }
+.portfolio a { color: #126c60; text-underline-offset: .2em; }
+.portfolio .site-nav { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 0; gap: 1.5rem; border-bottom: 1px solid #d8e2de; }
+.portfolio .brand { display: flex; align-items: center; gap: .6rem; font-size: 1.2rem; font-weight: 750; letter-spacing: -.04em; color: #172d30; text-decoration: none; }
+.portfolio .brand-mark { background: #163d39; color: #c8efdf; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .5rem; font: 700 .9rem ui-monospace, monospace; }
+.portfolio nav { display: flex; gap: 1.4rem; flex-wrap: wrap; font-size: .85rem; }
+.portfolio nav a { text-decoration: none; color: #455c5a; }
+.portfolio .intro { display: grid; grid-template-columns: 1.2fr 1fr; gap: 4rem; align-items: center; padding: 5rem 0 4rem; }
+.portfolio .overline { color: #126c60; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; }
+.portfolio h1 { font-size: clamp(2.8rem, 5.8vw, 4.8rem); line-height: 1.04; letter-spacing: -.055em; margin: 1rem 0 1.4rem; }
+.portfolio h1 em { color: #25756b; font-family: Georgia, serif; font-weight: 400; letter-spacing: -.05em; }
+.portfolio .intro-copy { font-size: 1.08rem; line-height: 1.7; color: #536765; max-width: 32rem; }
+.portfolio .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1.25rem; margin-top: 2rem; }
+.portfolio .primary { display: inline-block; padding: .8rem 1.15rem; background: #183f3a; border-radius: .45rem; color: #fff; text-decoration: none; font-size: .85rem; font-weight: 650; }
+.portfolio .secondary { font-size: .85rem; text-decoration: none; }
+.portfolio .console { border-radius: .85rem; overflow: hidden; background: #142c2b; color: #d3e5dc; box-shadow: 0 18px 45px #183f3a16; border: 1px solid #38544e; transform: rotate(1deg); }
+.portfolio .console-bar { padding: .8rem 1.15rem; background: #1c3734; display: flex; justify-content: space-between; font: .68rem ui-monospace, monospace; color: #b4cbc1; }
+.portfolio .console-content { padding: 1.4rem; font: .78rem/1.8 ui-monospace, monospace; }
+.portfolio .console-label { color: #8bb4a4; text-transform: uppercase; font-size: .65rem; letter-spacing: .09em; }
+.portfolio .console-row { padding: 1rem 0; border-bottom: 1px solid #35504a; }
+.portfolio .console-row:last-child { border: 0; }
+.portfolio .console-output { color: #b5f1ce; overflow-wrap: anywhere; }
+.portfolio .console-caption { color: #96b3a8; font-size: .68rem; margin-top: 1rem; }
+.portfolio .stackline { display: flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap; padding: 1.15rem 0; border-block: 1px solid #d8e2de; color: #657772; font-size: .75rem; }
+.portfolio .stackline span { display: inline-block; margin-right: 1rem; }
+.portfolio .section-top { display: flex; justify-content: space-between; gap: 2rem; align-items: end; margin-top: 4.5rem; margin-bottom: 1.5rem; }
+.portfolio h2 { color: #172d30; font-size: 1.75rem; text-transform: none; letter-spacing: -.04em; margin: .5rem 0; }
+.portfolio .section-note { max-width: 25rem; color: #657772; font-size: .8rem; margin: 0; }
+.portfolio .finding { background: #fff; border: 1px solid #d7e2dc; border-radius: .75rem; padding: 1.8rem 2rem; margin: 1rem 0; }
+.portfolio .finding-top { display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.portfolio .repo-name { color: #657772; font: .74rem ui-monospace, monospace; }
+.portfolio .finding h3 { font-size: 1.5rem; letter-spacing: -.04em; margin: 1.1rem 0 .6rem; line-height: 1.25; }
+.portfolio .finding-summary { color: #536765; max-width: 51rem; font-size: .95rem; }
+.portfolio .status { font-size: .7rem; background: #e5f3e9; color: #276245; border: 1px solid #c9e4d1; border-radius: 2rem; padding: .25rem .7rem; font-weight: 650; }
+.portfolio .proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+.portfolio .proof-item { background: #f4f7f4; border-radius: .4rem; padding: .85rem 1rem; font-size: .83rem; }
+.portfolio .proof-item span { display: block; font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; color: #6d7f75; margin-bottom: .3rem; }
+.portfolio .finding-footer { border-top: 1px solid #e6ece7; padding-top: 1rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .75rem; color: #657772; }
+.portfolio .finding-footer a { font-weight: 650; }
+.portfolio .pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 1.5rem; }
+.portfolio .pipeline article { border-top: 2px solid #bdd8cb; padding-top: 1.2rem; }
+.portfolio .pipeline b { color: #6f9381; font: .75rem ui-monospace, monospace; }
+.portfolio .pipeline h3 { font-size: 1rem; margin: 1rem 0 .5rem; }
+.portfolio .pipeline p { font-size: .85rem; line-height: 1.7; color: #657772; }
+.portfolio .archive-link { display: flex; justify-content: space-between; gap: 2rem; align-items: center; border-block: 1px solid #d8e2de; padding: 1.4rem 0; margin-top: 4rem; font-size: .85rem; }
+.portfolio .archive-link p { color: #657772; max-width: 42rem; margin: 0; }
+.portfolio footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1.6rem 0 0; color: #6c7e76; font-size: .75rem; }
+.portfolio .detail-intro { max-width: 50rem; padding: 3rem 0 1rem; }
+.portfolio .detail-intro h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); }
+.portfolio .scope { margin: 2rem 0; padding: 1rem 1.4rem; border-left: 3px solid #94beaa; background: #edf4ee; }
+.portfolio .scope h2 { font-size: 1.1rem; }
+.portfolio .evidence-output { background: #142c2b; color: #c9ead7; padding: 1.2rem; border-radius: .4rem; }
+.portfolio details { margin: 1rem 0; }
+.portfolio .review-note { color: #657772; font-size: .85rem; }
+.portfolio .trace { border-top: 1px solid #d8e2de; padding: 1rem 0; }
+.portfolio .skip { position: absolute; left: -10000px; }
+.portfolio .skip:focus { position: static; }
+@media (prefers-color-scheme: dark) {
+ .portfolio { color-scheme: light; }
+ .portfolio pre:not(.evidence-output) { background: #edf3ed; color: #172d30; }
+ .portfolio .badge { background: #e8f0e9; color: #276245; }
+}
+@media (max-width: 760px) {
+ .portfolio .intro { grid-template-columns: 1fr; gap: 2rem; padding: 2.8rem 0; }
+ .portfolio .console { transform: none; }
+ .portfolio .section-top { flex-direction: column; align-items: flex-start; gap: .5rem; margin-top: 3rem; }
+ .portfolio .pipeline { grid-template-columns: 1fr 1fr; }
+ .portfolio .finding { padding: 1.4rem; }
+ .portfolio .site-nav { align-items: flex-start; }
+ .portfolio nav { gap: .6rem 1rem; justify-content: flex-end; }
+ .portfolio .archive-link { flex-direction: column; align-items: flex-start; gap: .8rem; }
+}
+@media (max-width: 420px) {
+ .portfolio .proof-grid { grid-template-columns: 1fr; }
+ .portfolio .site-nav { flex-direction: column; gap: 1rem; }
+ .portfolio .pipeline { grid-template-columns: 1fr; gap: 1rem; }
+}
+</style>
+<meta name="description" content="Proofrun investigates AI repository claims with isolated experiments, recorded outputs, and evidence review. Explore findings and their test traces.">
+</head>
+<body class="portfolio">
+<div class="wrap">
+<a class="skip" href="#content">Skip to content</a><header class="site-nav"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">p/</span>Proofrun</a><nav aria-label="Main navigation"><a href="../index.html#selected-findings">Findings</a><a href="../index.html#method">How it works</a><a href="../monitoring.html">Run archive</a><a href="https://github.com/Ashvanth11/proofrun">GitHub ↗</a></nav></header><main id="content"><section class="detail-intro"><p class="overline">microsoft/markitdown · 2026-11-07</p><h1>A Word document in. Structured Markdown out.</h1><p class="intro-copy">A freshly generated Word document became Markdown with its heading and table cell contents intact. The complete conversion ran locally in the network-disabled sandbox, with no LLM client configured.</p><p class="meta">Historical rerun · Docker execution · estimated token cost $0.109</p></section><h2>What the experiment established</h2><ul><li>A level-1 Word heading became “# My Test Heading”.</li><li>All four table values survived in Markdown table rows: Name, Value, Alpha, and 42.</li></ul><h2>Recorded output</h2><pre class="evidence-output"># My Test Heading
+
+|  |  |
+| --- | --- |
+| Name | Value |
+| Alpha | 42 |
+</pre><section class="scope"><h2>Scope of this finding</h2><ul><li>One simple DOCX file was tested. Nested or merged tables, images, styles, and malformed documents were not tested.</li><li>The output adds an empty Markdown header row. This establishes preservation of the table content, not identical formatting or header semantics.</li><li>The source checkout was installed in editable mode with its DOCX dependencies. No explicit repository commit hash was captured.</li></ul></section><p class="review-note">Presentation review: The presentation is based on the actual command output. The original inconclusive investigation is preserved below; it is not overwritten by this rerun. The selected finding makes no licensing claim.</p><details><summary>Original automated report and tool trace — unedited</summary><p><strong>Stored verdict:</strong> supported · 2026-11-07T20:50:33.625811+00:00</p><p>Yes: a minimal local test showed MarkItDown converting a .docx file with a heading and a table into Markdown that kept the heading as &#x27;#&#x27; and the table as a proper Markdown pipe-table, with no LLM API involved. The test used only one simple document, so more complex Word files were not verified.</p><h3>Evidence ledger</h3><p><strong>observed</strong> · MarkItDown (Python package, MIT licensed) installed cleanly with its docx extra via plain pip install, with no API key or LLM client configured.<br><code>sandbox_setup(pip install markitdown[docx])</code></p><p><strong>observed</strong> · A fresh .docx file was created locally with python-docx, containing a level-1 heading (&#x27;My Test Heading&#x27;) and a 2x2 table with text cells.<br><code>sandbox_run(create docx)</code></p><p><strong>observed</strong> · Running MarkItDown().convert() on that file, using only the default converter with no LLM client instantiated, produced Markdown output &#x27;# My Test Heading&#x27; followed by a proper Markdown pipe-table containing the cell contents.<br><code>sandbox_run(convert docx)</code></p><h3>Recorded limitations</h3><ul><li>Did not test more complex Word documents (nested tables, merged cells, multiple heading levels, images, or styles).</li><li>Did not check behavior on very large or malformed .docx files.</li><li>Only one minimal test case (heading + table, no LLM) was used.</li></ul><h3>Tool trace</h3><details class="trace"><summary>get_repo_metadata</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;
+}</pre><pre>{&quot;full_name&quot;: &quot;microsoft/markitdown&quot;, &quot;license&quot;: &quot;MIT&quot;, &quot;language&quot;: &quot;Python&quot;, &quot;size_kb&quot;: 6015, &quot;archived&quot;: false, &quot;created_at&quot;: &quot;2024-11-13T19:56:40Z&quot;, &quot;pushed_at&quot;: &quot;2026-11-07T00:14:01Z&quot;, &quot;homepage&quot;: &quot;&quot;, &quot;stars&quot;: 194314, &quot;forks&quot;: 14624, &quot;open_issues&quot;: 814}</pre></details><details class="trace"><summary>sandbox_clone</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;
+}</pre><pre>{&quot;command&quot;: &quot;git clone --depth 1 https://github.com/microsoft/markitdown.git /work/repo&quot;, &quot;stdout&quot;: &quot;&quot;, &quot;stderr&quot;: &quot;Cloning into &#x27;/work/repo&#x27;...\n&quot;, &quot;exit_code&quot;: 0, &quot;elapsed_s&quot;: 1.995787374995416, &quot;truncated&quot;: false, &quot;timed_out&quot;: false}</pre></details><details class="trace"><summary>sandbox_setup</summary><pre>{
+  &quot;command&quot;: &quot;cd /work/repo &amp;&amp; pip install -e packages/markitdown[docx] python-docx 2&gt;&amp;1 | tail -30&quot;
+}</pre><pre>{&quot;command&quot;: &quot;cd /work/repo &amp;&amp; pip install -e packages/markitdown[docx] python-docx 2&gt;&amp;1 | tail -30&quot;, &quot;stdout&quot;: &quot;Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)\nDownloading numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (15.7 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 15.7/15.7 MB 7.9 MB/s eta 0:00:00\nDownloading protobuf-7.36.2-cp310-abi3-manylinux2014_aarch64.whl (344 kB)\nDownloading flatbuffers-25.12.19-py2.py3-none-any.whl (26 kB)\nDownloading packaging-26.3-py3-none-any.whl (129 kB)\nBuilding wheels for collected packages: markitdown\n  Building editable for markitdown (pyproject.toml): started\n  Building editable for markitdown (pyproject.toml): finished with status &#x27;done&#x27;\n  Created wheel for markitdown: filename=markitdown-0.1.9-py3-none-any.whl size=2748 sha256=006648aa8f01fc1c5df002f390bce79fb190e578187fe10f0c842110a0a5d6dc\n  Stored in directory: /tmp/pip-ephem-wheel-cache-uchkek7h/wheels/db/64/1b/2edda094a8c29ce183cb5e419bfd313afb5e0603ea15378888\nSuccessfully built markitdown\nInstalling collected packages: flatbuffers, urllib3, typing_extensions, soupsieve, six, protobuf, packaging, numpy, lxml, idna, defusedxml, cobble, click, charset-normalizer, certifi, requests, python-docx, onnxruntime, mammoth, beautifulsoup4, markdownify, magika, markitdown\n  WARNING: The scripts f2py and numpy-config are installed in &#x27;/work/.local/bin&#x27; which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script idna is installed in &#x27;/work/.local/bin&#x27; which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script normalizer is installed in &#x27;/work/.local/bin&#x27; which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script onnxruntime_test is installed in &#x27;/work/.local/bin&#x27; which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script mammoth is installed in &#x27;/work/.local/bin&#x27; which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script markdownify is installed in &#x27;/work/.local/bin&#x27; which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The scripts magika and magika-python-client are installed in &#x27;/work/.local/bin&#x27; which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script markitdown is installed in &#x27;/work/.local/bin&#x27; which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\nSuccessfully installed beautifulsoup4-4.15.0 certifi-2026.10.23 charset-normalizer-3.5.2 click-8.5.1 cobble-0.1.4 defusedxml-0.7.1 flatbuffers-25.12.19 idna-3.20 lxml-6.1.3 magika-1.0.3 mammoth-1.13.0 markdownify-1.2.3 markitdown-0.1.9 numpy-2.5.4 onnxruntime-1.31.1 packaging-26.3 protobuf-7.36.2 python-docx-1.2.0 requests-2.34.2 six-1.17.0 soupsieve-4.0.1 typing_extensions-4.16.0 urllib3-2.8.0\n&quot;, &quot;stderr&quot;: &quot;&quot;, &quot;exit_code&quot;: 0, &quot;elapsed_s&quot;: 16.597486583996215, &quot;truncated&quot;: false, &quot;timed_out&quot;: false}</pre></details><details class="trace"><summary>sandbox_run</summary><pre>{
+  &quot;command&quot;: &quot;cd /work/repo &amp;&amp; python3 -c \&quot;\nimport docx\ndoc = docx.Document()\ndoc.add_heading(&#x27;My Test Heading&#x27;, level=1)\ntable = doc.add_table(rows=2, cols=2)\ntable.cell(0,0).text = &#x27;Name&#x27;\ntable.cell(0,1).text = &#x27;Value&#x27;\ntable.cell(1,0).text = &#x27;Alpha&#x27;\ntable.cell(1,1).text = &#x27;42&#x27;\ndoc.save(&#x27;/work/test.docx&#x27;)\n\&quot;\npython3 -c \&quot;\nfrom markitdown import MarkItDown\nmd = MarkItDown()\nresult = md.convert(&#x27;/work/test.docx&#x27;)\nprint(result.text_content)\n\&quot;\n&quot;
+}</pre><pre>{&quot;command&quot;: &quot;cd /work/repo &amp;&amp; python3 -c \&quot;\nimport docx\ndoc = docx.Document()\ndoc.add_heading(&#x27;My Test Heading&#x27;, level=1)\ntable = doc.add_table(rows=2, cols=2)\ntable.cell(0,0).text = &#x27;Name&#x27;\ntable.cell(0,1).text = &#x27;Value&#x27;\ntable.cell(1,0).text = &#x27;Alpha&#x27;\ntable.cell(1,1).text = &#x27;42&#x27;\ndoc.save(&#x27;/work/test.docx&#x27;)\n\&quot;\npython3 -c \&quot;\nfrom markitdown import MarkItDown\nmd = MarkItDown()\nresult = md.convert(&#x27;/work/test.docx&#x27;)\nprint(result.text_content)\n\&quot;\n&quot;, &quot;stdout&quot;: &quot;# My Test Heading\n\n|  |  |\n| --- | --- |\n| Name | Value |\n| Alpha | 42 |\n&quot;, &quot;stderr&quot;: &quot;&quot;, &quot;exit_code&quot;: 0, &quot;elapsed_s&quot;: 1.2118254999950295, &quot;truncated&quot;: false, &quot;timed_out&quot;: false}</pre></details></details><p><a href="markitdown-docx-2026-11-07.json">Download the recorded evidence JSON</a> · <a href="https://github.com/microsoft/markitdown">Repository ↗</a></p><p><a href="markitdown-docx-2026-11-07-previous.html">Previous investigation and original outcome →</a></p></main><footer><span>Proofrun · Repository claims, checked with evidence.</span><a href="https://github.com/Ashvanth11/proofrun">Source code &amp; documentation ↗</a></footer>
+</div>
+</body>
+</html>

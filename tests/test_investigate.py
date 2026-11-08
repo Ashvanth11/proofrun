@@ -1683,3 +1683,83 @@ def test_the_prompt_tells_the_agent_not_to_clone_a_settled_question():
 def test_the_prompt_discourages_inconclusive_with_a_bare_other():
     """phoenix spent eleven calls to report `inconclusive` and `other`."""
     assert "`other` is" in inv.SYSTEM_PROMPT
+
+
+def test_missing_extraction_response_retains_usage_instead_of_crashing():
+    client = SimpleNamespace(messages=SimpleNamespace(parse=lambda **kw: SimpleNamespace(
+        parsed_output=None, stop_reason='max_tokens',
+        usage=SimpleNamespace(input_tokens=200, output_tokens=50),
+    )))
+    extracted, usage = inv._extract_investigation('The experiment ended.', QUESTION, client, 'ollama/test')
+    assert extracted is None
+    assert usage.input_tokens == 200
+    assert usage.output_tokens == 50
+
+
+@pytest.mark.parametrize('final_verdict', [None, False, True])
+def test_revision_has_a_separate_final_review(tmp_path, final_verdict):
+    box, _ = sandbox_tools()
+    client = ScriptedClient(CLONE_AND_RUN, report=report(
+        verdict='supported', ledger=[evidence(source='sandbox_run(python -m demo --resume)')],
+    ))
+    run = run_investigation(client, box)
+    answers = iter([
+        critique_mod.Critique(grounded=False, issues=['Overstates the experiment']),
+        run.report.model_copy(deep=True),
+        None if final_verdict is None else critique_mod.Critique(
+            grounded=final_verdict, issues=[] if final_verdict else ['Still overstates'],
+        ),
+    ])
+    requests = []
+    def parse(**kwargs):
+        requests.append(kwargs)
+        return SimpleNamespace(parsed_output=next(answers), usage=SimpleNamespace(input_tokens=10, output_tokens=5))
+    client.parse = parse
+    run, usage = critique_mod.critique_and_revise_investigation(run, client, model='ollama/test')
+    assert len(requests) == 3  # exactly one revision; never retry the review
+    assert usage.input_tokens == 30
+    assert run.critique.grounded is False
+    assert run.final_critique_status == ('failed' if final_verdict is None else 'ok')
+    assert run.report.verdict == ('supported' if final_verdict else 'inconclusive')
+    conn = db.connect(tmp_path / 'review.db')
+    inv.store_investigation(conn, run)
+    saved = json.loads(conn.execute('select critique from investigations').fetchone()[0])
+    assert saved['grounded'] is False
+    assert saved['final_review']['grounded'] == final_verdict
+    conn.close()
+
+
+@pytest.mark.parametrize('statement,reason', [
+    ('The repository is pure Python.', 'Primary-language metadata does not establish all component languages.'),
+    ('The agent coerces values into the declared field types.', 'The valid-input test never changes a field value from one type to another.'),
+])
+def test_unsupported_scope_check_cannot_hide_behind_positive_aggregate(statement, reason):
+    run = inv.InvestigationRun(question=QUESTION, steps_taken=0, stop_reason='sufficient_info',
+                               usage=inv.Usage(model='ollama/test'))
+    verdict = critique_mod.Critique(grounded=True, issues=[], claim_checks=[
+        critique_mod.ClaimCheck(statement=statement, supported=False, reason=reason),
+    ])
+    checked = critique_mod.validate_claim_checks(verdict, run)
+    assert checked.grounded is False
+    assert statement in checked.issues[0] and reason in checked.issues[0]
+
+
+def test_positive_claim_check_needs_successful_complete_retained_invocation():
+    from ai_monitor.agent.loop import ToolCall
+    run = inv.InvestigationRun(question=QUESTION, steps_taken=1, stop_reason='sufficient_info',
+        usage=inv.Usage(model='ollama/test'), tool_calls=[ToolCall(step=1, tool='sandbox_run',
+            arguments={}, is_error=False, result_summary='OK City', result_text='OK City',
+            invocation_id='run_valid', evidence_status='complete')])
+    check = critique_mod.ClaimCheck(statement='A valid local output returned a City instance.',
+                                   supported=True, evidence_refs=['run_valid'], reason='Exact printed output.')
+    verdict = critique_mod.Critique(grounded=True, claim_checks=[check])
+    assert critique_mod.validate_claim_checks(verdict, run).grounded is True
+    run.tool_calls[0].is_error = True
+    assert critique_mod.validate_claim_checks(verdict.model_copy(deep=True), run).grounded is False
+
+
+def test_critic_can_review_observed_output_field_as_well_as_summary_and_ledger():
+    structured = report()
+    structured.facts.observed_output = 'An abbreviated output that must be checked against the raw trace'
+    formatted = critique_mod.format_investigation(structured)
+    assert structured.facts.observed_output in formatted

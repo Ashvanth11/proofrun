@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proofrun — preserved original</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e0e0db;
+  --card: #ffffff; --accent: #2a5d8f; --bad: #a33; --good: #2e6b3e;
+  --obs: #1d4f2b; --obs-bg: #e6f2e9; --insp: #1f4d73; --insp-bg: #e6eff7;
+  --rep: #6b6b66; --rep-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a; --fg: #e6e6e3; --muted: #9a9a94; --line: #2c2e33;
+    --card: #1d1f23; --accent: #7fb0e0; --bad: #e08585; --good: #7fc08f;
+    --obs: #9fe0b0; --obs-bg: #1c3325; --insp: #9fc9ec; --insp-bg: #1a2c3d;
+    --rep: #9a9a94; --rep-bg: #24262b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin: 2.5rem 0 .75rem; font-weight: 600;
+}
+a { color: var(--accent); }
+.sub { color: var(--muted); margin: 0 0 2rem; }
+.back { display: inline-block; margin-bottom: 1.5rem; font-size: .85rem; }
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .82rem;
+}
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td {
+  text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.n, th.n { text-align: right; }
+tr.row:hover td { background: var(--card); }
+td a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+.yes { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; margin-bottom: .6rem;
+}
+.q { font-size: 1.05rem; margin: 0 0 .5rem; }
+.verdict {
+  display: inline-block; padding: .3rem .7rem; border-radius: 4px;
+  font-weight: 700; letter-spacing: .04em; background: var(--rep-bg);
+}
+.verdict.supported, .verdict.refuted { background: var(--obs-bg); color: var(--obs); }
+.step {
+  border-left: 3px solid var(--line); padding: .45rem 0 .45rem .8rem;
+  margin-bottom: .5rem;
+}
+.step.err { border-left-color: var(--bad); }
+.step .hd { font-weight: 600; }
+.step .out { color: var(--muted); display: block; margin-top: .2rem; word-break: break-word; }
+.tag {
+  display: inline-block; min-width: 5.5rem; text-align: center;
+  padding: .1rem .45rem; border-radius: 3px; font-size: .7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.observed { background: var(--obs-bg); color: var(--obs); }
+.tag.inspected { background: var(--insp-bg); color: var(--insp); }
+.tag.reported { background: var(--rep-bg); color: var(--rep); }
+.entry { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: 0; }
+.entry .src { color: var(--muted); display: block; margin-top: .2rem; }
+.side { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts { margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .75rem; text-transform: uppercase; }
+dl.facts dd { margin: 0 0 .6rem; }
+.legend { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.err-flag { color: var(--bad); font-weight: 700; font-size: .7rem; }
+ul.issues { margin: .4rem 0 0; padding-left: 1.1rem; }
+ul.issues li { margin-bottom: .4rem; }
+.masthead { display: flex; justify-content: space-between; gap: 1rem; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 1rem; }
+.masthead strong { font-size: 1.1rem; letter-spacing: -.03em; }
+.masthead nav { display: flex; flex-wrap: wrap; gap: 1rem; font-size: .85rem; }
+.hero { padding: 3.5rem 0 2rem; max-width: 45rem; }
+.hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.12; letter-spacing: -.045em; }
+.hero p { max-width: 38rem; color: var(--muted); font-size: 1.05rem; }
+.eyebrow { color: var(--accent); text-transform: uppercase; font-size: .72rem; letter-spacing: .12em; font-weight: 700; margin: 0 0 .9rem; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); border-block: 1px solid var(--line); padding: 1.1rem 0; gap: 1rem; margin-bottom: 1rem; }
+.stats strong { display: block; font-size: 1.6rem; line-height: 1.2; }
+.stats span, .meta { font-size: .8rem; color: var(--muted); }
+.notice { border-left: 3px solid var(--accent); padding: .6rem 1rem; background: var(--rep-bg); }
+.result { padding: 1.5rem; margin-bottom: 1rem; }
+.result h3 { margin-top: 0; font-size: 1.15rem; }
+.result h4 { margin: 1rem 0 .4rem; font-size: .85rem; }
+.result ul { padding-left: 1.2rem; margin-top: .3rem; }
+.result-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; flex-wrap: wrap; }
+.result-head a { overflow-wrap: anywhere; }
+.badge { display: inline-block; padding: .2rem .55rem; border-radius: 4px; background: var(--rep-bg); font-size: .75rem; font-weight: 650; }
+.badge.supported, .badge.refuted { color: var(--obs); background: var(--obs-bg); }
+.finding-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.75rem; }
+.discovery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.discovery-grid .card { margin: 0; }
+summary { cursor: pointer; padding: .6rem 0; font-weight: 600; }
+summary:hover, a:hover { color: var(--accent); }
+details > summary + * { margin-top: 1rem; }
+a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--rep-bg); padding: .75rem; border-radius: 4px; }
+p, li, code { overflow-wrap: anywhere; }
+.footer { border-top: 1px solid var(--line); padding-top: 1.25rem; margin-top: 3rem; font-size: .8rem; color: var(--muted); }
+@media (max-width: 600px) {
+  body { padding: 1rem .9rem 2rem; }
+  .masthead { align-items: flex-start; flex-direction: column; }
+  .hero { padding-top: 2.25rem; }
+  .finding-columns, .discovery-grid { grid-template-columns: 1fr; gap: .5rem; }
+  .result { padding: 1rem; }
+  .stats span { font-size: .72rem; }
+}
+
+.portfolio { --bg: #f8faf8; --fg: #172d30; --muted: #536765; --line: #d7e2dc; --card: #fff; --rep-bg: #edf3ed; --accent: #126c60; background: #f8faf8; color: #172d30; padding-top: 0; }
+.portfolio .wrap { max-width: 72rem; }
+.portfolio a { color: #126c60; text-underline-offset: .2em; }
+.portfolio .site-nav { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 0; gap: 1.5rem; border-bottom: 1px solid #d8e2de; }
+.portfolio .brand { display: flex; align-items: center; gap: .6rem; font-size: 1.2rem; font-weight: 750; letter-spacing: -.04em; color: #172d30; text-decoration: none; }
+.portfolio .brand-mark { background: #163d39; color: #c8efdf; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .5rem; font: 700 .9rem ui-monospace, monospace; }
+.portfolio nav { display: flex; gap: 1.4rem; flex-wrap: wrap; font-size: .85rem; }
+.portfolio nav a { text-decoration: none; color: #455c5a; }
+.portfolio .intro { display: grid; grid-template-columns: 1.2fr 1fr; gap: 4rem; align-items: center; padding: 5rem 0 4rem; }
+.portfolio .overline { color: #126c60; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; }
+.portfolio h1 { font-size: clamp(2.8rem, 5.8vw, 4.8rem); line-height: 1.04; letter-spacing: -.055em; margin: 1rem 0 1.4rem; }
+.portfolio h1 em { color: #25756b; font-family: Georgia, serif; font-weight: 400; letter-spacing: -.05em; }
+.portfolio .intro-copy { font-size: 1.08rem; line-height: 1.7; color: #536765; max-width: 32rem; }
+.portfolio .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1.25rem; margin-top: 2rem; }
+.portfolio .primary { display: inline-block; padding: .8rem 1.15rem; background: #183f3a; border-radius: .45rem; color: #fff; text-decoration: none; font-size: .85rem; font-weight: 650; }
+.portfolio .secondary { font-size: .85rem; text-decoration: none; }
+.portfolio .console { border-radius: .85rem; overflow: hidden; background: #142c2b; color: #d3e5dc; box-shadow: 0 18px 45px #183f3a16; border: 1px solid #38544e; transform: rotate(1deg); }
+.portfolio .console-bar { padding: .8rem 1.15rem; background: #1c3734; display: flex; justify-content: space-between; font: .68rem ui-monospace, monospace; color: #b4cbc1; }
+.portfolio .console-content { padding: 1.4rem; font: .78rem/1.8 ui-monospace, monospace; }
+.portfolio .console-label { color: #8bb4a4; text-transform: uppercase; font-size: .65rem; letter-spacing: .09em; }
+.portfolio .console-row { padding: 1rem 0; border-bottom: 1px solid #35504a; }
+.portfolio .console-row:last-child { border: 0; }
+.portfolio .console-output { color: #b5f1ce; overflow-wrap: anywhere; }
+.portfolio .console-caption { color: #96b3a8; font-size: .68rem; margin-top: 1rem; }
+.portfolio .stackline { display: flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap; padding: 1.15rem 0; border-block: 1px solid #d8e2de; color: #657772; font-size: .75rem; }
+.portfolio .stackline span { display: inline-block; margin-right: 1rem; }
+.portfolio .section-top { display: flex; justify-content: space-between; gap: 2rem; align-items: end; margin-top: 4.5rem; margin-bottom: 1.5rem; }
+.portfolio h2 { color: #172d30; font-size: 1.75rem; text-transform: none; letter-spacing: -.04em; margin: .5rem 0; }
+.portfolio .section-note { max-width: 25rem; color: #657772; font-size: .8rem; margin: 0; }
+.portfolio .finding { background: #fff; border: 1px solid #d7e2dc; border-radius: .75rem; padding: 1.8rem 2rem; margin: 1rem 0; }
+.portfolio .finding-top { display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.portfolio .repo-name { color: #657772; font: .74rem ui-monospace, monospace; }
+.portfolio .finding h3 { font-size: 1.5rem; letter-spacing: -.04em; margin: 1.1rem 0 .6rem; line-height: 1.25; }
+.portfolio .finding-summary { color: #536765; max-width: 51rem; font-size: .95rem; }
+.portfolio .status { font-size: .7rem; background: #e5f3e9; color: #276245; border: 1px solid #c9e4d1; border-radius: 2rem; padding: .25rem .7rem; font-weight: 650; }
+.portfolio .proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+.portfolio .proof-item { background: #f4f7f4; border-radius: .4rem; padding: .85rem 1rem; font-size: .83rem; }
+.portfolio .proof-item span { display: block; font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; color: #6d7f75; margin-bottom: .3rem; }
+.portfolio .finding-footer { border-top: 1px solid #e6ece7; padding-top: 1rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .75rem; color: #657772; }
+.portfolio .finding-footer a { font-weight: 650; }
+.portfolio .pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 1.5rem; }
+.portfolio .pipeline article { border-top: 2px solid #bdd8cb; padding-top: 1.2rem; }
+.portfolio .pipeline b { color: #6f9381; font: .75rem ui-monospace, monospace; }
+.portfolio .pipeline h3 { font-size: 1rem; margin: 1rem 0 .5rem; }
+.portfolio .pipeline p { font-size: .85rem; line-height: 1.7; color: #657772; }
+.portfolio .archive-link { display: flex; justify-content: space-between; gap: 2rem; align-items: center; border-block: 1px solid #d8e2de; padding: 1.4rem 0; margin-top: 4rem; font-size: .85rem; }
+.portfolio .archive-link p { color: #657772; max-width: 42rem; margin: 0; }
+.portfolio footer { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1.6rem 0 0; color: #6c7e76; font-size: .75rem; }
+.portfolio .detail-intro { max-width: 50rem; padding: 3rem 0 1rem; }
+.portfolio .detail-intro h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); }
+.portfolio .scope { margin: 2rem 0; padding: 1rem 1.4rem; border-left: 3px solid #94beaa; background: #edf4ee; }
+.portfolio .scope h2 { font-size: 1.1rem; }
+.portfolio .evidence-output { background: #142c2b; color: #c9ead7; padding: 1.2rem; border-radius: .4rem; }
+.portfolio details { margin: 1rem 0; }
+.portfolio .review-note { color: #657772; font-size: .85rem; }
+.portfolio .trace { border-top: 1px solid #d8e2de; padding: 1rem 0; }
+.portfolio .skip { position: absolute; left: -10000px; }
+.portfolio .skip:focus { position: static; }
+@media (prefers-color-scheme: dark) {
+ .portfolio { color-scheme: light; }
+ .portfolio pre:not(.evidence-output) { background: #edf3ed; color: #172d30; }
+ .portfolio .badge { background: #e8f0e9; color: #276245; }
+}
+@media (max-width: 760px) {
+ .portfolio .intro { grid-template-columns: 1fr; gap: 2rem; padding: 2.8rem 0; }
+ .portfolio .console { transform: none; }
+ .portfolio .section-top { flex-direction: column; align-items: flex-start; gap: .5rem; margin-top: 3rem; }
+ .portfolio .pipeline { grid-template-columns: 1fr 1fr; }
+ .portfolio .finding { padding: 1.4rem; }
+ .portfolio .site-nav { align-items: flex-start; }
+ .portfolio nav { gap: .6rem 1rem; justify-content: flex-end; }
+ .portfolio .archive-link { flex-direction: column; align-items: flex-start; gap: .8rem; }
+}
+@media (max-width: 420px) {
+ .portfolio .proof-grid { grid-template-columns: 1fr; }
+ .portfolio .site-nav { flex-direction: column; gap: 1rem; }
+ .portfolio .pipeline { grid-template-columns: 1fr; gap: 1rem; }
+}
+</style>
+<meta name="description" content="Proofrun investigates AI repository claims with isolated experiments, recorded outputs, and evidence review. Explore findings and their test traces.">
+</head>
+<body class="portfolio">
+<div class="wrap">
+<a class="skip" href="#content">Skip to content</a><header class="site-nav"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">p/</span>Proofrun</a><nav aria-label="Main navigation"><a href="../index.html#selected-findings">Findings</a><a href="../index.html#method">How it works</a><a href="../monitoring.html">Run archive</a><a href="https://github.com/Ashvanth11/proofrun">GitHub ↗</a></nav></header><main id="content"><section class="detail-intro"><p class="overline">Original investigation · preserved history</p><h1>microsoft/markitdown</h1><p>Can MarkItDown convert a locally created Word document with a heading and table into Markdown that preserves both structures, without an LLM API?</p></section><p class="notice">Public trace redactions: Local account name in Docker socket error paths was redacted. Findings and command outcomes are unchanged; the original local database is preserved.</p><p><strong>Stored verdict:</strong> inconclusive · 2026-09-26T02:49:15.525247+00:00</p><p>MarkItDown&#x27;s docx conversion is designed as a local pipeline (docx -&gt; HTML -&gt; markdown via the project&#x27;s own HtmlConverter) with no LLM client involved by default. The html-to-markdown half of that pipeline was directly verified in this session to preserve a heading and a table when run on a representative HTML snippet, with no LLM call made. However, the actual end-to-end conversion of a real, freshly created .docx file was not completed: MarkItDown&#x27;s installed DocxConverter raised a MissingDependencyException, and the attempt to install the missing dependency (mammoth) timed out due to no sandbox network access. Docker-based sandbox tools were also unavailable throughout. As a result, whether headings and tables in a real .docx file survive MarkItDown&#x27;s actual conversion pipeline end-to-end was not directly demonstrated, only inferred from separately testing the two halves.</p><h3>Evidence ledger</h3><p><strong>reported</strong> · _docx_converter.py imports the project&#x27;s own HtmlConverter and a pre_process_docx utility, and the portion of the file that was retrieved contains no reference to an LLM client or API key; however the middle of the file was omitted from the retrieved output, so the exact library used to convert the raw .docx XML to HTML is not confirmed from this evidence alone.<br><code>read_file(packages/markitdown/src/markitdown/converters/_docx_converter.py)</code></p><p><strong>reported</strong> · The project&#x27;s regression test vectors for its sample test.docx file (_test_vectors.py) assert the converted markdown must include &#x27;# Abstract&#x27; and &#x27;# Introduction&#x27;, indicating Word heading styles are expected to become Markdown &#x27;#&#x27; headings.<br><code>read_file(packages/markitdown/tests/_test_vectors.py)</code></p><p><strong>reported</strong> · test_docx_styles.py tests only that DOCX stylesheet XML namespace-qualified attributes are preserved during a preprocessing step; it does not test heading or table conversion and does not mention &#x27;# Abstract&#x27; or any markdown output.<br><code>read_file(packages/markitdown/tests/test_docx_styles.py)</code></p><p><strong>reported</strong> · Attempting to run MarkItDown&#x27;s actual DocxConverter on a freshly created .docx file (built with python-docx) raised a MissingDependencyException stating the dependencies needed to read .docx files were not installed, even though python-docx itself was present; the real end-to-end docx-to-markdown pipeline was not successfully executed in this session.<br><code>code_execution(docx conversion attempt on /tmp/test.docx)</code></p><p><strong>reported</strong> · An attempt to pip install the missing dependency (mammoth) timed out after 30 seconds, apparently due to lack of network access in the sandbox, so the missing dependency could not be installed to unblock the real pipeline.<br><code>code_execution(pip install mammoth)</code></p><p><strong>reported</strong> · Running the project&#x27;s own HtmlConverter.convert_string() on a hand-authored HTML snippet representing a heading and a table (used as a stand-in for what mammoth&#x27;s HTML output would look like, not actual output from the created .docx file) produced correct Markdown: a &#x27;#&#x27; heading and a pipe-delimited table, with no LLM call made.<br><code>code_execution(HtmlConverter.convert_string heading and table html)</code></p><h3>Recorded limitations</h3><ul><li>The full docx-to-markdown pipeline was never successfully run on a real .docx file in this session; MarkItDown&#x27;s DocxConverter raised a MissingDependencyException, and installing the missing dependency (mammoth) timed out due to no sandbox network access.</li><li>The Docker-based sandbox tools were unavailable throughout the session, so verification relied on ad hoc code execution in a possibly non-standard environment rather than a clean install matching the repo&#x27;s documented setup.</li><li>The html-to-markdown heading/table check used a hand-written HTML snippet as a stand-in for what mammoth would actually produce from the created .docx file, rather than mammoth&#x27;s real output, so the fidelity of the docx-to-HTML conversion step itself was not verified.</li><li>The one test file inspected for docx-specific behavior (test_docx_styles.py) covers only XML stylesheet attribute preservation, not heading or table conversion, so no project test was directly confirmed to validate heading+table preservation end-to-end from a real docx.</li></ul><h3>Tool trace</h3><details class="trace"><summary>get_repo_metadata</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;
+}</pre><pre>{&quot;full_name&quot;: &quot;microsoft/markitdown&quot;, &quot;license&quot;: &quot;MIT&quot;, &quot;language&quot;: &quot;Python&quot;, &quot;size_kb&quot;: 4759, &quot;archived&quot;: false, &quot;created_at&quot;: &quot;2024-11-13T19:56:40Z&quot;, &quot;pushed_at&quot;: &quot;2026-09-21T21:03:34Z&quot;, &quot;homepage&quot;: &quot;&quot;, &quot;stars&quot;: 187055, &quot;forks&quot;: 13810, &quot;open_issues&quot;: 695}</pre></details><details class="trace"><summary>sandbox_clone</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;
+}</pre><pre>{&quot;error&quot;: &quot;create volume: failed to connect to the docker API at unix:///Users/[local-user]/.docker/run/docker.sock; check if the path is correct and if the daemon is running: dial unix /Users/[local-user]/.docker/run/docker.sock: con&quot;}</pre></details><details class="trace"><summary>sandbox_clone</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;
+}</pre><pre>{&quot;error&quot;: &quot;create volume: failed to connect to the docker API at unix:///Users/[local-user]/.docker/run/docker.sock; check if the path is correct and if the daemon is running: dial unix /Users/[local-user]/.docker/run/docker.sock: con&quot;}</pre></details><details class="trace"><summary>sandbox_clone</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;
+}</pre><pre>{&quot;error&quot;: &quot;create volume: failed to connect to the docker API at unix:///Users/[local-user]/.docker/run/docker.sock; check if the path is correct and if the daemon is running: dial unix /Users/[local-user]/.docker/run/docker.sock: con&quot;}</pre></details><details class="trace"><summary>get_repo_description</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;
+}</pre><pre>{&quot;full_name&quot;: &quot;microsoft/markitdown&quot;, &quot;description&quot;: &quot;Python tool for converting files and office documents to Markdown.&quot;, &quot;topics&quot;: [&quot;autogen&quot;, &quot;autogen-extension&quot;, &quot;langchain&quot;, &quot;markdown&quot;, &quot;microsoft-office&quot;, &quot;openai&quot;, &quot;pdf&quot;]}</pre></details><details class="trace"><summary>list_files</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;,
+  &quot;path&quot;: &quot;packages/markitdown/src/markitdown/converters&quot;
+}</pre><pre>{&quot;path&quot;: &quot;packages/markitdown/src/markitdown/converters&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;__init__.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 1668}, {&quot;name&quot;: &quot;_audio_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3047}, {&quot;name&quot;: &quot;_bing_serp_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3884}, {&quot;name&quot;: &quot;_csv_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 4172}, {&quot;name&quot;: &quot;_cu_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 19949}, {&quot;name&quot;: &quot;_doc_intel_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 9545}, {&quot;name&quot;: &quot;_docx_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 4581}, {&quot;name&quot;: &quot;_epub_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 7110}, {&quot;name&quot;: &quot;_exifto... [middle omitted] ..._rss_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 19941}, {&quot;name&quot;: &quot;_transcribe_audio.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 2109}, {&quot;name&quot;: &quot;_wikipedia_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 2763}, {&quot;name&quot;: &quot;_xlsx_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 8598}, {&quot;name&quot;: &quot;_youtube_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 9231}, {&quot;name&quot;: &quot;_zip_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 4011}], &quot;truncated&quot;: false}</pre></details><details class="trace"><summary>read_file</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;,
+  &quot;path&quot;: &quot;packages/markitdown/src/markitdown/converters/_docx_converter.py&quot;
+}</pre><pre>{&quot;path&quot;: &quot;packages/markitdown/src/markitdown/converters/_docx_converter.py&quot;, &quot;size&quot;: 4581, &quot;total_chars&quot;: 4581, &quot;start_char&quot;: 0, &quot;next_char&quot;: null, &quot;truncated&quot;: false, &quot;content&quot;: &quot;import sys\nimport io\nfrom warnings import warn\n\nfrom typing import BinaryIO, Any, Optional\n\nfrom ._html_converter import HtmlConverter\nfrom ..converter_utils.docx.pre_process import pre_process_docx\nfrom .._base_converter import DocumentConverterResult\nfrom .._stream_info import StreamInfo\nfrom .._exceptions import MissingDependencyException, MISSING_DEPENDENCY_MESSAGE\n\n# Try loading option... [middle omitted] ...  Return None or blank text to retain the native image representation.\n        Otherwise return HTML, escaping any literal text. Inline HTML stays\n        inline; block HTML splits enclosing paragraph/inline wrappers but stays\n        inside its table cell or list item. Hook failures propagate through the\n        normal conversion failure path.\n        \&quot;\&quot;\&quot;\n        return None\n&quot;}</pre></details><details class="trace"><summary>sandbox_clone</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;
+}</pre><pre>{&quot;error&quot;: &quot;create volume: failed to connect to the docker API at unix:///Users/[local-user]/.docker/run/docker.sock; check if the path is correct and if the daemon is running: dial unix /Users/[local-user]/.docker/run/docker.sock: con&quot;}</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport importlib\nfor pkg in [\&quot;docx\&quot;, \&quot;mammoth\&quot;, \&quot;markdownify\&quot;, \&quot;markitdown\&quot;]:\n    try:\n        importlib.import_module(pkg)\n        print(pkg, \&quot;available\&quot;)\n    except ImportError as e:\n        print(pkg, \&quot;NOT available:\&quot;, e)\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=\&quot;docx available\\nmammoth NOT available: No module named &#x27;mammoth&#x27;\\nmarkdownify available\\nmarkitdown NOT available: No module named &#x27;81d243bd2c585b0f4821__mypyc&#x27;\\n\&quot;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nr = subprocess.run([\&quot;pip\&quot;, \&quot;show\&quot;, \&quot;markitdown\&quot;], capture_output=True, text=True)\nprint(r.stdout, r.stderr)\nr2 = subprocess.run([\&quot;pip\&quot;, \&quot;list\&quot;], capture_output=True, text=True)\nprint([l for l in r2.stdout.splitlines() if &#x27;mark&#x27; in l.lower() or &#x27;mammoth&#x27; in l.lower() or &#x27;docx&#x27; in l.lower()])\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=\&quot;Name: markitdown\\nVersion: 0.1.5\\nSummary: Utility tool for converting various files to Markdown\\nHome-page: \\nAuthor: \\nAuthor-email: Adam Fourney &lt;adamfo@microsoft.com&gt;\\nLicense: \\nLocation: /usr/local/lib/python3.11/site-packages\\nRequires: beautifulsoup4, charset-normalizer, defusedxml, magika, markdownify, requests\\nRequired-by: \\n \\n[&#x27;Markdown                  3.6&#x27;, &#x27;markdown-it-py            4.0.0&#x27;, &#x27;markdownify               1.2.2&#x27;, &#x27;markitdown                0.1.5&#x27;, &#x27;MarkupSafe                3.0.2&#x27;, &#x27;python-docx               1.1.2&#x27;]\\n\&quot;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport markitdown, os\nprint(markitdown.__file__)\nprint(os.listdir(os.path.dirname(markitdown.__file__)))\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=1, stderr=&#x27;Traceback (most recent call last):\\n  File \&quot;/tmp/srvtoolu_019gyC3f2wRw2whYW7mHAVpi/cell.py\&quot;, line 9, in &lt;module&gt;\\n    import markitdown, os\\n  File \&quot;/usr/local/lib/python3.11/site-packages/markitdown/__init__.py\&quot;, line 6, in &lt;module&gt;\\n    from ._markitdown import (\\n  File \&quot;/usr/local/lib/python3.11/site-packages/markitdown/_markitdown.py\&quot;, line 16, in &lt;module&gt;\\n    import charset_normalizer\\n  File \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/__init__.py\&quot;, line 24, in &lt;module&gt;\\n    from .api import from_bytes, from_fp, from_path, is_binary\\n  File \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/api.py\&quot;, line 5, in &lt;module&gt;\\n    from .cd import (\\nModuleNotFoundError: No module named \\&#x27;81d243bd2c585b0f4821__mypyc\\&#x27;\\n&#x27;, stdout=&#x27;&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nr = subprocess.run([\&quot;python3\&quot;,\&quot;-c\&quot;,\&quot;import charset_normalizer; print(charset_normalizer.__file__)\&quot;], capture_output=True, text=True)\nprint(r.stdout, r.stderr)\nr2 = subprocess.run([\&quot;find\&quot;,\&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer\&quot;,\&quot;-iname\&quot;,\&quot;*mypyc*\&quot;], capture_output=True, text=True)\nprint(r2.stdout, r2.stderr)\nr3 = subprocess.run([\&quot;pip\&quot;,\&quot;show\&quot;,\&quot;charset_normalizer\&quot;], capture_output=True, text=True)\nprint(r3.stdout)\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27; Traceback (most recent call last):\\n  File \&quot;&lt;string&gt;\&quot;, line 1, in &lt;module&gt;\\n  File \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/__init__.py\&quot;, line 24, in &lt;module&gt;\\n    from .api import from_bytes, from_fp, from_path, is_binary\\n  File \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/api.py\&quot;, line 5, in &lt;module&gt;\\n    from .cd import (\\nModuleNotFoundError: No module named \\&#x27;81d243bd2c585b0f4821__mypyc\\&#x27;\\n\\n/usr/local/lib/python3.11/site-packages/charset_normalizer/md... [middle omitted] ...Charset Detector. Open, modern and actively maintained alternative to Chardet.\\nHome-page: https://github.com/Ousret/charset_normalizer\\nAuthor: Ahmed TAHRI\\nAuthor-email: ahmed.tahri@cloudnursery.dev\\nLicense: MIT\\nLocation: /usr/local/lib/python3.11/site-packages\\nRequires: \\nRequired-by: markitdown, pdfminer.six, requests\\n\\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nr = subprocess.run([\&quot;head\&quot;,\&quot;-30\&quot;,\&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/cd.py\&quot;], capture_output=True, text=True)\nprint(r.stdout)\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;import importlib\\nfrom codecs import IncrementalDecoder\\nfrom collections import Counter\\nfrom functools import lru_cache\\nfrom typing import Counter as TypeCounter, Dict, List, Optional, Tuple\\n\\nfrom .constant import (\\n    FREQUENCIES,\\n    KO_NAMES,\\n    LANGUAGE_SUPPORTED_COUNT,\\n    TOO_SMALL_SEQUENCE,\\n    ZH_NAMES,\\n)\\nfrom .md import is_suspiciously_successive_range\\nfrom .models import CoherenceMatches\\nfrom .utils import (\\n    is_accentuated,\\n    is_latin,\\n    is_multi_byte_encoding,\\n    is_unicode_range_secondary,\\n    unicode_range,\\n)\\n\\n\\ndef encoding_unicode_range(iana_name: str) -&gt; List[str]:\\n    \&quot;\&quot;\&quot;\\n    Return associated unicode ranges in a single byte code page.\\n    \&quot;\&quot;\&quot;\\n    if is_multi_byte_encoding(iana_name):\\n        raise IOError(\&quot;Function not supported on multi-byte code page\&quot;)\\n\\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nr = subprocess.run([\&quot;tail\&quot;,\&quot;-30\&quot;,\&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/md.py\&quot;], capture_output=True, text=True)\nprint(r.stdout)\nr2 = subprocess.run([\&quot;grep\&quot;,\&quot;-n\&quot;,\&quot;mypyc\&quot;,\&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/md.py\&quot;], capture_output=True, text=True)\nprint(r2.stdout)\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;        for detector in detectors:\\n            if detector.eligible(character):\\n                detector.feed(character)\\n\\n        if (\\n            index &gt; 0 and index % intermediary_mean_mess_ratio_calc == 0\\n        ) or index == length - 1:\\n            mean_mess_ratio = sum(dt.ratio for dt in detectors)\\n\\n            if mean_mess_ratio &gt;= maximum_threshold:\\n                break\\n\\n    if debug:\\n        logger = getLogger(\&quot;charset_normalizer\&quot;)\\n\\n        logger.log(\\n            ... [middle omitted] ..._sequence) &gt; 16:\\n            logger.log(TRACE, f\&quot;Starting with: {decoded_sequence[:16]}\&quot;)\\n            logger.log(TRACE, f\&quot;Ending with: {decoded_sequence[-16::]}\&quot;)\\n\\n        for dt in detectors:  # pragma: nocover\\n            logger.log(TRACE, f\&quot;{dt.__class__}: {dt.ratio}\&quot;)\\n\\n    return round(mean_mess_ratio, 3)\\n\\n\\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess, os\nso_path = \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/md__mypyc.cpython-311-x86_64-linux-gnu.so\&quot;\nprint(os.path.exists(so_path))\ntry:\n    os.rename(so_path, so_path+\&quot;.bak\&quot;)\n    print(\&quot;renamed ok\&quot;)\nexcept Exception as e:\n    print(\&quot;fail\&quot;, e)\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;True\\nrenamed ok\\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nr = subprocess.run([\&quot;python3\&quot;,\&quot;-c\&quot;,\&quot;import charset_normalizer; print(&#x27;ok&#x27;, charset_normalizer.__file__)\&quot;], capture_output=True, text=True)\nprint(r.stdout, r.stderr)\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27; Traceback (most recent call last):\\n  File \&quot;&lt;string&gt;\&quot;, line 1, in &lt;module&gt;\\n  File \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/__init__.py\&quot;, line 24, in &lt;module&gt;\\n    from .api import from_bytes, from_fp, from_path, is_binary\\n  File \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/api.py\&quot;, line 5, in &lt;module&gt;\\n    from .cd import (\\nModuleNotFoundError: No module named \\&#x27;81d243bd2c585b0f4821__mypyc\\&#x27;\\n\\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nr = subprocess.run([\&quot;head\&quot;,\&quot;-20\&quot;,\&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/md.py\&quot;], capture_output=True, text=True)\nprint(r.stdout)\nr2 = subprocess.run([\&quot;find\&quot;,\&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer\&quot;,\&quot;-iname\&quot;,\&quot;*.so\&quot;], capture_output=True, text=True)\nprint(r2.stdout)\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;from functools import lru_cache\\nfrom logging import getLogger\\nfrom typing import List, Optional\\n\\nfrom .constant import (\\n    COMMON_SAFE_ASCII_CHARACTERS,\\n    TRACE,\\n    UNICODE_SECONDARY_RANGE_KEYWORD,\\n)\\nfrom .utils import (\\n    is_accentuated,\\n    is_arabic,\\n    is_arabic_isolated_form,\\n    is_case_variable,\\n    is_cjk,\\n    is_emoticon,\\n    is_hangul,\\n    is_hiragana,\\n    is_katakana,\\n    is_latin,\\n\\n/usr/local/lib/python3.11/site-packages/charset_normalizer/cd.cpython-311-x86_64-linux-gnu.so\\n/usr/local/lib/python3.11/site-packages/charset_normalizer/md.cpython-311-x86_64-linux-gnu.so\\n\\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport os\nbase = \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/\&quot;\nfor f in [\&quot;md.cpython-311-x86_64-linux-gnu.so\&quot;, \&quot;cd.cpython-311-x86_64-linux-gnu.so\&quot;]:\n    p = base+f\n    if os.path.exists(p):\n        os.rename(p, p+\&quot;.bak\&quot;)\n        print(\&quot;renamed\&quot;, f)\nimport subprocess\nr = subprocess.run([\&quot;python3\&quot;,\&quot;-c\&quot;,\&quot;import charset_normalizer; print(&#x27;ok&#x27;)\&quot;], capture_output=True, text=True)\nprint(r.stdout, r.stderr)\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;renamed md.cpython-311-x86_64-linux-gnu.so\\nrenamed cd.cpython-311-x86_64-linux-gnu.so\\nok\\n \\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nr = subprocess.run([\&quot;python3\&quot;,\&quot;-c\&quot;,\&quot;from markitdown import MarkItDown; print(&#x27;ok&#x27;)\&quot;], capture_output=True, text=True)\nprint(r.stdout, r.stderr)\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;ok\\n \\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nscript = &#x27;&#x27;&#x27;\nimport docx\nd = docx.Document()\nd.add_heading(\&quot;My Report\&quot;, level=1)\nd.add_paragraph(\&quot;Some intro text.\&quot;)\ntable = d.add_table(rows=2, cols=2)\ntable.rows[0].cells[0].text = \&quot;Name\&quot;\ntable.rows[0].cells[1].text = \&quot;Score\&quot;\ntable.rows[1].cells[0].text = \&quot;Alice\&quot;\ntable.rows[1].cells[1].text = \&quot;95\&quot;\nd.save(\&quot;/tmp/test.docx\&quot;)\n\nfrom markitdown import MarkItDown\nmd = MarkItDown()  # no llm_client passed =&gt; no LLM API used\nresult = md.convert(\&quot;/tmp/test.docx\&quot;)\nprint(result.text_content)\n&#x27;&#x27;&#x27;\nwith open(\&quot;/tmp/run.py\&quot;,\&quot;w\&quot;) as f:\n    f.write(script)\nr = subprocess.run([\&quot;python3\&quot;,\&quot;/tmp/run.py\&quot;], capture_output=True, text=True)\nprint(\&quot;STDOUT:\\\\n\&quot;, r.stdout)\nprint(\&quot;STDERR:\\\\n\&quot;, r.stderr[-3000:])\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;STDOUT:\\\\n \\nSTDERR:\\\\n Traceback (most recent call last):\\n  File \&quot;/tmp/run.py\&quot;, line 15, in &lt;module&gt;\\n    result = md.convert(\&quot;/tmp/test.docx\&quot;)\\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \&quot;/usr/local/lib/python3.11/site-packages/markitdown/_markitdown.py\&quot;, line 283, in convert\\n    return self.convert_local(source, stream_info=stream_info, **kwargs)\\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \&quot;/usr/local/lib/python3.11/site-packages/markitdown... [middle omitted] ...put as a potential .docx file, but the dependencies needed to read .docx files have not been installed. To resolve this error, include the optional dependency [docx] or [all] when installing MarkItDown. For example:\\n\\n* pip install markitdown[docx]\\n* pip install markitdown[all]\\n* pip install markitdown[docx, ...]\\n* etc.\\n\\n\\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nr = subprocess.run([\&quot;pip\&quot;,\&quot;install\&quot;,\&quot;mammoth\&quot;,\&quot;--no-input\&quot;], capture_output=True, text=True, timeout=30)\nprint(r.stdout[-2000:], r.stderr[-2000:])\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=1, stderr=&#x27;Traceback (most recent call last):\\n  File \&quot;/tmp/srvtoolu_01XF4q83PPVhDuZBsyA9YLaG/cell.py\&quot;, line 10, in &lt;module&gt;\\n    r = subprocess.run([\&quot;pip\&quot;,\&quot;install\&quot;,\&quot;mammoth\&quot;,\&quot;--no-input\&quot;], capture_output=True, text=True, timeout=30)\\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \&quot;/usr/local/lib/python3.11/subprocess.py\&quot;, line 550, in run\\n    stdout, stderr = process.communicate(input, timeout=timeout)\\n                     ^^^^^^^^^^^^^^^^... [middle omitted] ...16, in _communicate\\n    self._check_timeout(endtime, orig_timeout, stdout, stderr)\\n  File \&quot;/usr/local/lib/python3.11/subprocess.py\&quot;, line 1253, in _check_timeout\\n    raise TimeoutExpired(\\nsubprocess.TimeoutExpired: Command \\&#x27;[\\&#x27;pip\\&#x27;, \\&#x27;install\\&#x27;, \\&#x27;mammoth\\&#x27;, \\&#x27;--no-input\\&#x27;]\\&#x27; timed out after 30 seconds\\n&#x27;, stdout=&#x27;&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>list_files</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;,
+  &quot;path&quot;: &quot;packages/markitdown/tests&quot;
+}</pre><pre>{&quot;path&quot;: &quot;packages/markitdown/tests&quot;, &quot;entries&quot;: [{&quot;name&quot;: &quot;__init__.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 108}, {&quot;name&quot;: &quot;_test_vectors.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 9889}, {&quot;name&quot;: &quot;test_charset_sample.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 3516}, {&quot;name&quot;: &quot;test_cli_misc.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 1927}, {&quot;name&quot;: &quot;test_cli_vectors.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 7015}, {&quot;name&quot;: &quot;test_csv_blank_runs.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 1049}, {&quot;name&quot;: &quot;test_csv_line_endings.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 1599}, {&quot;name&quot;: &quot;test_cu_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 39001}, {&quot;name&quot;: &quot;test_docintel_html.py&quot;,... [middle omitted] ...ter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 24206}, {&quot;name&quot;: &quot;test_rss_titles.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 10227}, {&quot;name&quot;: &quot;test_undetectable_charset.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 2739}, {&quot;name&quot;: &quot;test_xlsx_images.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 16306}, {&quot;name&quot;: &quot;test_youtube_converter.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 5826}, {&quot;name&quot;: &quot;test_zip_kwargs.py&quot;, &quot;type&quot;: &quot;file&quot;, &quot;size&quot;: 4342}], &quot;truncated&quot;: false}</pre></details><details class="trace"><summary>read_file</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;,
+  &quot;path&quot;: &quot;packages/markitdown/tests/_test_vectors.py&quot;,
+  &quot;find&quot;: &quot;docx&quot;
+}</pre><pre>{&quot;path&quot;: &quot;packages/markitdown/tests/_test_vectors.py&quot;, &quot;size&quot;: 9889, &quot;total_chars&quot;: 9839, &quot;start_char&quot;: 342, &quot;next_char&quot;: 6342, &quot;truncated&quot;: true, &quot;content&quot;: &quot;docx\&quot;,\n        mimetype=\&quot;application/vnd.openxmlformats-officedocument.wordprocessingml.document\&quot;,\n        charset=None,\n        url=None,\n        must_include=[\n            \&quot;314b0a30-5b04-470b-b9f7-eed2c2bec74a\&quot;,\n            \&quot;49e168b7-d2ae-407f-a055-2167576f39a1\&quot;,\n            \&quot;## d666f1f7-46cb-42bd-9a39-9a39cf2a509f\&quot;,\n            \&quot;# Abstract\&quot;,\n            \&quot;# Introduction\&quot;,\n            \&quot;AutoGen: Ena... [middle omitted] ... Why nearly 70% of the Fortune 500 now use Microsoft 365 Copilot\&quot;,\n            \&quot;In the case of AI, it is absolutely true that the industry is moving incredibly fast\&quot;,\n        ],\n        must_not_include=[\&quot;&lt;rss\&quot;, \&quot;&lt;feed\&quot;],\n    ),\n    FileTestVector(\n        filename=\&quot;test_notebook.ipynb\&quot;,\n        mimetype=\&quot;application/json\&quot;,\n        charset=\&quot;ascii\&quot;,\n        url=None&quot;}</pre></details><details class="trace"><summary>read_file</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;,
+  &quot;path&quot;: &quot;packages/markitdown/tests/test_docx_styles.py&quot;
+}</pre><pre>{&quot;path&quot;: &quot;packages/markitdown/tests/test_docx_styles.py&quot;, &quot;size&quot;: 5681, &quot;total_chars&quot;: 5681, &quot;start_char&quot;: 0, &quot;next_char&quot;: null, &quot;truncated&quot;: false, &quot;content&quot;: &quot;\&quot;\&quot;\&quot;DOCX stylesheet repair must preserve namespace-qualified attributes.\&quot;\&quot;\&quot;\n\nimport io\nfrom pathlib import Path\nimport re\nimport zipfile\n\nfrom lxml import etree\nimport pytest\n\nfrom markitdown import MarkItDown, StreamInfo\nfrom markitdown.converter_utils.docx.pre_process import _pre_process_styles\n\n\nWORD_NAMESPACE = \&quot;http://schemas.openxmlformats.org/wordprocessingml/2006/main\&quot;\nW = f\&quot;{{{WORD_NAMESPA... [middle omitted] ...ttrib == ({} if value is None else {W + \&quot;val\&quot;: value})\n    assert style.find(f\&quot;{W}rPr/{W}b\&quot;) is not None\n\n\ndef test_other_namespace_dstrike_is_unchanged(styles_xml: bytes) -&gt; None:\n    original = etree.fromstring(styles_xml)\n    etree.SubElement(original, \&quot;{urn:extension}dstrike\&quot;)\n    content = etree.tostring(original)\n\n    assert _pre_process_styles(content) == content\n&quot;}</pre></details><details class="trace"><summary>read_file</summary><pre>{
+  &quot;repo&quot;: &quot;microsoft/markitdown&quot;,
+  &quot;path&quot;: &quot;packages/markitdown/src/markitdown/converters/_markdownify.py&quot;,
+  &quot;find&quot;: &quot;table&quot;
+}</pre><pre>{&quot;path&quot;: &quot;packages/markitdown/src/markitdown/converters/_markdownify.py&quot;, &quot;size&quot;: 6136, &quot;total_chars&quot;: 6136, &quot;find&quot;: &quot;table&quot;, &quot;match_found&quot;: false, &quot;content&quot;: &quot;&quot;}</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nscript = &#x27;&#x27;&#x27;\nfrom markitdown.converters._html_converter import HtmlConverter\n\n# This HTML mirrors what python-docx&#x27;s \&quot;Heading 1\&quot; style + a table would\n# produce via mammoth.convert_to_html() when given a docx with a heading and a table\n# (mammoth maps Word \&quot;Heading 1\&quot;-&gt;\&quot;&lt;h1&gt;\&quot;, tables -&gt; &lt;table&gt;/&lt;tr&gt;/&lt;td&gt;).\nhtml = \&quot;\&quot;\&quot;\n&lt;html&gt;&lt;body&gt;\n&lt;h1&gt;My Report&lt;/h1&gt;\n&lt;p&gt;Some intro text.&lt;/p&gt;\n&lt;table&gt;\n&lt;tr&gt;&lt;td&gt;Name&lt;/td&gt;&lt;td&gt;Score&lt;/td&gt;&lt;/tr&gt;\n&lt;tr&gt;&lt;td&gt;Alice&lt;/td&gt;&lt;td&gt;95&lt;/td&gt;&lt;/tr&gt;\n&lt;/table&gt;\n&lt;/body&gt;&lt;/html&gt;\n\&quot;\&quot;\&quot;\n\nconv = HtmlConverter()\nresult = conv.convert_string(html)\nprint(result.markdown)\n&#x27;&#x27;&#x27;\nwith open(\&quot;/tmp/run2.py\&quot;,\&quot;w\&quot;) as f:\n    f.write(script)\nr = subprocess.run([\&quot;python3\&quot;,\&quot;/tmp/run2.py\&quot;], capture_output=True, text=True)\nprint(\&quot;STDOUT:\\n\&quot;, r.stdout)\nprint(\&quot;STDERR:\\n\&quot;, r.stderr[-2000:])\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;STDOUT:\\n \\nSTDERR:\\n Traceback (most recent call last):\\n  File \&quot;/tmp/run2.py\&quot;, line 2, in &lt;module&gt;\\n    from markitdown.converters._html_converter import HtmlConverter\\n  File \&quot;/usr/local/lib/python3.11/site-packages/markitdown/__init__.py\&quot;, line 6, in &lt;module&gt;\\n    from ._markitdown import (\\n  File \&quot;/usr/local/lib/python3.11/site-packages/markitdown/_markitdown.py\&quot;, line 16, in &lt;module&gt;\\n    import charset_normalizer\\n  File \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/__init__.py\&quot;, line 24, in &lt;module&gt;\\n    from .api import from_bytes, from_fp, from_path, is_binary\\n  File \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/api.py\&quot;, line 5, in &lt;module&gt;\\n    from .cd import (\\nModuleNotFoundError: No module named \\&#x27;81d243bd2c585b0f4821__mypyc\\&#x27;\\n\\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess\nr = subprocess.run([\&quot;ls\&quot;,\&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/\&quot;], capture_output=True, text=True)\nprint(r.stdout)\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;__init__.py\\n__main__.py\\n__pycache__\\napi.py\\ncd.cpython-311-x86_64-linux-gnu.so\\ncd.py\\ncli\\nconstant.py\\nlegacy.py\\nmd.cpython-311-x86_64-linux-gnu.so\\nmd.py\\nmd__mypyc.cpython-311-x86_64-linux-gnu.so\\nmodels.py\\npy.typed\\nutils.py\\nversion.py\\n\\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><details class="trace"><summary>code_execution</summary><pre>{
+  &quot;code&quot;: &quot;\nimport subprocess, os\nbase = \&quot;/usr/local/lib/python3.11/site-packages/charset_normalizer/\&quot;\nfor f in [\&quot;md.cpython-311-x86_64-linux-gnu.so\&quot;, \&quot;cd.cpython-311-x86_64-linux-gnu.so\&quot;, \&quot;md__mypyc.cpython-311-x86_64-linux-gnu.so\&quot;]:\n    p = base+f\n    if os.path.exists(p):\n        os.rename(p, p+\&quot;.bak\&quot;)\n\nscript = &#x27;&#x27;&#x27;\nfrom markitdown.converters._html_converter import HtmlConverter\n\nhtml = \&quot;\&quot;\&quot;\n&lt;html&gt;&lt;body&gt;\n&lt;h1&gt;My Report&lt;/h1&gt;\n&lt;p&gt;Some intro text.&lt;/p&gt;\n&lt;table&gt;\n&lt;tr&gt;&lt;td&gt;Name&lt;/td&gt;&lt;td&gt;Score&lt;/td&gt;&lt;/tr&gt;\n&lt;tr&gt;&lt;td&gt;Alice&lt;/td&gt;&lt;td&gt;95&lt;/td&gt;&lt;/tr&gt;\n&lt;/table&gt;\n&lt;/body&gt;&lt;/html&gt;\n\&quot;\&quot;\&quot;\n\nconv = HtmlConverter()\nresult = conv.convert_string(html)\nprint(result.markdown)\n&#x27;&#x27;&#x27;\nwith open(\&quot;/tmp/run2.py\&quot;,\&quot;w\&quot;) as f:\n    f.write(script)\nr = subprocess.run([\&quot;python3\&quot;,\&quot;/tmp/run2.py\&quot;], capture_output=True, text=True)\nprint(\&quot;STDOUT:\\n\&quot;, r.stdout)\nprint(\&quot;STDERR:\\n\&quot;, r.stderr[-2000:])\n&quot;
+}</pre><pre>&quot;CodeExecutionResultBlock(content=[], return_code=0, stderr=&#x27;&#x27;, stdout=&#x27;STDOUT:\\n # My Report\\n\\nSome intro text.\\n\\n|  |  |\\n| --- | --- |\\n| Name | Score |\\n| Alice | 95 |\\n\\nSTDERR:\\n \\n&#x27;, type=&#x27;code_execution_result&#x27;, abort_reason=None)&quot;</pre></details><p><a href="markitdown-docx-2026-11-07-previous.json">Download the original recorded evidence</a></p></main><footer><span>Proofrun · Repository claims, checked with evidence.</span><a href="https://github.com/Ashvanth11/proofrun">Source code &amp; documentation ↗</a></footer>
+</div>
+</body>
+</html>
