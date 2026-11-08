@@ -292,3 +292,43 @@ def test_run_archive_retains_results_beyond_the_recent_feed_window(tmp_path):
     assert len(feed.load_local_runs(path, limit=None)[0]) == 7
     assert 'owner/project0' in (tmp_path / 'site/monitoring.html').read_text()
     assert 'owner/project0' not in (tmp_path / 'site/index.html').read_text()
+
+
+def test_latest_discoveries_survive_failed_screening_without_relabelling_completed_batch(tmp_path):
+    path = tmp_path / 'latest.db'
+    conn = db.connect(path)
+    older = Item(source=Source.GITHUB, source_id='owner/older', title='Older',
+                 url='https://github.com/owner/older', content='Earlier discovery')
+    first = weekly_monitor.run_week(conn, object(), now=datetime(2026, 10, 26, tzinfo=timezone.utc),
+        fetch=lambda **kw: [older], analyze=lambda *a, **kw: None,
+        investigate_candidates=lambda *a, **kw: None)
+    recent = [Item(source=Source.GITHUB, source_id=repo, title=repo,
+        url=f'https://github.com/{repo}', content='Saved project description',
+        raw={'stars': stars, 'language': 'Python'})
+        for repo, stars in [('owner/new', 12), ('owner/popular', 30)]]
+    def failed(*a, **kw):
+        raise RuntimeError('screening failed after discovery')
+    with pytest.raises(RuntimeError, match='screening failed'):
+        weekly_monitor.run_week(conn, object(), now=datetime(2026, 11, 2, 18, 26, tzinfo=timezone.utc),
+            fetch=lambda **kw: recent, analyze=lambda *a, **kw: None, investigate_candidates=failed)
+    conn.close()
+    data = feed.build_feed(path, first)
+    assert feed.validate_feed(data) == data
+    assert data['last_run']['week'] == '2026-W44'
+    assert data['discovery_week'] == '2026-W44'
+    assert data['latest_discovery']['week'] == '2026-W45'
+    assert [r['repo'] for r in data['latest_discovery']['repositories']] == ['owner/popular', 'owner/new']
+    assert data['latest_discovery']['repositories'][0]['stars'] == 30
+    out = tmp_path / 'site'
+    export.export(path, out, first)
+    home = (out / 'index.html').read_text()
+    assert 'owner/popular' in home and 'Nov 2, 2026' in home
+    assert '30 stars' in home
+    assert 'screening failed' not in home
+
+
+def test_invalid_latest_discovery_metadata_is_rejected():
+    with pytest.raises(ValueError, match='stars'):
+        feed.validate_feed({'schema_version': 1, 'investigations': [],
+            'latest_discovery': {'week': '2026-W45', 'captured_at': '2026-11-02T00:00:00Z',
+                'repositories': [{'repo': 'owner/name', 'repository_description': 'Project', 'stars': '30'}]}})

@@ -110,6 +110,54 @@ def load_weekly_discoveries(path: Path = db.DEFAULT_DB_PATH, week: str | None = 
             conn.close()
 
 
+def load_latest_discovery_batch(path: Path = db.DEFAULT_DB_PATH) -> dict | None:
+    """Read the newest captured discovery batch, even if later screening failed."""
+    if not path.exists():
+        return None
+    conn = None
+    try:
+        conn = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if not {"weekly_runs", "weekly_discoveries", "items"} <= tables:
+            return None
+        batch = conn.execute("""
+            SELECT w.week,w.started_at FROM weekly_runs w WHERE EXISTS (
+                SELECT 1 FROM weekly_discoveries d WHERE d.week=w.week
+            ) ORDER BY w.started_at DESC LIMIT 1
+        """).fetchone()
+        if batch is None:
+            return None
+        repos = []
+        for row in conn.execute("""
+            SELECT d.repo,d.description,i.raw_json,i.fetched_at
+            FROM weekly_discoveries d JOIN items i ON i.id=d.item_id
+            WHERE d.week=? ORDER BY d.repo LIMIT 10
+        """, (batch["week"],)):
+            inv.validate_repo(row["repo"])
+            try:
+                metadata = json.loads(row["raw_json"] or "{}")
+                if not isinstance(metadata, dict):
+                    metadata = {}
+            except (ValueError, TypeError):
+                metadata = {}
+            stars = metadata.get("stars")
+            repos.append({
+                "repo": row["repo"], "repository_description": row["description"],
+                "stars": stars if type(stars) is int and stars >= 0 else None,
+                "language": metadata.get("language") if isinstance(metadata.get("language"), str) else None,
+                "metadata_recorded_at": row["fetched_at"],
+            })
+        repos.sort(key=lambda item: (-(item["stars"] if item["stars"] is not None else -1), item["repo"].lower()))
+        return {"week": batch["week"], "captured_at": batch["started_at"], "repositories": repos}
+    except sqlite3.Error:
+        log.exception("could not read latest repository discovery batch")
+        return None
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 def validate_feed(data: Any) -> dict:
     if not isinstance(data, dict) or data.get("schema_version") != 1:
         raise ValueError("unsupported monitoring feed")
@@ -152,6 +200,22 @@ def validate_feed(data: Any) -> dict:
         if last.get("status") != "completed" or not isinstance(last["investigated"], int):
             raise ValueError("invalid monitoring run")
         datetime.fromisoformat(last["finished_at"])
+    latest = data.get("latest_discovery")
+    if latest is not None:
+        if not isinstance(latest, dict) or not isinstance(latest.get("week"), str):
+            raise ValueError("invalid latest discovery batch")
+        datetime.fromisoformat(latest["captured_at"])
+        repos = latest.get("repositories")
+        if not isinstance(repos, list) or len(repos) > 10:
+            raise ValueError("invalid latest repository list")
+        for repo in repos:
+            inv.validate_repo(repo["repo"])
+            if not isinstance(repo["repository_description"], str):
+                raise ValueError("invalid discovery description")
+            if repo.get("stars") is not None and (type(repo["stars"]) is not int or repo["stars"] < 0):
+                raise ValueError("invalid discovery stars")
+            if repo.get("language") is not None and not isinstance(repo["language"], str):
+                raise ValueError("invalid discovery language")
     return data
 
 
@@ -193,6 +257,7 @@ def build_feed(path: Path, last_run: dict | None) -> dict:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "last_run": last_run,
         "latest_attempt": latest_attempt,
+        "latest_discovery": load_latest_discovery_batch(path),
         "investigations": views,
         **load_weekly_discoveries(path, last_run.get("week") if last_run else None),
     }

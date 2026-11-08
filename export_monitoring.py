@@ -150,7 +150,7 @@ def export(db_path: Path, out: Path, last_run: dict | None = None) -> dict:
     landing = render({**feed, "investigations": archive_views}, has_history=history.exists())
     (out / "monitoring.json").write_text(json.dumps(feed, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     (out / "monitoring.html").write_text(landing, encoding="utf-8")
-    export_showcase(out)
+    export_showcase(out, discoveries=feed.get("latest_discovery"))
     return feed
 
 

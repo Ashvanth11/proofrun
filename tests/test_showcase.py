@@ -50,3 +50,18 @@ def test_finding_and_original_trace_escape_repository_controlled_text():
     assert 'script' not in parsed.tags and 'img' not in parsed.tags
     assert 'iframe' not in parsed.tags
     assert HOSTILE in ''.join(parsed.text)
+
+
+def test_discovery_cards_escape_descriptions_and_link_to_matching_investigation():
+    findings = showcase.load_findings()
+    batch = {'week': '2026-W45', 'captured_at': '2026-11-02T18:26:00+00:00', 'repositories': [
+        {'repo': 'pydantic/pydantic-ai', 'repository_description': HOSTILE, 'stars': 20997, 'language': 'Python'},
+    ]}
+    rendered = showcase.render_home(findings, batch)
+    parsed = Parsed()
+    parsed.feed(rendered)
+    assert 'script' not in parsed.tags and 'img' not in parsed.tags
+    assert '20,997 stars' in rendered
+    assert 'Read the investigation' in rendered
+    assert 'trending' not in rendered.lower()
+    assert HOSTILE in ''.join(parsed.text)

@@ -42,6 +42,13 @@ The earlier Gemini comparison remains documented in
   investigating a backlog candidate can leave all ten discoveries listed.
   Failed batches are not published as completed discoveries. Older databases
   and feeds without captured batches remain readable.
+- The homepage also has **Recently discovered**, using the newest captured
+  batch even if later analysis or screening failed. It is labeled as saved
+  discovery data with a local date, GitHub descriptions, primary languages and
+  recorded star counts. This does not turn a failed run into a completed one
+  or promote discovery descriptions into investigation findings. Stars are
+  popularity snapshots, not growth measurements; metadata timestamps are
+  retained separately. The latest-completed-batch feed above is unchanged.
 - The Streamlit UI reads that public feed at most once per five minutes of page
   use, merges it with local automatic results, and falls back gracefully when
   offline. A local database is not required to read published weekly results.

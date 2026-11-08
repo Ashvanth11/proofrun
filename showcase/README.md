@@ -11,6 +11,13 @@ scope review checked the actual tool results. Set `manually_reviewed` only after
 that pass. This flag denotes the extra evidence review; it does not establish
 independent replication or a human reviewer. Every selected record needs a
 narrow summary, concrete checks, explicit limitations, and a review note.
+Each card also supplies `repo_description`, `claim`, and `test_description` so
+readers can understand the project and the experiment before opening the trace.
+
+Repository discovery is populated independently from saved monitoring state.
+The newest captured batch can be displayed even if later screening failed.
+Descriptions remain attributed to GitHub, and star counts are recorded
+popularity snapshots rather than an estimate of growth or current trending.
 
 The automatic report remains unedited in its source JSON. Presentation can
 narrow unsupported wording, but must not fabricate a stronger result. Preserve

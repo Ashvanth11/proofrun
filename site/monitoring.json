@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-08T07:26:55.985123+00:00",
+  "generated_at": "2026-11-08T08:04:19.883062+00:00",
   "last_run": {
     "week": "2026-W44",
     "status": "completed",
@@ -16,6 +16,82 @@
     "finished_at": "2026-11-02T18:26:42.597403+00:00",
     "discovered": 0,
     "investigated": 0
+  },
+  "latest_discovery": {
+    "week": "2026-W45",
+    "captured_at": "2026-11-02T18:26:07.400734+00:00",
+    "repositories": [
+      {
+        "repo": "NousResearch/hermes-agent",
+        "repository_description": "The agent that grows with you",
+        "stars": 259763,
+        "language": "Python",
+        "metadata_recorded_at": "2026-11-02T18:26:08.059830+00:00"
+      },
+      {
+        "repo": "BerriAI/litellm",
+        "repository_description": "The fastest, litest AI Gateway. Rust core with Python SDK. Call 100+ LLM APIs in OpenAI (or native) format with cost tracking, guardrails, load balancing, and logging [Bedrock, Azure, OpenAI, Anthropic, OpenAI, VertexAI, vLLM, Nvidia NIM]",
+        "stars": 62562,
+        "language": "Python",
+        "metadata_recorded_at": "2026-11-02T18:26:09.300257+00:00"
+      },
+      {
+        "repo": "comet-ml/opik",
+        "repository_description": "Debug, evaluate, and monitor your LLM applications, RAG systems, and agentic workflows with comprehensive tracing, automated evaluations, and production-ready dashboards.",
+        "stars": 23122,
+        "language": "Python",
+        "metadata_recorded_at": "2026-11-02T18:26:09.300369+00:00"
+      },
+      {
+        "repo": "google/adk-python",
+        "repository_description": "An open-source, code-first Python toolkit for building, evaluating, and deploying sophisticated AI agents with flexibility and control.",
+        "stars": 22083,
+        "language": "Python",
+        "metadata_recorded_at": "2026-11-02T18:26:08.059816+00:00"
+      },
+      {
+        "repo": "pydantic/pydantic-ai",
+        "repository_description": "How Python does AI. Agents, realtime voice, image generation, embeddings. Every model, every interface, typed end to end.",
+        "stars": 20997,
+        "language": "Python",
+        "metadata_recorded_at": "2026-11-02T18:26:08.658271+00:00"
+      },
+      {
+        "repo": "e2b-dev/E2B",
+        "repository_description": "Open-source, secure environment with real-world tools for enterprise-grade agents.",
+        "stars": 14676,
+        "language": "Python",
+        "metadata_recorded_at": "2026-11-02T18:26:08.059896+00:00"
+      },
+      {
+        "repo": "Arize-ai/phoenix",
+        "repository_description": "AI Observability & Evaluation",
+        "stars": 12103,
+        "language": "Python",
+        "metadata_recorded_at": "2026-11-02T18:26:09.300295+00:00"
+      },
+      {
+        "repo": "omnigent-ai/omnigent",
+        "repository_description": "Omnigent is an open-source AI agent framework and meta-harness: orchestrate Claude Code, Codex, Cursor, Pi, and custom agents — swap harnesses without rewriting, enforce policies and sandboxing, and collaborate in real time from any device.",
+        "stars": 11174,
+        "language": "Python",
+        "metadata_recorded_at": "2026-11-02T18:26:08.059870+00:00"
+      },
+      {
+        "repo": "strands-agents/harness-sdk",
+        "repository_description": "Build an agent harness and control it end-to-end. Open-source SDK for production AI agents in Python & TypeScript - any model, any cloud.",
+        "stars": 9029,
+        "language": "Python",
+        "metadata_recorded_at": "2026-11-02T18:26:08.059850+00:00"
+      },
+      {
+        "repo": "TokenRhythm/opensquilla",
+        "repository_description": "OpenSquilla — Token-Efficient AI Agent with same budget, higher intelligence density",
+        "stars": 7106,
+        "language": "Python",
+        "metadata_recorded_at": "2026-11-02T18:26:08.059907+00:00"
+      }
+    ]
   },
   "investigations": [
     {

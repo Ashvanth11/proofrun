@@ -17,11 +17,14 @@
         "The output adds an empty Markdown header row. This establishes preservation of the table content, not identical formatting or header semantics.",
         "The source checkout was installed in editable mode with its DOCX dependencies. No explicit repository commit hash was captured."
       ],
-      "review_note": "The presentation is based on the actual command output. The original inconclusive investigation is preserved below; it is not overwritten by this rerun. The selected finding makes no licensing claim.",
+      "review_note": "The presentation is based on the actual command output. The original inconclusive investigation is preserved below; it is not overwritten by this rerun. This finding makes no licensing claim.",
       "estimated_cost_usd": 0.108518,
       "source": "markitdown-2026-11-07.json",
       "previous_source": "markitdown-original.json",
-      "manually_reviewed": true
+      "manually_reviewed": true,
+      "repo_description": "Microsoft’s Python tool for converting documents into Markdown, a plain-text document format.",
+      "claim": "A Word document can be converted to Markdown while preserving its heading and table contents, without an LLM API.",
+      "test_description": "Created a DOCX file with one heading and a 2×2 table, then ran MarkItDown’s default converter in a Docker sandbox with runtime network access disabled."
     },
     {
       "slug": "pydantic-ai-validation-2026-11-07",
@@ -42,7 +45,10 @@
       "review_note": "The original automated report uses stronger wording about pure Python and coercion. This reviewed presentation narrows the conclusion to the two observed validation behaviors; the original remains unedited in the evidence below.",
       "estimated_cost_usd": 0.36383,
       "source": "pydantic-ai-2026-11-07.json",
-      "manually_reviewed": true
+      "manually_reviewed": true,
+      "repo_description": "A Python library for building AI agents with structured outputs validated against Pydantic schemas.",
+      "claim": "An agent configured with a structured output type returns a matching model for valid data and rejects data that violates the schema.",
+      "test_description": "Ran the library with its local TestModel backend and a City schema containing two string fields. Tested valid data, then supplied an integer for one field and inspected the resulting error."
     }
   ]
 }

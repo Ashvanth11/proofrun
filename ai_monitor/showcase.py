@@ -5,6 +5,8 @@ import json
 import re
 import html
 from pathlib import Path
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -27,6 +29,9 @@ class Finding(BaseModel):
     repo: str
     date: str
     title: str
+    repo_description: str
+    claim: str
+    test_description: str
     summary: str
     method: str
     checks: list[str]
@@ -117,6 +122,21 @@ STYLES = """
 .portfolio .repo-name { color: #657772; font: .74rem ui-monospace, monospace; }
 .portfolio .finding h3 { font-size: 1.5rem; letter-spacing: -.04em; margin: 1.1rem 0 .6rem; line-height: 1.25; }
 .portfolio .finding-summary { color: #536765; max-width: 51rem; font-size: .95rem; }
+.portfolio .finding-context { display: grid; grid-template-columns: 1fr 1.2fr; gap: 1.1rem 1.8rem; margin: 1.25rem 0; padding: 1.15rem 0; border-block: 1px solid #e6ece7; }
+.portfolio .finding-context .test-method { grid-column: 1 / -1; }
+.portfolio .finding-context dt { color: #657772; font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 650; margin-bottom: .4rem; }
+.portfolio .finding-context dd { margin: 0; font-size: .87rem; line-height: 1.65; color: #455c5a; }
+.portfolio .finding-result-label { font-size: .75rem; margin: 1.2rem 0 .35rem; color: #172d30; }
+.portfolio .discovery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.portfolio .discovery-card { display: flex; flex-direction: column; border: 1px solid #d7e2dc; border-radius: .6rem; padding: 1.2rem; background: #fff; }
+.portfolio .discovery-card h3 { font: 650 .83rem/1.5 ui-monospace, monospace; margin: .5rem 0 .7rem; }
+.portfolio .discovery-card h3 a { text-decoration: none; }
+.portfolio .discovery-card p { font-size: .82rem; line-height: 1.65; color: #536765; margin: 0 0 1rem; }
+.portfolio .discovery-meta { font-size: .68rem; color: #657772; }
+.portfolio .discovery-card .discovery-action { margin-top: auto; font-size: .75rem; padding-top: .6rem; }
+.portfolio .batch-date { font-size: .74rem; color: #657772; margin: -.3rem 0 1.2rem; }
+.portfolio .more-repos { margin-top: .75rem; }
+.portfolio .more-repos summary { font-size: .82rem; color: #126c60; padding: .8rem 0; }
 .portfolio .status { font-size: .7rem; background: #e5f3e9; color: #276245; border: 1px solid #c9e4d1; border-radius: 2rem; padding: .25rem .7rem; font-weight: 650; }
 .portfolio .proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
 .portfolio .proof-item { background: #f4f7f4; border-radius: .4rem; padding: .85rem 1rem; font-size: .83rem; }
@@ -152,6 +172,8 @@ STYLES = """
  .portfolio .section-top { flex-direction: column; align-items: flex-start; gap: .5rem; margin-top: 3rem; }
  .portfolio .pipeline { grid-template-columns: 1fr 1fr; }
  .portfolio .finding { padding: 1.4rem; }
+ .portfolio .finding-context { grid-template-columns: 1fr; gap: 1rem; }
+ .portfolio .discovery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  .portfolio .site-nav { align-items: flex-start; }
  .portfolio nav { gap: .6rem 1rem; justify-content: flex-end; }
  .portfolio .archive-link { flex-direction: column; align-items: flex-start; gap: .8rem; }
@@ -160,19 +182,65 @@ STYLES = """
  .portfolio .proof-grid { grid-template-columns: 1fr; }
  .portfolio .site-nav { flex-direction: column; gap: 1rem; }
  .portfolio .pipeline { grid-template-columns: 1fr; gap: 1rem; }
+ .portfolio .discovery-grid { grid-template-columns: 1fr; }
 }
 """
 
 
 def shell(title: str, body: str, *, nested=False) -> str:
     prefix = '../' if nested else ''
-    nav = f'''<a class="skip" href="#content">Skip to content</a><header class="site-nav"><a class="brand" href="{prefix}index.html"><span class="brand-mark" aria-hidden="true">p/</span>Proofrun</a><nav aria-label="Main navigation"><a href="{prefix}index.html#selected-findings">Findings</a><a href="{prefix}index.html#method">How it works</a><a href="{prefix}monitoring.html">Run archive</a><a href="https://github.com/Ashvanth11/proofrun">GitHub ↗</a></nav></header>'''
+    nav = f'''<a class="skip" href="#content">Skip to content</a><header class="site-nav"><a class="brand" href="{prefix}index.html"><span class="brand-mark" aria-hidden="true">p/</span>Proofrun</a><nav aria-label="Main navigation"><a href="{prefix}index.html#selected-findings">Findings</a><a href="{prefix}index.html#recent-discoveries">Discoveries</a><a href="{prefix}index.html#method">How it works</a><a href="{prefix}monitoring.html">Run archive</a><a href="https://github.com/Ashvanth11/proofrun">GitHub ↗</a></nav></header>'''
     footer = '<footer><span>Proofrun · Repository claims, checked with evidence.</span><a href="https://github.com/Ashvanth11/proofrun">Source code &amp; documentation ↗</a></footer>'
     rendered = page(title, nav + '<main id="content">' + body + '</main>' + footer).replace('<body>', '<body class="portfolio">').replace('</style>', STYLES + '</style>')
     return rendered.replace('</head>', '<meta name="description" content="Proofrun investigates AI repository claims with isolated experiments, recorded outputs, and evidence review. Explore findings and their test traces.">\n</head>')
 
 
-def render_home(findings: list[tuple[Finding, dict]]) -> str:
+def finding_context(finding: Finding) -> str:
+    return (
+        '<dl class="finding-context">'
+        f'<div><dt>The repository</dt><dd>{safe(finding.repo_description)}</dd></div>'
+        f'<div><dt>The claim tested</dt><dd>{safe(finding.claim)}</dd></div>'
+        f'<div class="test-method"><dt>How we tested it</dt><dd>{safe(finding.test_description)}</dd></div>'
+        '</dl>'
+    )
+
+
+def render_discoveries(batch: dict | None, findings: list[tuple[Finding, dict]]) -> str:
+    body = '<section id="recent-discoveries"><div class="section-top"><div><p class="overline">Repository discovery</p><h2>Recently discovered.</h2></div><p class="section-note">Recently active projects from the latest saved run, ordered by recorded GitHub stars. Descriptions come from GitHub.</p></div>'
+    if not batch or not batch.get('repositories'):
+        return body + '<p class="section-note">Repositories will appear here after the next saved discovery batch.</p></section>'
+    date = datetime.fromisoformat(batch['captured_at'])
+    if date.tzinfo is None:
+        date = date.replace(tzinfo=timezone.utc)
+    date = date.astimezone(ZoneInfo('America/Los_Angeles'))
+    date_label = f'{date:%b} {date.day}, {date.year}'
+    repos = batch['repositories']
+    reviewed = {finding.repo.lower(): finding for finding, _ in findings}
+    body += f'<p class="batch-date">Saved discovery batch · {safe(date_label)} · {len(repos)} repositories</p>'
+    def card(repo):
+        name = repo['repo']
+        validate_repo(name)
+        parts = []
+        if repo.get('language'):
+            parts.append(safe(repo['language']))
+        if repo.get('stars') is not None:
+            parts.append(f'{repo["stars"]:,} stars')
+        meta = ' · '.join(parts)
+        recorded = repo.get('metadata_recorded_at')
+        metadata_title = f'GitHub metadata recorded {recorded}' if recorded else 'Saved GitHub metadata'
+        found = f'<article class="discovery-card"><div class="discovery-meta" title="{safe(metadata_title)}">{meta}</div><h3><a href="https://github.com/{safe(name)}">{safe(name)} ↗</a></h3><p>{safe(repo["repository_description"] or "No description supplied.", 220)}</p>'
+        if name.lower() in reviewed:
+            found += f'<a class="discovery-action" href="findings/{safe(reviewed[name.lower()].slug)}.html">Read the investigation →</a>'
+        else:
+            found += f'<a class="discovery-action" href="https://github.com/{safe(name)}">Explore repository ↗</a>'
+        return found + '</article>'
+    body += '<div class="discovery-grid">' + ''.join(card(repo) for repo in repos[:6]) + '</div>'
+    if len(repos) > 6:
+        body += f'<details class="more-repos"><summary>View all {len(repos)} repositories</summary><div class="discovery-grid">' + ''.join(card(repo) for repo in repos[6:]) + '</div></details>'
+    return body + '</section>'
+
+
+def render_home(findings: list[tuple[Finding, dict]], discoveries: dict | None = None) -> str:
     body = '<!-- proofrun-weekly-landing --><!-- proofrun-curated-showcase -->'
     body += '<section class="intro"><div><p class="overline">An agent for testing AI tools</p><h1>AI claims.<br><em>Put to the test.</em></h1><p class="intro-copy">An agent that inspects repositories, runs isolated experiments, and explains exactly what the evidence supports.</p><div class="actions"><a class="primary" href="#selected-findings">Explore the findings ↓</a><a class="secondary" href="https://github.com/Ashvanth11/proofrun">Explore the code ↗</a></div></div>'
     if findings:
@@ -195,13 +263,16 @@ def render_home(findings: list[tuple[Finding, dict]]) -> str:
     body += '<section id="selected-findings"><div class="section-top"><div><p class="overline">Investigations</p><h2>Findings you can inspect.</h2></div><p class="section-note">Explore repository claims, the tests behind each conclusion, and what remains unverified.</p></div>'
     for finding, record in findings:
         verdict = Investigation.model_validate(record['report']).verdict
-        body += f'<article class="finding"><div class="finding-top"><span class="repo-name">{safe(finding.repo)}</span><span class="status">{safe(verdict.title())} · reviewed scope</span></div><h3>{safe(finding.title)}</h3><p class="finding-summary">{safe(finding.summary)}</p><div class="proof-grid">'
+        body += f'<article class="finding"><div class="finding-top"><a class="repo-name" href="https://github.com/{safe(finding.repo)}">{safe(finding.repo)} ↗</a><span class="status">{safe(verdict.title())} · reviewed scope</span></div><h3>{safe(finding.title)}</h3>'
+        body += finding_context(finding)
+        body += f'<h4 class="finding-result-label">What we found</h4><p class="finding-summary">{safe(finding.summary)}</p><div class="proof-grid">'
         for index, check in enumerate(finding.checks[:2], 1):
             body += f'<div class="proof-item"><span>Check {index:02}</span>{safe(check)}</div>'
         body += f'</div><div class="finding-footer"><span>{safe(finding.date)} · {safe(finding.method)}</span><a href="findings/{safe(finding.slug)}.html">Read the experiment &amp; evidence →</a></div></article>'
     if not findings:
         body += '<p>Reviewed findings are being prepared. The run archive remains available.</p>'
-    body += '</section><section id="method"><div class="section-top"><div><p class="overline">Under the hood</p><h2>A claim becomes an experiment.</h2></div><p class="section-note">Bounded investigation, isolated execution, and an evidence ledger make each conclusion inspectable.</p></div><div class="pipeline">'
+    body += '</section>' + render_discoveries(discoveries, findings)
+    body += '<section id="method"><div class="section-top"><div><p class="overline">Under the hood</p><h2>A claim becomes an experiment.</h2></div><p class="section-note">Bounded investigation, isolated execution, and an evidence ledger make each conclusion inspectable.</p></div><div class="pipeline">'
     for n, title, description in [
         ('01', 'Find a testable claim', 'Read repository evidence and screen against the available runtime, resources, and credentials.'),
         ('02', 'Run in isolation', 'Use a resource-limited Docker sandbox. Setup can install dependencies; execution has no network.'),
@@ -231,7 +302,8 @@ def render_record(record: dict) -> str:
 
 
 def render_finding(finding: Finding, record: dict) -> str:
-    body = f'<section class="detail-intro"><p class="overline">{safe(finding.repo)} · {safe(finding.date)}</p><h1>{safe(finding.title)}</h1><p class="intro-copy">{safe(finding.summary)}</p><p class="meta">{safe(finding.method)} · estimated token cost ${finding.estimated_cost_usd:.3f}</p></section><h2>What the experiment established</h2><ul>'
+    body = f'<section class="detail-intro"><p class="overline">{safe(finding.repo)} · {safe(finding.date)}</p><h1>{safe(finding.title)}</h1><p class="intro-copy">{safe(finding.summary)}</p><p class="meta">{safe(finding.method)} · estimated token cost ${finding.estimated_cost_usd:.3f}</p></section>'
+    body += finding_context(finding) + '<h2>What the experiment established</h2><ul>'
     for check in finding.checks:
         body += f'<li>{safe(check)}</li>'
     body += '</ul><h2>Recorded output</h2>'
@@ -254,9 +326,11 @@ def render_finding(finding: Finding, record: dict) -> str:
     return shell(f'Proofrun — {safe(finding.title)}', body, nested=True)
 
 
-def export_showcase(out: Path, root: Path = SHOWCASE_DIR) -> None:
+def export_showcase(out: Path, root: Path = SHOWCASE_DIR, *, discoveries: dict | None = None) -> None:
     findings = load_findings(root)
-    (out / 'index.html').write_text(render_home(findings))
+    if discoveries is None and (out / 'monitoring.json').exists():
+        discoveries = json.loads((out / 'monitoring.json').read_text()).get('latest_discovery')
+    (out / 'index.html').write_text(render_home(findings, discoveries))
     evidence_dir = out / 'findings'
     evidence_dir.mkdir(exist_ok=True)
     for finding, record in findings:

@@ -48,6 +48,12 @@ recorded evidence. Dated case studies show actual test outputs and limitations;
 reruns link to preserved original investigations. This curated selection is not
 an estimate of the agent's overall success rate.
 
+Investigation cards explain the repository, the specific claim, the test method,
+and the observed result. A separate discovery section lists repositories from
+the newest saved batch with descriptions, languages, and recorded GitHub stars.
+It shows the snapshot date and orders by saved star count; it does not measure
+star growth or a live trending rank.
+
 The [run archive](https://ashvanth11.github.io/proofrun/monitoring.html) retains
 automatic monitoring results, including inconclusive and blocked outcomes.
 [Historical benchmark traces](https://ashvanth11.github.io/proofrun/history.html)
