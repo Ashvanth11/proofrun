@@ -73,6 +73,22 @@ jobs:
           else
             python weekly_monitor.py
           fi
+      - name: Prepare publication review without model calls
+        if: success() && vars.AUTOMATIC_PUBLICATION_REVIEW_ENABLED == 'true'
+        run: python scripts/review_publication.py --prepare-only
+      - name: Checkpoint before publication review
+        if: success() && vars.AUTOMATIC_PUBLICATION_REVIEW_ENABLED == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: proofrun-monitor-state-checkpoint
+          path: weekly-state/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Review the new finding for automatic publication
+        if: success() && vars.AUTOMATIC_PUBLICATION_REVIEW_ENABLED == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/review_publication.py --execute-prepared
       - name: Save state even after a failed attempt
         if: always()
         uses: actions/upload-artifact@v4

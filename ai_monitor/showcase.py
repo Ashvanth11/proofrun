@@ -14,6 +14,7 @@ from ai_monitor.agent.investigate import Investigation, validate_repo
 from ai_monitor.agent.loop import ToolCall
 from export_traces import page, safe
 from ai_monitor.agent.investigate_runner import _CONTROL
+from ai_monitor.publication import AutomaticReview, automatic_approval_valid
 
 SHOWCASE_DIR = Path(__file__).resolve().parents[1] / 'showcase'
 
@@ -41,6 +42,7 @@ class Finding(BaseModel):
     source: str
     previous_source: str | None = None
     manually_reviewed: bool
+    automated_review: AutomaticReview | None = None
 
     @field_validator('slug')
     @classmethod
@@ -63,7 +65,7 @@ class Finding(BaseModel):
         return value
 
 
-def load_findings(root: Path = SHOWCASE_DIR) -> list[tuple[Finding, dict]]:
+def load_findings(root: Path = SHOWCASE_DIR, *, require_automatic: bool = False) -> list[tuple[Finding, dict]]:
     manifest = root / 'findings.json'
     if not manifest.exists():
         return []
@@ -76,7 +78,11 @@ def load_findings(root: Path = SHOWCASE_DIR) -> list[tuple[Finding, dict]]:
         finding = Finding.model_validate(entry)
         record = json.loads((root / finding.source).read_text())
         report = Investigation.model_validate(record['report'])
-        if not finding.manually_reviewed or report.verdict not in {'supported', 'refuted'} or record.get('downgraded'):
+        automatic = automatic_approval_valid(finding.model_dump(), record) if finding.automated_review else False
+        reviewed = automatic if require_automatic else finding.manually_reviewed or automatic
+        if require_automatic and (finding.manually_reviewed or finding.previous_source is not None):
+            reviewed = False
+        if not reviewed or report.verdict not in {'supported', 'refuted'} or record.get('downgraded'):
             raise ValueError('showcase requires a reviewed conclusive finding')
         if record['repo'] != finding.repo or finding.slug in seen:
             raise ValueError('finding/source mismatch or duplicate slug')
@@ -263,7 +269,8 @@ def render_home(findings: list[tuple[Finding, dict]], discoveries: dict | None =
     body += '<section id="selected-findings"><div class="section-top"><div><p class="overline">Investigations</p><h2>Findings you can inspect.</h2></div><p class="section-note">Explore repository claims, the tests behind each conclusion, and what remains unverified.</p></div>'
     for finding, record in findings:
         verdict = Investigation.model_validate(record['report']).verdict
-        body += f'<article class="finding"><div class="finding-top"><a class="repo-name" href="https://github.com/{safe(finding.repo)}">{safe(finding.repo)} ↗</a><span class="status">{safe(verdict.title())} · reviewed scope</span></div><h3>{safe(finding.title)}</h3>'
+        review_label = 'reviewed scope' if finding.manually_reviewed else 'automated review'
+        body += f'<article class="finding"><div class="finding-top"><a class="repo-name" href="https://github.com/{safe(finding.repo)}">{safe(finding.repo)} ↗</a><span class="status">{safe(verdict.title())} · {review_label}</span></div><h3>{safe(finding.title)}</h3>'
         body += finding_context(finding)
         body += f'<h4 class="finding-result-label">What we found</h4><p class="finding-summary">{safe(finding.summary)}</p><div class="proof-grid">'
         for index, check in enumerate(finding.checks[:2], 1):
@@ -319,6 +326,12 @@ def render_finding(finding: Finding, record: dict) -> str:
     for limitation in finding.limitations:
         body += f'<li>{safe(limitation)}</li>'
     body += f'</ul></section><p class="review-note">Presentation review: {safe(finding.review_note)}</p>'
+    if finding.automated_review:
+        stamp = finding.automated_review
+        body += f'<details><summary>Automated publication review</summary><p>{safe(stamp.model)} · {safe(stamp.reviewed_at)}</p>'
+        for check in stamp.decision.claim_checks:
+            body += f'<p>{safe(check.statement)}<br>{safe(check.reason)}<br><code>{safe(", ".join(check.evidence_refs))}</code></p>'
+        body += f'<p><a href="{safe(finding.slug)}-review.json">Download the publication review</a></p></details>'
     body += '<details><summary>Original automated report and tool trace — unedited</summary>' + render_record(record) + '</details>'
     body += f'<p><a href="{safe(finding.slug)}.json">Download the recorded evidence JSON</a> · <a href="https://github.com/{safe(finding.repo)}">Repository ↗</a></p>'
     if finding.previous_source:
@@ -326,8 +339,14 @@ def render_finding(finding: Finding, record: dict) -> str:
     return shell(f'Proofrun — {safe(finding.title)}', body, nested=True)
 
 
-def export_showcase(out: Path, root: Path = SHOWCASE_DIR, *, discoveries: dict | None = None) -> None:
+def export_showcase(out: Path, root: Path = SHOWCASE_DIR, *, discoveries: dict | None = None,
+                    automatic_root: Path | None = None) -> None:
     findings = load_findings(root)
+    if automatic_root is not None:
+        automatic = load_findings(automatic_root, require_automatic=True)
+        findings = sorted(automatic, key=lambda item: item[0].date, reverse=True) + findings
+        if len({finding.slug for finding, _ in findings}) != len(findings):
+            raise ValueError('duplicate static/automatic finding slug')
     if discoveries is None and (out / 'monitoring.json').exists():
         discoveries = json.loads((out / 'monitoring.json').read_text()).get('latest_discovery')
     (out / 'index.html').write_text(render_home(findings, discoveries))
@@ -336,6 +355,10 @@ def export_showcase(out: Path, root: Path = SHOWCASE_DIR, *, discoveries: dict |
     for finding, record in findings:
         (evidence_dir / f'{finding.slug}.html').write_text(render_finding(finding, record))
         (evidence_dir / f'{finding.slug}.json').write_text(json.dumps(record, indent=2) + '\n')
+        if finding.automated_review:
+            review = {'reviewed_copy': finding.automated_review.decision.draft.model_dump(),
+                      'review': finding.automated_review.model_dump()}
+            (evidence_dir / f'{finding.slug}-review.json').write_text(json.dumps(review, indent=2) + '\n')
         if finding.previous_source:
             previous = json.loads((root / finding.previous_source).read_text())
             previous_body = f'<section class="detail-intro"><p class="overline">Original investigation · preserved history</p><h1>{safe(previous["repo"])}</h1><p>{safe(previous["question"])}</p></section>' + render_record(previous)

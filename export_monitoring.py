@@ -9,6 +9,7 @@ from ai_monitor.monitoring_feed import build_feed, load_local_runs
 from ai_monitor.storage.db import DEFAULT_DB_PATH
 from export_traces import page, safe
 from ai_monitor.showcase import export_showcase
+from ai_monitor.publication import STATE_NAME
 
 LINK = '<p id="weekly-monitoring-link"><a href="index.html">&larr; Proofrun showcase</a></p>'
 OLD_LINK = '<p id="weekly-monitoring-link"><a href="monitoring.html">Weekly monitoring: latest repository investigations &rarr;</a></p>'
@@ -150,7 +151,7 @@ def export(db_path: Path, out: Path, last_run: dict | None = None) -> dict:
     landing = render({**feed, "investigations": archive_views}, has_history=history.exists())
     (out / "monitoring.json").write_text(json.dumps(feed, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     (out / "monitoring.html").write_text(landing, encoding="utf-8")
-    export_showcase(out, discoveries=feed.get("latest_discovery"))
+    export_showcase(out, discoveries=feed.get("latest_discovery"), automatic_root=db_path.parent / STATE_NAME)
     return feed
 
 

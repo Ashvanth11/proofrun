@@ -60,6 +60,12 @@ automatic monitoring results, including inconclusive and blocked outcomes.
 remain available separately. Direct questions run in the local Streamlit app.
 The [live site](https://ashvanth11.github.io/proofrun/) updates on publication.
 
+With automatic publication review enabled, new conclusive capability findings
+receive an additional scope/evidence review after the weekly investigation.
+Approved case studies appear on the homepage automatically; other outcomes
+remain in the archive. Automatic review is labeled and retains its evidence.
+See [publication review and cost controls](docs/weekly-monitoring.md#automatic-publication-review).
+
 ### Run the local app
 
 Use Python 3.11. Browsing the recorded examples and published weekly results

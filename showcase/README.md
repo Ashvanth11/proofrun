@@ -41,3 +41,18 @@ python export_monitoring.py --db /path/to/monitor.db --run-record /path/to/last-
 
 This exports locally. It does not dispatch models or publish. Check sources,
 links, escaping, desktop/mobile appearance, and scope before publishing.
+
+## Automatic case studies
+
+The weekly workflow can add approved records from the durable artifact's
+`publication-state/` directory. It uses a separate publication review and marks
+these records `manually_reviewed=false` with an `automated_review` stamp. The
+stamp binds the reviewed draft to a source hash, policy version, model, date
+and per-claim evidence checks. Export rejects changed copy or evidence, invalid
+references, nonconclusive reports, and missing approvals. The homepage labels
+this route **automated review**; it does not claim human review.
+
+Automatic state is restored alongside the monitoring database and survives
+subsequent deploys; it is not committed into this directory by the workflow.
+Existing source-controlled case studies remain available. Private raw reviewer
+responses, failed drafts and one-use tickets are never exported.

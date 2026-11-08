@@ -218,3 +218,60 @@ silently treating all repositories as new.
 Sources: [scheduled workflow behavior](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule),
 [cache eviction](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching),
 [Pages publishing configuration](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+
+## Automatic publication review
+
+Set the repository variable `AUTOMATIC_PUBLICATION_REVIEW_ENABLED=true` to add
+publication review to the existing weekly monitoring workflow. There is no
+separate schedule: after a completed weekly investigation, the review runs
+before the normal site export/deploy. The saved-state publishing workflow
+never calls models; it restores previously approved case studies.
+
+Only the current completed week's new investigation can trigger review, at
+most once per saved source record. It must be supported/refuted, finish normally,
+have no blocker or integrity downgrade, have a passing final per-claim critique,
+and retain complete tool outputs with unique invocation IDs plus an actual
+successful capability execution. Inconclusive, blocked, incomplete and
+metadata-only cases stay in the archive without an extra review charge.
+
+An eligible case gets one fresh-context Sonnet publication review, with SDK
+retries disabled, a 60,000-byte source-input limit and an 8,192-token output
+allowance. The reviewer checks the experiment against the question and writes
+narrow presentation copy with per-claim invocation references. Every exact
+copy field must be covered by supported checks against successful retained
+invocations. Missing output, unsupported copy, invalid references or an
+uncertain experiment prevents promotion. Source hashes bind the published
+copy to the reviewed evidence. This is automated judgment, not independent
+replication or proof of semantic correctness.
+
+Using the repository's configured token rates, a conservative planning
+allowance for this additional call is about $0.21 per eligible finding; actual
+charges can differ and the rates may change. It is additional to discovery,
+investigation and critique costs and is not a hard billing cap. No eligible
+case means no publication-review API call. A failed or interrupted saved
+attempt is not automatically bought again, even if the workflow is rerun.
+
+Before that call, the workflow uploads `proofrun-monitor-state-checkpoint`.
+Final state is uploaded as `proofrun-monitor-state`. Restore chooses the newest
+unexpired artifact of either name. Approved case studies, source snapshots,
+review decisions and usage persist in `weekly-state/publication-state/`.
+Only the allowlisted manifest and approved snapshots are restored; private raw
+responses and one-use execution tickets are excluded. A restored pending review
+therefore requires explicit inspection instead of silently retrying. If the
+checkpoint upload fails, the paid review step cannot run. Rejections and normal
+provider/parse failures still allow the original report to enter the archive.
+
+The exporter combines approved automatic case studies with existing manually
+scoped records. Automatic records are labeled **automated review** and never
+set `manually_reviewed=true`. They survive later weekly runs and manual site
+publishes. Original database reports remain unchanged. Raw review responses
+(including any thinking blocks) stay in private state artifacts and are not
+copied to the public site. Public evidence snapshots redact local account
+names and refuse detected credential patterns.
+
+Switching the variable to `false` stops new publication-review calls while
+preserving previously approved case studies. This does not disable weekly
+monitoring. Inspect an interrupted/rejected attempt before any explicitly
+requested manual retry; do not delete its review marker to cause an unattended
+repeat. State retention remains 90 days and the existing missing-state bootstrap
+safeguard still applies.
